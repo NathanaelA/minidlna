@@ -118,7 +118,7 @@ inotify.o: inotify.h playlist.h
 image_utils.o: image_utils.h
 tivo_utils.o: config.h tivo_utils.h
 tivo_beacon.o: config.h tivo_beacon.h tivo_utils.h
-tivo_commands.o: config.h tivo_commands.h tivo_utils.h
+tivo_commands.o: config.h tivo_commands.h tivo_utils.h utils.h
 utils.o: utils.h
 sql.o: sql.h
 log.o: log.h
