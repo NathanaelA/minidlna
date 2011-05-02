@@ -217,7 +217,7 @@ get_remote_mac(struct in_addr ip_addr, unsigned char * mac)
 		return 1;
 	while( !feof(arp) )
 	{
-	        matches = fscanf(arp, "%s 0x%X 0x%X %hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
+	        matches = fscanf(arp, "%15s 0x%8X 0x%8X %2hhx:%2hhx:%2hhx:%2hhx:%2hhx:%2hhx",
 		                      remote_ip, &hwtype, &flags,
 		                      &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]);
 		if( matches != 9 )
