@@ -59,6 +59,8 @@ distclean: clean
 install:	minidlna
 	$(INSTALL) -d $(SBININSTALLDIR)
 	$(INSTALL) minidlna $(SBININSTALLDIR)
+
+install-conf:
 	$(INSTALL) -d $(ETCINSTALLDIR)
 	$(INSTALL) --mode=0644 minidlna.conf $(ETCINSTALLDIR)
 
