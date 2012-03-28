@@ -208,7 +208,8 @@ _asf_read_header_extension(FILE *fp, struct song_metadata *psong, __u32 size)
 	if(size < sizeof(asf_header_extension_t))
 		return -1;
 
-	fread(&ext.Reserved1, 1, sizeof(ext.Reserved1), fp);
+	if(sizeof(ext.Reserved1) != fread(&ext.Reserved1, 1, sizeof(ext.Reserved1), fp))
+		return -1;
 	ext.Reserved2 = fget_le16(fp);
 	ext.DataSize = fget_le32(fp);
 
@@ -351,11 +352,7 @@ _asf_load_picture(FILE *fp, int size, void *bm, int *bm_size)
 			else
 			{
 				*bm_size = size;
-				if(size <= *bm_size)
-				{
-					fread(bm, 1, size, fp);
-				}
-				else
+				if(size > *bm_size || fread(bm, 1, size, fp) != size)
 				{
 					DPRINTF(E_ERROR, L_SCANNER, "Overrun %d bytes required\n", size);
 					free(bm);

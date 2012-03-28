@@ -143,9 +143,13 @@ dlna_timestamp_is_present(const char * filename, int * raw_packet_size)
 
 	/* read file header */
 	fd = open(filename, O_RDONLY);
-	read(fd, buffer, MPEG_TS_PACKET_LENGTH_DLNA*3);
+	if( fd < 0 )
+		return 0;
+	i = read(fd, buffer, MPEG_TS_PACKET_LENGTH_DLNA*3);
 	close(fd);
-	for( i=0; i < MPEG_TS_PACKET_LENGTH_DLNA; i++ )
+	if( i < 0 )
+		return 0;
+	for( i = 0; i < MPEG_TS_PACKET_LENGTH_DLNA; i++ )
 	{
 		if( buffer[i] == MPEG_TS_SYNC_CODE )
 		{
@@ -181,10 +185,13 @@ is_tivo_file(const char * path)
 
 	/* read file header */
 	fd = open(path, O_RDONLY);
-	read(fd, buf, 5);
+	if( !fd )
+		return 0;
+	if( read(fd, buf, 5) < 0 )
+		buf[0] = 'X';
 	close(fd);
 
-	return( !memcmp(buf, hdr, 5) );
+	return !memcmp(buf, hdr, 5);
 }
 #endif
 
@@ -738,7 +745,6 @@ GetVideoMetadata(const char * path, char * name)
 	strip_ext(name);
 	//DEBUG DPRINTF(E_DEBUG, L_METADATA, " * size: %jd\n", file.st_size);
 
-	av_register_all();
 	#if LIBAVFORMAT_VERSION_INT >= ((53<<16)+(2<<8)+0)
 	if( avformat_open_input(&ctx, path, NULL, NULL) != 0 )
 	#else

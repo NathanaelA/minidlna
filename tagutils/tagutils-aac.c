@@ -24,20 +24,6 @@
  * This file is derived from mt-daap project.
  */
 
-// _mac_to_unix_time
-static time_t
-_mac_to_unix_time(int t)
-{
-	struct timeval tv;
-	struct timezone tz;
-
-	gettimeofday(&tv, &tz);
-
-	return (t - (365L * 66L * 24L * 60L * 60L + 17L * 60L * 60L * 24L) +
-		(tz.tz_minuteswest * 60));
-}
-
-
 
 // _aac_findatom:
 static long
@@ -278,7 +264,6 @@ _get_aacfileinfo(char *file, struct song_metadata *psong)
 	off_t file_size;
 	int ms;
 	unsigned char buffer[2];
-	int time = 0;
 	aac_object_type_t profile_id = 0;
 
 	psong->vbr_scale = -1;
@@ -298,13 +283,10 @@ _get_aacfileinfo(char *file, struct song_metadata *psong)
 	atom_offset = _aac_lookforatom(infile, "moov:mvhd", (unsigned int*)&atom_length);
 	if(atom_offset != -1)
 	{
-		fseek(infile, 8, SEEK_CUR);
-		fread((void *)&time, sizeof(int), 1, infile);
-		time = ntohl(time);
-		// slimserver prefer to use filesystem time
-		//psong->time_modified = _mac_to_unix_time(time);
-		fread((void*)&sample_size, 1, sizeof(int), infile);
-		fread((void*)&samples, 1, sizeof(int), infile);
+		fseek(infile, 12, SEEK_CUR);
+		if(!fread((void*)&sample_size, 1, sizeof(int), infile) ||
+		   !fread((void*)&samples, 1, sizeof(int), infile))
+			return -1;
 
 		sample_size = ntohl(sample_size);
 		samples = ntohl(samples);
@@ -327,9 +309,8 @@ _get_aacfileinfo(char *file, struct song_metadata *psong)
 	atom_offset = _aac_lookforatom(infile, "moov:trak:mdia:minf:stbl:stsd:alac", (unsigned int*)&atom_length);
 	if(atom_offset != -1) {
 		fseek(infile, atom_offset + 32, SEEK_SET);
-		fread(buffer, sizeof(unsigned char), 2, infile);
-
-		psong->samplerate = (buffer[0] << 8) | (buffer[1]);
+		if (fread(buffer, sizeof(unsigned char), 2, infile) == 2)
+			psong->samplerate = (buffer[0] << 8) | (buffer[1]);
 		goto bad_esds;
 	}
 
@@ -338,9 +319,8 @@ _get_aacfileinfo(char *file, struct song_metadata *psong)
 	if(atom_offset != -1)
 	{
 		fseek(infile, atom_offset + 32, SEEK_SET);
-		fread(buffer, sizeof(unsigned char), 2, infile);
-
-		psong->samplerate = (buffer[0] << 8) | (buffer[1]);
+		if(fread(buffer, sizeof(unsigned char), 2, infile) == 2)
+			psong->samplerate = (buffer[0] << 8) | (buffer[1]);
 
 		fseek(infile, 2, SEEK_CUR);
 
@@ -352,25 +332,24 @@ _get_aacfileinfo(char *file, struct song_metadata *psong)
 			// skip the version number
 			fseek(infile, atom_offset + 4, SEEK_CUR);
 			// should be 0x03, to signify the descriptor type (section)
-			fread((void *)&buffer, 1, 1, infile);
-			if( (buffer[0] != 0x03) || (_aac_check_extended_descriptor(infile) != 0) )
+			if( !fread((void *)&buffer, 1, 1, infile) || (buffer[0] != 0x03) || (_aac_check_extended_descriptor(infile) != 0) )
 				goto bad_esds;
 			fseek(infile, 4, SEEK_CUR);
-			fread((void *)&buffer, 1, 1, infile);
-			if( (buffer[0] != 0x04) || (_aac_check_extended_descriptor(infile) != 0) )
+			if( !fread((void *)&buffer, 1, 1, infile) || (buffer[0] != 0x04) || (_aac_check_extended_descriptor(infile) != 0) )
 				goto bad_esds;
 			fseek(infile, 10, SEEK_CUR); // 10 bytes into section 4 should be average bitrate.  max bitrate is 6 bytes in.
-			fread((void *)&bitrate, sizeof(unsigned int), 1, infile);
-			psong->bitrate = ntohl(bitrate);
-			fread((void *)&buffer, 1, 1, infile);
-			if( (buffer[0] != 0x05) || (_aac_check_extended_descriptor(infile) != 0) )
+			if(fread((void *)&bitrate, sizeof(unsigned int), 1, infile))
+				psong->bitrate = ntohl(bitrate);
+			if( !fread((void *)&buffer, 1, 1, infile) || (buffer[0] != 0x05) || (_aac_check_extended_descriptor(infile) != 0) )
 				goto bad_esds;
 			fseek(infile, 1, SEEK_CUR); // 1 bytes into section 5 should be the setup data
-			fread((void *)&buffer, 2, 1, infile);
-			profile_id = (buffer[0] >> 3); // first 5 bits of setup data is the Audo Profile ID
-			/* Frequency index: (((buffer[0] & 0x7) << 1) | (buffer[1] >> 7))) */
-			samples = ((buffer[1] >> 3) & 0xF);
-			psong->channels = (samples == 7 ? 8 : samples);
+			if(fread((void *)&buffer, 2, 1, infile))
+			{
+				profile_id = (buffer[0] >> 3); // first 5 bits of setup data is the Audo Profile ID
+				/* Frequency index: (((buffer[0] & 0x7) << 1) | (buffer[1] >> 7))) */
+				samples = ((buffer[1] >> 3) & 0xF);
+				psong->channels = (samples == 7 ? 8 : samples);
+			}
 		}
 	}
 bad_esds:

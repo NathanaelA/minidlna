@@ -98,7 +98,7 @@ read_random_bytes(unsigned char *buf, size_t size)
 	i = open("/dev/urandom", O_RDONLY);
 	if(i >= 0)
 	{
-		read(i, buf, size);
+		if(read(i, buf, size));
 		close(i);
 	}
 	/* Paranoia. /dev/urandom may be missing.
