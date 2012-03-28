@@ -200,16 +200,16 @@ check_for_captions(const char * path, sqlite_int64 detailID)
 	/* If we weren't given a detail ID, look for one. */
 	if( !detailID )
 	{
-		id = sql_get_text_field(db, "SELECT ID from DETAILS where PATH glob '%q.*'"
-		                            " and MIME glob 'video/*' limit 1", file);
+		id = sql_get_text_field(db, "SELECT ID from DETAILS where (PATH > '%q.' and PATH <= '%q.z')"
+		                            " and MIME glob 'video/*' limit 1", file, file);
 		if( id )
 		{
-			//DEBUG DPRINTF(E_DEBUG, L_METADATA, "New file %s looks like a caption file.\n", path);
+			//DPRINTF(E_MAXDEBUG, L_METADATA, "New file %s looks like a caption file.\n", path);
 			detailID = strtoll(id, NULL, 10);
 		}
 		else
 		{
-			//DPRINTF(E_DEBUG, L_METADATA, "No file found for caption %s.\n", path);
+			//DPRINTF(E_MAXDEBUG, L_METADATA, "No file found for caption %s.\n", path);
 			goto no_source_video;
 		}
 	}

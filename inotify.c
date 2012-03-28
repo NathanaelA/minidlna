@@ -602,8 +602,8 @@ inotify_remove_directory(int fd, const char * path)
 	/* Invalidate the scanner cache so we don't insert files into non-existent containers */
 	valid_cache = 0;
 	remove_watch(fd, path);
-	sql = sqlite3_mprintf("SELECT ID from DETAILS where PATH glob '%q/*'"
-	                      " UNION ALL SELECT ID from DETAILS where PATH = '%q'", path, path);
+	sql = sqlite3_mprintf("SELECT ID from DETAILS where (PATH > '%q/' and PATH <= '%q/%c')"
+	                      " or PATH = '%q'", path, path, 0xFF, path);
 	if( (sql_get_table(db, sql, &result, &rows, NULL) == SQLITE_OK) )
 	{
 		if( rows )
@@ -620,7 +620,7 @@ inotify_remove_directory(int fd, const char * path)
 	}
 	sqlite3_free(sql);
 	/* Clean up any album art entries in the deleted directory */
-	sql_exec(db, "DELETE from ALBUM_ART where PATH glob '%q/*'", path);
+	sql_exec(db, "DELETE from ALBUM_ART where (PATH > '%q/' and PATH <= '%q/%c')", path, path, 0xFF);
 
 	return ret;
 }
