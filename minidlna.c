@@ -158,7 +158,7 @@ sigterm(int sig)
 	/*errno = save_errno;*/
 }
 
-/* record the startup time, for returning uptime */
+/* record the startup time */
 static void
 set_startup_time(void)
 {
@@ -263,6 +263,7 @@ getfriendlyname(char * buf, int len)
 		}
 	}
 	fclose(info);
+#if PNPX
 	memcpy(pnpx_hwid+4, "01F2", 4);
 	if( strcmp(modelnumber, "NVX") == 0 )
 		memcpy(pnpx_hwid+17, "0101", 4);
@@ -285,6 +286,7 @@ getfriendlyname(char * buf, int len)
 		memcpy(pnpx_hwid+17, "0108", 4);
 	else if( strcmp(modelnumber, "NV+ v2") == 0 )
 		memcpy(pnpx_hwid+17, "0109", 4);
+#endif
 #else
 	char * logname;
 	logname = getenv("LOGNAME");

@@ -40,7 +40,6 @@ enum upnpconfigoptions {
 	UPNPPORT,			/* port */
 	UPNPPRESENTATIONURL,		/* presentation_url */
 	UPNPNOTIFY_INTERVAL,		/* notify_interval */
-	UPNPSYSTEM_UPTIME,		/* system_uptime */
 	UPNPUUID,			/* uuid */
 	UPNPSERIAL,			/* serial */
 	UPNPMODEL_NAME,			/* model_name */

@@ -926,12 +926,21 @@ ProcessHttpQuery_upnphttp(struct upnphttp * h)
 		if(strcmp(ROOTDESC_PATH, HttpUrl) == 0)
 		{
 			/* If it's a Xbox360, we might need a special friendly_name to be recognized */
-			if( (h->req_client == EXbox) && !strchr(friendly_name, ':') )
+			if( h->req_client == EXbox )
 			{
-				i = strlen(friendly_name);
-				snprintf(friendly_name+i, FRIENDLYNAME_MAX_LEN-i, ": 1");
+				char model_sav[2];
+				i = 0;
+				memcpy(model_sav, modelnumber, 2);
+				strcpy(modelnumber, "1");
+				if( !strchr(friendly_name, ':') )
+				{
+					i = strlen(friendly_name);
+					snprintf(friendly_name+i, FRIENDLYNAME_MAX_LEN-i, ": 1");
+				}
 				sendXMLdesc(h, genRootDesc);
-				friendly_name[i] = '\0';
+				if( i )
+					friendly_name[i] = '\0';
+				memcpy(modelnumber, model_sav, 2);
 			}
 			else if( h->reqflags & FLAG_SAMSUNG_TV )
 			{
