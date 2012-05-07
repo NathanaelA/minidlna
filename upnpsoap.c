@@ -1074,6 +1074,7 @@ callback(void *args, int argc, char **argv, char **azColName)
 		/* If the client calls for BrowseMetadata on root, we have to include our "upnp:searchClass"'s, unless they're filtered out */
 		if( (passed_args->requested == 1) && (strcmp(id, "0") == 0) )
 		{
+			ret = strcatf(str, " searchable=\"1\"");
 			if( passed_args->filter & FILTER_UPNP_SEARCHCLASS )
 			{
 				ret = strcatf(str, "&gt;"
