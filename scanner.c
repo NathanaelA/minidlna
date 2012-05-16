@@ -62,6 +62,7 @@
 
 #include <sqlite3.h>
 
+#include "scanner_sqlite.h"
 #include "upnpglobalvars.h"
 #include "metadata.h"
 #include "playlist.h"
@@ -589,75 +590,25 @@ CreateDatabase(void)
 	                     BROWSEDIR_ID, "0", _("Browse Folders"),
 			0 };
 
-	ret = sql_exec(db, "CREATE TABLE OBJECTS ( "
-					"ID INTEGER PRIMARY KEY AUTOINCREMENT, "
-					"OBJECT_ID TEXT UNIQUE NOT NULL, "
-					"PARENT_ID TEXT NOT NULL, "
-					"REF_ID TEXT DEFAULT NULL, "
-					"CLASS TEXT NOT NULL, "
-					"DETAIL_ID INTEGER DEFAULT NULL, "
-					"NAME TEXT DEFAULT NULL"
-					");");
+	ret = sql_exec(db, create_objectTable_sqlite);
 	if( ret != SQLITE_OK )
 		goto sql_failed;
-	ret = sql_exec(db, "CREATE TABLE DETAILS ( "
-					"ID INTEGER PRIMARY KEY AUTOINCREMENT, "
-					"PATH TEXT DEFAULT NULL, "
-					"SIZE INTEGER, "
-					"TIMESTAMP INTEGER, "
-					"TITLE TEXT COLLATE NOCASE, "
-					"DURATION TEXT, "
-					"BITRATE INTEGER, "
-					"SAMPLERATE INTEGER, "
-					"CREATOR TEXT COLLATE NOCASE, "
-					"ARTIST TEXT COLLATE NOCASE, "
-					"ALBUM TEXT COLLATE NOCASE, "
-					"GENRE TEXT COLLATE NOCASE, "
-					"COMMENT TEXT, "
-					"CHANNELS INTEGER, "
-					"DISC INTEGER, "
-					"TRACK INTEGER, "
-					"DATE DATE, "
-					"RESOLUTION TEXT, "
-					"THUMBNAIL BOOL DEFAULT 0, "
-					"ALBUM_ART INTEGER DEFAULT 0, "
-					"ROTATION INTEGER, "
-					"DLNA_PN TEXT, "
-					"MIME TEXT"
-					")");
+	ret = sql_exec(db, create_detailTable_sqlite);
 	if( ret != SQLITE_OK )
 		goto sql_failed;
-	ret = sql_exec(db, "CREATE TABLE ALBUM_ART ( "
-					"ID INTEGER PRIMARY KEY AUTOINCREMENT, "
-					"PATH TEXT NOT NULL"
-					")");
+	ret = sql_exec(db, create_albumArtTable_sqlite);
 	if( ret != SQLITE_OK )
 		goto sql_failed;
-	ret = sql_exec(db, "CREATE TABLE CAPTIONS ("
-					"ID INTEGER PRIMARY KEY, "
-					"PATH TEXT NOT NULL"
-					")");
+	ret = sql_exec(db, create_captionTable_sqlite);
 	if( ret != SQLITE_OK )
 		goto sql_failed;
-	ret = sql_exec(db, "CREATE TABLE BOOKMARKS ("
-					"ID INTEGER PRIMARY KEY, "
-					"SEC INTEGER"
-					")");
+	ret = sql_exec(db, create_bookmarkTable_sqlite);
 	if( ret != SQLITE_OK )
 		goto sql_failed;
-	ret = sql_exec(db, "CREATE TABLE PLAYLISTS ("
-					"ID INTEGER PRIMARY KEY AUTOINCREMENT, "
-					"NAME TEXT NOT NULL, "
-					"PATH TEXT NOT NULL, "
-					"ITEMS INTEGER DEFAULT 0, "
-					"FOUND INTEGER DEFAULT 0"
-					")");
+	ret = sql_exec(db, create_playlistTable_sqlite);
 	if( ret != SQLITE_OK )
 		goto sql_failed;
-	ret = sql_exec(db, "CREATE TABLE SETTINGS ("
-					"UPDATE_ID INTEGER PRIMARY KEY DEFAULT 0, "
-					"FLAGS INTEGER DEFAULT 0"
-					")");
+	ret = sql_exec(db, create_settingsTable_sqlite);
 	if( ret != SQLITE_OK )
 		goto sql_failed;
 	ret = sql_exec(db, "INSERT into SETTINGS values (0, 0)");
