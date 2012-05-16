@@ -590,6 +590,9 @@ init(int argc, char * * argv)
 			case UPNPMINISSDPDSOCKET:
 				minissdpdsocketpath = ary_options[i].value;
 				break;
+			case UPNPUUID:
+				strcpy(uuidvalue+5, ary_options[i].value);
+				break;
 			default:
 				DPRINTF(E_ERROR, L_GENERAL, "Unknown option in file %s\n",
 				        optionsfile);
