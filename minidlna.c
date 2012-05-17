@@ -53,6 +53,7 @@
 #include <ctype.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/wait.h>
 #include <sys/file.h>
 #include <sys/time.h>
 #include <sys/param.h>
@@ -156,6 +157,14 @@ sigterm(int sig)
 
 	quitting = 1;
 	/*errno = save_errno;*/
+}
+
+static void
+sigchld(int sig)
+{
+	if (!scanning)
+		signal(SIGCHLD, SIG_IGN);
+	waitpid(-1, NULL, WNOHANG);
 }
 
 /* record the startup time */
@@ -971,7 +980,7 @@ main(int argc, char * * argv)
 		start_scanner();
 #endif
 	}
-	signal(SIGCHLD, SIG_IGN);
+	signal(SIGCHLD, &sigchld);
 #ifdef HAVE_INOTIFY
 	if( sqlite3_threadsafe() && sqlite3_libversion_number() >= 3005001 &&
 	    GETFLAG(INOTIFY_MASK) && pthread_create(&inotify_thread, NULL, start_inotify, NULL) )
@@ -1149,6 +1158,7 @@ main(int argc, char * * argv)
 		if(select(max_fd+1, &readset, &writeset, 0, &timeout) < 0)
 		{
 			if(quitting) goto shutdown;
+			if(errno == EINTR) continue;
 			DPRINTF(E_ERROR, L_GENERAL, "select(all): %s\n", strerror(errno));
 			DPRINTF(E_FATAL, L_GENERAL, "Failed to select open sockets. EXITING\n");
 		}
