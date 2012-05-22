@@ -336,6 +336,81 @@ open_db(void)
 	return new_db;
 }
 
+static void
+check_db(sqlite3 *db, int new_db, pid_t *scanner_pid)
+{
+	int ret;
+	char cmd[PATH_MAX*2];
+	struct media_dir_s *media_path = NULL, *last_path;
+	struct album_art_name_s *art_names, *last_name;
+
+	/* Check if any new media dirs appeared */
+	if( !new_db )
+	{
+		media_path = media_dirs;
+		while( media_path )
+		{
+			ret = sql_get_int_field(db, "SELECT ID from DETAILS where PATH = %Q", media_path->path);
+			if (ret < 1)
+				break;
+			media_path = media_path->next;
+		}
+	}
+	if( media_path )
+		ret = 1;
+	else 
+		ret = db_upgrade(db);
+	if( ret != 0 )
+	{
+		if( ret < 0 )
+			DPRINTF(E_WARN, L_GENERAL, "Creating new database at %s/files.db\n", db_path);
+		else if( ret == 1 )
+			DPRINTF(E_WARN, L_GENERAL, "New media_dir detected; rescanning...\n");
+		else
+			DPRINTF(E_WARN, L_GENERAL, "Database version mismatch; need to recreate...\n");
+		sqlite3_close(db);
+
+		snprintf(cmd, sizeof(cmd), "rm -rf %s/files.db %s/art_cache", db_path, db_path);
+		if( system(cmd) != 0 )
+			DPRINTF(E_FATAL, L_GENERAL, "Failed to clean old file cache!  Exiting...\n");
+
+		open_db();
+		if( CreateDatabase() != 0 )
+			DPRINTF(E_FATAL, L_GENERAL, "ERROR: Failed to create sqlite database!  Exiting...\n");
+#if USE_FORK
+		scanning = 1;
+		sqlite3_close(db);
+		*scanner_pid = fork();
+		open_db();
+		if( !(*scanner_pid) ) // child (scanner) process
+		{
+			start_scanner();
+			sqlite3_close(db);
+			media_path = media_dirs;
+			art_names = album_art_names;
+			while( media_path )
+			{
+				free(media_path->path);
+				last_path = media_path;
+				media_path = media_path->next;
+				free(last_path);
+			}
+			while( art_names )
+			{
+				free(art_names->name);
+				last_name = art_names;
+				art_names = art_names->next;
+				free(last_name);
+			}
+			freeoptions();
+			exit(EXIT_SUCCESS);
+		}
+#else
+		start_scanner();
+#endif
+	}
+}
+
 /* init phase :
  * 1) read configuration file
  * 2) read command line arguments
@@ -819,6 +894,7 @@ init(int argc, char * * argv)
 	{
 		pid = daemonize();
 		#ifdef READYNAS
+		unlink("/ramfs/.upnp-av_scan");
 		log_init("/var/log/upnp-av.log", log_level);
 		#else
 		if( access(db_path, F_OK) != 0 )
@@ -880,7 +956,7 @@ main(int argc, char * * argv)
 	struct media_dir_s *media_path, *last_path;
 	struct album_art_name_s *art_names, *last_name;
 #ifdef TIVO_SUPPORT
-	unsigned short int beacon_interval = 5;
+	uint8_t beacon_interval = 5;
 	int sbeacon = -1;
 	struct sockaddr_in tivo_bcast;
 	struct timeval lastbeacontime = {0, 0};
@@ -898,94 +974,32 @@ main(int argc, char * * argv)
 	if (init(argc, argv) != 0)
 		return 1;
 
-#ifdef READYNAS
 	DPRINTF(E_WARN, L_GENERAL, "Starting " SERVER_NAME " version " MINIDLNA_VERSION ".\n");
-	unlink("/ramfs/.upnp-av_scan");
-#else
-	DPRINTF(E_WARN, L_GENERAL, "Starting " SERVER_NAME " version " MINIDLNA_VERSION " [SQLite %s].\n", sqlite3_libversion());
-	if( !sqlite3_threadsafe() )
-	{
-		DPRINTF(E_ERROR, L_GENERAL, "SQLite library is not threadsafe!  "
-		                            "Scanning must be finished before file serving can begin, "
-		                            "and inotify will be disabled.\n");
-	}
 	if( sqlite3_libversion_number() < 3005001 )
 	{
 		DPRINTF(E_WARN, L_GENERAL, "SQLite library is old.  Please use version 3.5.1 or newer.\n");
 	}
-#endif
+
 	LIST_INIT(&upnphttphead);
 
-	if( open_db() == 0 )
+	if( (i = open_db()) == 0 )
 	{
 		updateID = sql_get_int_field(db, "SELECT UPDATE_ID from SETTINGS");
 	}
-	i = db_upgrade(db);
-	if( i != 0 )
-	{
-		if( i < 0 )
-		{
-			DPRINTF(E_WARN, L_GENERAL, "Creating new database at %s/files.db\n", db_path);
-		}
-		else
-		{
-			DPRINTF(E_WARN, L_GENERAL, "Database version mismatch; need to recreate...\n");
-		}
-		sqlite3_close(db);
-		char *cmd;
-		i = asprintf(&cmd, "rm -rf %s/files.db %s/art_cache", db_path, db_path);
-		if( i > 0 )
-			i = system(cmd);
-		else
-			cmd = NULL;
-		if( i != 0 )
-		{
-			DPRINTF(E_FATAL, L_GENERAL, "Failed to clean old file cache!  Exiting...\n");
-		}
-		free(cmd);
-		open_db();
-		if( CreateDatabase() != 0 )
-		{
-			DPRINTF(E_FATAL, L_GENERAL, "ERROR: Failed to create sqlite database!  Exiting...\n");
-		}
-#if USE_FORK
-		scanning = 1;
-		sqlite3_close(db);
-		scanner_pid = fork();
-		open_db();
-		if( !scanner_pid ) // child (scanner) process
-		{
-			start_scanner();
-			sqlite3_close(db);
-			media_path = media_dirs;
-			art_names = album_art_names;
-			while( media_path )
-			{
-				free(media_path->path);
-				last_path = media_path;
-				media_path = media_path->next;
-				free(last_path);
-			}
-			while( art_names )
-			{
-				free(art_names->name);
-				last_name = art_names;
-				art_names = art_names->next;
-				free(last_name);
-			}
-			freeoptions();
-			exit(EXIT_SUCCESS);
-		}
-#else
-		start_scanner();
-#endif
-	}
+	check_db(db, i, &scanner_pid);
 	signal(SIGCHLD, &sigchld);
 #ifdef HAVE_INOTIFY
-	if( sqlite3_threadsafe() && sqlite3_libversion_number() >= 3005001 &&
-	    GETFLAG(INOTIFY_MASK) && pthread_create(&inotify_thread, NULL, start_inotify, NULL) )
+	if( GETFLAG(INOTIFY_MASK) )
 	{
-		DPRINTF(E_FATAL, L_GENERAL, "ERROR: pthread_create() failed for start_inotify. EXITING\n");
+		if( !sqlite3_threadsafe() || sqlite3_libversion_number() < 3005001 )
+		{
+			DPRINTF(E_ERROR, L_GENERAL, "SQLite library is not threadsafe!  "
+			                            "Inotify will be disabled.\n");
+		}
+		else if( pthread_create(&inotify_thread, NULL, start_inotify, NULL) )
+		{
+			DPRINTF(E_FATAL, L_GENERAL, "ERROR: pthread_create() failed for start_inotify. EXITING\n");
+		}
 	}
 #endif
 	sudp = OpenAndConfSSDPReceiveSocket(n_lan_addr, lan_addr);
