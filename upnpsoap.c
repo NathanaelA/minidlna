@@ -134,7 +134,6 @@ IsAuthorizedValidated(struct upnphttp * h, const char * action)
 		"</u:%sResponse>";
 
 	char body[512];
-	int bodylen;
 	struct NameValueParserData data;
 	const char * id;
 
@@ -144,6 +143,7 @@ IsAuthorizedValidated(struct upnphttp * h, const char * action)
 		id = strstr(h->req_buf + h->req_contentoff, "<DeviceID>");
 	if(id)
 	{
+		int bodylen;
 		bodylen = snprintf(body, sizeof(body), resp,
 			action, "urn:microsoft.com:service:X_MS_MediaReceiverRegistrar:1",
 			1, action);	
@@ -264,18 +264,17 @@ GetCurrentConnectionInfo(struct upnphttp * h, const char * action)
 		"</u:%sResponse>";
 
 	char body[sizeof(resp)+128];
-	int bodylen;
 	struct NameValueParserData data;
-	const char * id_str;
+	const char *id_str;
 	int id;
-	char *endptr;
+	char *endptr = NULL;
 
 	ParseNameValue(h->req_buf + h->req_contentoff, h->req_contentlen, &data);
 	id_str = GetValueFromNameValueList(&data, "ConnectionID");
 	DPRINTF(E_INFO, L_HTTP, "GetCurrentConnectionInfo(%s)\n", id_str);
 	if(id_str)
 		id = strtol(id_str, &endptr, 10);
-	if(!id_str || !id_str[0] || endptr[0] || id != 0)
+	if(!id_str || !id_str[0] || !endptr || endptr[0] || id != 0)
 	{
 		SoapError(h, 402, "Invalid Args");
 	}
@@ -285,6 +284,7 @@ GetCurrentConnectionInfo(struct upnphttp * h, const char * action)
 	}
 	else
 	{
+		int bodylen;
 		bodylen = snprintf(body, sizeof(body), resp,
 			action, "urn:schemas-upnp-org:service:ConnectionManager:1",
 			action);	
@@ -944,7 +944,7 @@ callback(void *args, int argc, char **argv, char **azColName)
 			        resolution, dlna_buf, mime, detailID, ext, passed_args);
 			if( *mime == 'i' ) {
 				int srcw, srch;
-				if( resolution && (sscanf(resolution, "%dx%d", &srcw, &srch) == 2) )
+				if( resolution && (sscanf(resolution, "%6dx%6d", &srcw, &srch) == 2) )
 				{
 					if( srcw > 4096 || srch > 4096 )
 						add_resized_res(srcw, srch, 4096, 4096, "JPEG_LRG", detailID, passed_args);
@@ -1515,7 +1515,7 @@ SearchContentDirectory(struct upnphttp * h, const char * action)
 	                      " limit %d, %d",
 	                      ContainerID, SearchCriteria, groupBy,
 	                      (*ContainerID == '*') ? NULL :
-                              sqlite3_mprintf("UNION ALL " SELECT_COLUMNS
+	                      sqlite3_mprintf("UNION ALL " SELECT_COLUMNS
 	                                      "from OBJECTS o left join DETAILS d on (d.ID = o.DETAIL_ID)"
 	                                      " where OBJECT_ID = '%s' and (%s) ", ContainerID, SearchCriteria),
 	                      orderBy, StartingIndex, RequestedCount);
@@ -1561,7 +1561,6 @@ QueryStateVariable(struct upnphttp * h, const char * action)
         "</u:%sResponse>";
 
 	char body[512];
-	int bodylen;
 	struct NameValueParserData data;
 	const char * var_name;
 
@@ -1578,6 +1577,7 @@ QueryStateVariable(struct upnphttp * h, const char * action)
 	}
 	else if(strcmp(var_name, "ConnectionStatus") == 0)
 	{	
+		int bodylen;
 		bodylen = snprintf(body, sizeof(body), resp,
                            action, "urn:schemas-upnp-org:control-1-0",
 		                   "Connected", action);
@@ -1622,13 +1622,13 @@ SamsungSetBookmark(struct upnphttp * h, const char * action)
 
 	struct NameValueParserData data;
 	char *ObjectID, *PosSecond;
-	int ret;
 
 	ParseNameValue(h->req_buf + h->req_contentoff, h->req_contentlen, &data);
 	ObjectID = GetValueFromNameValueList(&data, "ObjectID");
 	PosSecond = GetValueFromNameValueList(&data, "PosSecond");
 	if( ObjectID && PosSecond )
 	{
+		int ret;
 		ret = sql_exec(db, "INSERT OR REPLACE into BOOKMARKS"
 		                   " VALUES "
 		                   "((select DETAIL_ID from OBJECTS where OBJECT_ID = '%s'), %s)", ObjectID, PosSecond);
