@@ -269,7 +269,8 @@ _get_aacfileinfo(char *file, struct song_metadata *psong)
 	psong->vbr_scale = -1;
 	psong->channels = 2; // A "normal" default in case we can't find this information
 
-	if(!(infile = fopen(file, "rb")))
+	infile = fopen(file, "rb");
+	if(!infile)
 	{
 		DPRINTF(E_ERROR, L_SCANNER, "Could not open %s for reading\n", file);
 		return -1;
@@ -286,7 +287,10 @@ _get_aacfileinfo(char *file, struct song_metadata *psong)
 		fseek(infile, 12, SEEK_CUR);
 		if(!fread((void*)&sample_size, 1, sizeof(int), infile) ||
 		   !fread((void*)&samples, 1, sizeof(int), infile))
+		{
+			fclose(infile);
 			return -1;
+		}
 
 		sample_size = ntohl(sample_size);
 		samples = ntohl(samples);
