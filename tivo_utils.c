@@ -26,12 +26,12 @@
 
 /* This function based on byRequest */
 char *
-decodeString(char * string, int inplace)
+decodeString(char *string, int inplace)
 {
 	if( !string )
 		return NULL;
 	int alloc = (int)strlen(string)+1;
-	char * ns = NULL;
+	char *ns = NULL;
 	unsigned char in;
 	int strindex=0;
 	long hex;
@@ -132,7 +132,7 @@ seedRandomness(int n, void *pbuf, uint32_t seed)
 void
 TiVoRandomSeedFunc(sqlite3_context *context, int argc, sqlite3_value **argv)
 {
-	sqlite_int64 r, seed;
+	int64_t r, seed;
 
 	if( argc != 1 || sqlite3_value_type(argv[0]) != SQLITE_INTEGER )
 		return;

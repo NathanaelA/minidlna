@@ -518,7 +518,7 @@ inotify_remove_file(const char * path)
 	char *id;
 	char *ptr;
 	char **result;
-	sqlite_int64 detailID;
+	int64_t detailID;
 	int rows, playlist;
 
 	if( ends_with(path, ".srt") )
@@ -546,7 +546,7 @@ inotify_remove_file(const char * path)
 	else
 	{
 		/* Delete the parent containers if we are about to empty them. */
-		snprintf(sql, sizeof(sql), "SELECT PARENT_ID from OBJECTS where DETAIL_ID = %lld", detailID);
+		snprintf(sql, sizeof(sql), "SELECT PARENT_ID from OBJECTS where DETAIL_ID = %lld", (long long int)detailID);
 		if( (sql_get_table(db, sql, &result, &rows, NULL) == SQLITE_OK) )
 		{
 			int i, children;
@@ -596,7 +596,7 @@ inotify_remove_directory(int fd, const char * path)
 {
 	char * sql;
 	char **result;
-	sqlite_int64 detailID = 0;
+	int64_t detailID = 0;
 	int rows, i, ret = 1;
 
 	/* Invalidate the scanner cache so we don't insert files into non-existent containers */

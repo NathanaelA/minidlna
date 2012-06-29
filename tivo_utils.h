@@ -32,7 +32,7 @@ struct sqlite3PrngType {
 } sqlite3Prng;
 
 char *
-decodeString(char * string, int inplace);
+decodeString(char *string, int inplace);
 
 void
 TiVoRandomSeedFunc(sqlite3_context *context, int argc, sqlite3_value **argv);

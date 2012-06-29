@@ -1631,13 +1631,13 @@ SendResp_resizedimg(struct upnphttp * h, char * object)
 	int rotate;
 	/* Not implemented yet *
 	char *pixelshape=NULL; */
-	sqlite_int64 id;
+	int64_t id;
 	int rows=0, chunked, ret;
 	image_s *imsrc = NULL, *imdst = NULL;
 	int scale = 1;
 
 	id = strtoll(object, &saveptr, 10);
-	snprintf(buf, sizeof(buf), "SELECT PATH, RESOLUTION, ROTATION from DETAILS where ID = '%lld'", id);
+	snprintf(buf, sizeof(buf), "SELECT PATH, RESOLUTION, ROTATION from DETAILS where ID = '%lld'", (long long)id);
 	ret = sql_get_table(db, buf, &result, &rows, NULL);
 	if( (ret != SQLITE_OK) )
 	{
@@ -1849,10 +1849,10 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 	char date[30];
 	time_t curtime = time(NULL);
 	off_t total, offset, size;
-	sqlite_int64 id;
+	int64_t id;
 	int sendfh;
 	uint32_t dlna_flags = DLNA_FLAG_DLNA_V1_5|DLNA_FLAG_HTTP_STALLING|DLNA_FLAG_TM_B;
-	static struct { sqlite_int64 id;
+	static struct { int64_t id;
 	                enum client_types client;
 	                char path[PATH_MAX];
 	                char mime[32];
@@ -1876,7 +1876,7 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 	}
 	if( id != last_file.id || h->req_client != last_file.client )
 	{
-		snprintf(buf, sizeof(buf), "SELECT PATH, MIME, DLNA_PN from DETAILS where ID = '%lld'", id);
+		snprintf(buf, sizeof(buf), "SELECT PATH, MIME, DLNA_PN from DETAILS where ID = '%lld'", (long long)id);
 		ret = sql_get_table(db, buf, &result, &rows, NULL);
 		if( (ret != SQLITE_OK) )
 		{

@@ -119,7 +119,7 @@ fill_playlists()
 	struct song_metadata plist;
 	struct stat file;
 	char type[4];
-	sqlite_int64 plID, detailID;
+	int64_t plID, detailID;
 	char sql_buf[] = "SELECT ID, NAME, PATH from PLAYLISTS where ITEMS > FOUND";
 
 	DPRINTF(E_WARN, L_SCANNER, "Parsing playlists...\n");

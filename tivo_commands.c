@@ -32,10 +32,10 @@
 #include "sql.h"
 #include "log.h"
 
-void
-SendRootContainer(struct upnphttp * h)
+static void
+SendRootContainer(struct upnphttp *h)
 {
-	char * resp;
+	char *resp;
 	int len;
 
 	len = xasprintf(&resp, "<?xml version='1.0' encoding='UTF-8' ?>\n"
@@ -93,8 +93,8 @@ SendRootContainer(struct upnphttp * h)
 	SendResp_upnphttp(h);
 }
 
-char *
-unescape_tag(char * tag)
+static char *
+unescape_tag(char *tag)
 {
 	modifyString(tag, "&amp;amp;", "&amp;", 0);
 	modifyString(tag, "&amp;amp;lt;", "&lt;", 0);
@@ -107,7 +107,8 @@ unescape_tag(char * tag)
 #define FLAG_SEND_RESIZED  0x01
 #define FLAG_NO_PARAMS     0x02
 #define FLAG_VIDEO         0x04
-int callback(void *args, int argc, char **argv, char **azColName)
+static int
+callback(void *args, int argc, char **argv, char **azColName)
 {
 	struct Response *passed_args = (struct Response *)args;
 	char *id = argv[0], *class = argv[1], *detailID = argv[2], *size = argv[3], *title = argv[4], *duration = argv[5],
@@ -275,8 +276,8 @@ int callback(void *args, int argc, char **argv, char **azColName)
 	               " d.DURATION, d.BITRATE, d.SAMPLERATE, d.ARTIST, d.ALBUM, d.GENRE," \
 	               " d.COMMENT, d.DATE, d.RESOLUTION, d.MIME, d.PATH, d.DISC, d.TRACK "
 
-void
-SendItemDetails(struct upnphttp * h, sqlite_int64 item)
+static void
+SendItemDetails(struct upnphttp *h, int64_t item)
 {
 	char *sql;
 	char *zErrMsg = NULL;
@@ -309,9 +310,9 @@ SendItemDetails(struct upnphttp * h, sqlite_int64 item)
 	SendResp_upnphttp(h);
 }
 
-void
-SendContainer(struct upnphttp * h, const char * objectID, int itemStart, int itemCount, char * anchorItem,
-              int anchorOffset, int recurse, char * sortOrder, char * filter, unsigned long int randomSeed)
+static void
+SendContainer(struct upnphttp *h, const char *objectID, int itemStart, int itemCount, char *anchorItem,
+              int anchorOffset, int recurse, char *sortOrder, char *filter, unsigned long int randomSeed)
 {
 	char *resp = malloc(262144);
 	char *sql, *item, *saveptr;
@@ -645,14 +646,14 @@ SendContainer(struct upnphttp * h, const char * objectID, int itemStart, int ite
 }
 
 void
-ProcessTiVoCommand(struct upnphttp * h, const char * orig_path)
+ProcessTiVoCommand(struct upnphttp *h, const char *orig_path)
 {
 	char *path;
 	char *key, *val;
 	char *saveptr = NULL, *item;
 	char *command = NULL, *container = NULL, *anchorItem = NULL;
 	char *sortOrder = NULL, *filter = NULL;
-	sqlite_int64 detailItem=0;
+	int64_t detailItem=0;
 	int itemStart=0, itemCount=-100, anchorOffset=0, recurse=0;
 	unsigned long int randomSeed=0;
 
