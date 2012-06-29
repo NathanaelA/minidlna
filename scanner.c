@@ -77,6 +77,9 @@ typedef const struct dirent scan_filter;
 #else
 typedef struct dirent scan_filter;
 #endif
+#ifndef AV_LOG_PANIC
+#define AV_LOG_PANIC AV_LOG_FATAL
+#endif
 
 int valid_cache = 0;
 

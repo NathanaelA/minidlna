@@ -27,7 +27,6 @@ minidlna_LDADD = \
 	@LIBSQLITE3_LIBS@ \
 	@LIBAVFORMAT_LIBS@ \
 	@LIBAVUTIL_LIBS@ \
-	@LIBAVCODEC_LIBS@ \
 	@LIBEXIF_LIBS@ \
 	@LIBDL_LIBS@ \
 	@LIBRT_LIBS@ \
@@ -44,7 +43,6 @@ testupnpdescgen_LDADD = \
 	@LIBSQLITE3_LIBS@ \
 	@LIBAVFORMAT_LIBS@ \
 	@LIBAVUTIL_LIBS@ \
-	@LIBAVCODEC_LIBS@ \
 	@LIBEXIF_LIBS@ \
 	@LIBDL_LIBS@ \
 	-lpthread  -lFLAC  $(flacoggflag) $(vorbisflag)
