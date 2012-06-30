@@ -140,4 +140,23 @@ TiVoRandomSeedFunc(sqlite3_context *context, int argc, sqlite3_value **argv)
 	seedRandomness(sizeof(r), &r, seed);
 	sqlite3_result_int64(context, r);
 }
+
+int
+is_tivo_file(const char *path)
+{
+	unsigned char buf[5];
+	unsigned char hdr[5] = { 'T','i','V','o','\0' };
+	int fd;
+
+	/* read file header */
+	fd = open(path, O_RDONLY);
+	if( !fd )
+		return 0;
+	if( read(fd, buf, 5) < 0 )
+		buf[0] = 'X';
+	close(fd);
+
+	return !memcmp(buf, hdr, 5);
+}
+
 #endif

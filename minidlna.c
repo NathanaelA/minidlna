@@ -90,10 +90,8 @@
 #include "scanner.h"
 #include "inotify.h"
 #include "log.h"
-#ifdef TIVO_SUPPORT
 #include "tivo_beacon.h"
 #include "tivo_utils.h"
-#endif
 
 #if SQLITE_VERSION_NUMBER < 3005001
 # warning "Your SQLite3 library appears to be too old!  Please use 3.5.1 or newer."

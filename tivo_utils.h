@@ -22,6 +22,7 @@
  * along with MiniDLNA. If not, see <http://www.gnu.org/licenses/>.
  */
 #include "config.h"
+
 #ifdef TIVO_SUPPORT
 #include <sqlite3.h>
 
@@ -37,4 +38,9 @@ decodeString(char *string, int inplace);
 void
 TiVoRandomSeedFunc(sqlite3_context *context, int argc, sqlite3_value **argv);
 
+int
+is_tivo_file(const char *path);
+
+#else
+#define decodeString(X, Y) ({})
 #endif
