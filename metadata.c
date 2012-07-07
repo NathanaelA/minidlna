@@ -78,6 +78,7 @@
 
 #include "upnpglobalvars.h"
 #include "upnpreplyparse.h"
+#include "tivo_utils.h"
 #include "metadata.h"
 #include "albumart.h"
 #include "utils.h"

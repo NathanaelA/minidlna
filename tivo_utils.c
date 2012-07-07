@@ -21,6 +21,9 @@
 #include <stdint.h>
 #include <string.h>
 #include <ctype.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/types.h>
 #include <sqlite3.h>
 #include "tivo_utils.h"
 
