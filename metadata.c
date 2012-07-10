@@ -273,7 +273,7 @@ parse_nfo(const char *path, metadata_t *m)
 		return;
 	nread = fread(&buf, 1, sizeof(buf), nfo);
 	
-	ParseNameValue(buf, nread, &xml);
+	ParseNameValue(buf, nread, &xml, 0);
 
 	//printf("\ttype: %s\n", GetValueFromNameValueList(&xml, "rootElement"));
 	val = GetValueFromNameValueList(&xml, "title");

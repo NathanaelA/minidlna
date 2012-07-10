@@ -138,10 +138,8 @@ IsAuthorizedValidated(struct upnphttp * h, const char * action)
 	struct NameValueParserData data;
 	const char * id;
 
-	ParseNameValue(h->req_buf + h->req_contentoff, h->req_contentlen, &data);
+	ParseNameValue(h->req_buf + h->req_contentoff, h->req_contentlen, &data, XML_STORE_EMPTY_FL);
 	id = GetValueFromNameValueList(&data, "DeviceID");
-	if (!id)
-		id = strstr(h->req_buf + h->req_contentoff, "<DeviceID>");
 	if(id)
 	{
 		int bodylen;
@@ -270,12 +268,12 @@ GetCurrentConnectionInfo(struct upnphttp * h, const char * action)
 	int id;
 	char *endptr = NULL;
 
-	ParseNameValue(h->req_buf + h->req_contentoff, h->req_contentlen, &data);
+	ParseNameValue(h->req_buf + h->req_contentoff, h->req_contentlen, &data, XML_STORE_EMPTY_FL);
 	id_str = GetValueFromNameValueList(&data, "ConnectionID");
 	DPRINTF(E_INFO, L_HTTP, "GetCurrentConnectionInfo(%s)\n", id_str);
 	if(id_str)
 		id = strtol(id_str, &endptr, 10);
-	if(!id_str || !id_str[0] || !endptr || endptr[0] || id != 0)
+	if (!id_str || endptr == id_str)
 	{
 		SoapError(h, 402, "Invalid Args");
 	}
@@ -1150,7 +1148,7 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 	memset(&args, 0, sizeof(args));
 	memset(&str, 0, sizeof(str));
 
-	ParseNameValue(h->req_buf + h->req_contentoff, h->req_contentlen, &data);
+	ParseNameValue(h->req_buf + h->req_contentoff, h->req_contentlen, &data, 0);
 
 	ObjectID = GetValueFromNameValueList(&data, "ObjectID");
 	Filter = GetValueFromNameValueList(&data, "Filter");
@@ -1360,7 +1358,7 @@ SearchContentDirectory(struct upnphttp * h, const char * action)
 	memset(&args, 0, sizeof(args));
 	memset(&str, 0, sizeof(str));
 
-	ParseNameValue(h->req_buf + h->req_contentoff, h->req_contentlen, &data);
+	ParseNameValue(h->req_buf + h->req_contentoff, h->req_contentlen, &data, 0);
 
 	ContainerID = GetValueFromNameValueList(&data, "ContainerID");
 	Filter = GetValueFromNameValueList(&data, "Filter");
@@ -1565,7 +1563,7 @@ QueryStateVariable(struct upnphttp * h, const char * action)
 	struct NameValueParserData data;
 	const char * var_name;
 
-	ParseNameValue(h->req_buf + h->req_contentoff, h->req_contentlen, &data);
+	ParseNameValue(h->req_buf + h->req_contentoff, h->req_contentlen, &data, 0);
 	/*var_name = GetValueFromNameValueList(&data, "QueryStateVariable"); */
 	/*var_name = GetValueFromNameValueListIgnoreNS(&data, "varName");*/
 	var_name = GetValueFromNameValueList(&data, "varName");
@@ -1624,7 +1622,7 @@ SamsungSetBookmark(struct upnphttp * h, const char * action)
 	struct NameValueParserData data;
 	char *ObjectID, *PosSecond;
 
-	ParseNameValue(h->req_buf + h->req_contentoff, h->req_contentlen, &data);
+	ParseNameValue(h->req_buf + h->req_contentoff, h->req_contentlen, &data, 0);
 	ObjectID = GetValueFromNameValueList(&data, "ObjectID");
 	PosSecond = GetValueFromNameValueList(&data, "PosSecond");
 	if( ObjectID && PosSecond )

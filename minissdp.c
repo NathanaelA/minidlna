@@ -452,7 +452,7 @@ close:
 	if( !off )
 		return;
 	nread -= off - buf;
-	ParseNameValue(off, nread, &xml);
+	ParseNameValue(off, nread, &xml, 0);
 	model = GetValueFromNameValueList(&xml, "modelName");
 	serial = GetValueFromNameValueList(&xml, "serialNumber");
 	name = GetValueFromNameValueList(&xml, "friendlyName");
