@@ -160,7 +160,7 @@ lav_close(AVFormatContext *ctx)
 }
 
 #if LIBAVFORMAT_VERSION_INT >= ((52<<16)+(31<<8)+0)
-# if LIBAVUTIL_VERSION_INT < ((51<<16)+(5<<8)+0)
+# if LIBAVUTIL_VERSION_INT < ((51<<16)+(5<<8)+0) && !defined(FF_API_OLD_METADATA2)
 #define AV_DICT_IGNORE_SUFFIX AV_METADATA_IGNORE_SUFFIX
 #define av_dict_get av_metadata_get
 typedef AVMetadataTag AVDictionaryEntry;
