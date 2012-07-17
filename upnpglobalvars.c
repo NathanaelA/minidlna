@@ -52,7 +52,6 @@
 
 #include "config.h"
 #include "upnpglobalvars.h"
-#include "upnpdescstrings.h"
 
 /* LAN address */
 /*const char * listen_addr = 0;*/

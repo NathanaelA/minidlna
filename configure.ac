@@ -22,6 +22,14 @@ AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
 
+# Default string definitions
+AC_DEFINE_UNQUOTED([OS_URL],"http://sourceforge.net/projects/minidlna/",[OS URL])
+AC_DEFINE_UNQUOTED([ROOTDEV_MANUFACTURER],"Justin Maggard", [Manufacturer])
+AC_DEFINE_UNQUOTED([ROOTDEV_MANUFACTURERURL],"http://www.netgear.com/", [Manufacturer URL])
+AC_DEFINE_UNQUOTED([ROOTDEV_MODELNAME],"Windows Media Connect compatible (MiniDLNA)", [Model name])
+AC_DEFINE_UNQUOTED([ROOTDEV_MODELDESCRIPTION],"MiniDLNA on " OS_NAME, [Model description])
+AC_DEFINE_UNQUOTED([ROOTDEV_MODELURL],OS_URL,[Model URL])
+
 
 ################################################################################################################
 # Checks for typedefs, structures, and compiler characteristics.
@@ -456,57 +464,104 @@ AC_CHECK_FUNCS(inotify_init, AC_DEFINE(HAVE_INOTIFY,1,[Whether kernel has inotif
 ### Build Options
 
 AC_ARG_WITH(logpath,
-	AS_HELP_STRING([--with-log-path],[Log path]),
+	AS_HELP_STRING([--with-log-path=PATH],[Default log path]),
 	[with_logpath="$withval"],[with_logpath="/var/log"])
 AC_DEFINE_UNQUOTED([DEFAULT_LOG_PATH],"${with_logpath}",[Log path])
 
 
 AC_ARG_WITH(dbpath,
-	AS_HELP_STRING([--with-db-path],[DB path]),
+	AS_HELP_STRING([--with-db-path=PATH],[Default DB path]),
 	[with_dbpath="$withval"],[with_dbpath="/var/cache/minidlna"])
 AC_DEFINE_UNQUOTED([DEFAULT_DB_PATH],"${with_dbpath}",[DB path])
 
 AC_ARG_WITH(osname,
-	AS_HELP_STRING([--with-os-name],[OS Name]),
+	AS_HELP_STRING([--with-os-name=NAME],[OS Name]),
 	[with_osname="$withval"],[with_osname="$(uname -s)"])
 AC_DEFINE_UNQUOTED([OS_NAME],"${with_osname}",[OS Name])
 
 AC_ARG_WITH(osver,
-	AS_HELP_STRING([--with-os-version],[OS Version]),
+	AS_HELP_STRING([--with-os-version=VERS],[OS Version]),
 	[with_osver="$withval"],[with_osver="$(uname -r)"])
 AC_DEFINE_UNQUOTED([OS_VERSION],"${with_osver}",[OS Version])
 
 AC_ARG_WITH(osurl,
-	AS_HELP_STRING([--with-os-url],[OS URL]),
+	AS_HELP_STRING([--with-os-url=URL],[OS URL]),
 	[with_osurl="$withval"],[with_osurl="http://www.netgear.com"])
 AC_DEFINE_UNQUOTED([OS_URL],"${with_osurl}",[OS URL])
 
-AC_ARG_WITH(tivo,
-	AS_HELP_STRING([--with-tivo],[TiVo Support]),
-	[with_tivo="$withval"],[with_tivo="yes"])
-if test "$with_tivo" = "yes"; then
-   	AC_DEFINE([TIVO_SUPPORT],[1],[Define to 1 if you want to enable TiVo support])
-fi
 
-AC_ARG_WITH(netgear,
-	AS_HELP_STRING([--with-netgear],[NETGEAR ReadyNAS Support]),
-	[with_netgear="$withval"],[with_netgear="no"])
-if test "$with_netgear" = "yes"; then
-   	AC_DEFINE([NETGEAR],[1],[Define to 1 if you want to enable NETGEAR support])
-   	AC_DEFINE([READYNAS],[1],[Define to 1 if you want to enable NETGEAR support])
-   	AC_DEFINE([PNPX],[5],[Define to 1 if you want to enable NETGEAR support])
-	AC_DEFINE_UNQUOTED([OS_URL],"http://www.readynas.com/",[OS URL])
-fi
+AC_MSG_CHECKING([whether to enable TiVo support])
+AC_ARG_ENABLE(tivo,
+	[  --enable-tivo           enable TiVo support],[
+	if test "$enableval" = "yes"; then
+		AC_DEFINE(TIVO_SUPPORT, 1, [Define to 1 if you want to enable TiVo support])
+		AC_MSG_RESULT([yes])
+	else
+		AC_MSG_RESULT([no])
+	fi
+	],[
+		AC_MSG_RESULT([no])
+	]
+)
 
-AC_ARG_WITH(staticbin,
-	AS_HELP_STRING([--with-staticbin],[Build statically linked binaries]),
-	[with_staticbin="$withval"],[with_staticbin="no"])
-if test "$with_staticbin" = "yes"; then
-	STATIC_CFLAGS="-DSTATIC"
-	AC_SUBST(STATIC_CFLAGS)
-	STATIC_LDFLAGS="-Wl,-Bstatic"
-	AC_SUBST(STATIC_LDFLAGS)
-fi
+AC_MSG_CHECKING([whether to enable generic NETGEAR device support])
+AC_ARG_ENABLE(netgear,
+	[  --enable-netgear        enable generic NETGEAR device support],[
+	if test "$enableval" = "yes"; then
+		AC_DEFINE([NETGEAR],[1],[Define to 1 if you want to enable generic NETGEAR device support])
+		AC_DEFINE_UNQUOTED([OS_URL],"http://www.netgear.com/")
+		AC_DEFINE_UNQUOTED([ROOTDEV_MANUFACTURERURL],"http://www.netgear.com/")
+		AC_DEFINE_UNQUOTED([ROOTDEV_MANUFACTURER],"NETGEAR")
+		AC_DEFINE_UNQUOTED([ROOTDEV_MODELNAME],"Windows Media Connect compatible (ReadyDLNA)")
+		AC_DEFINE_UNQUOTED([ROOTDEV_MODELDESCRIPTION],"ReadyDLNA")
+                AC_MSG_RESULT([yes])
+        else
+                AC_MSG_RESULT([no])
+        fi
+        ],[
+                AC_MSG_RESULT([no])
+        ]
+)
+
+AC_MSG_CHECKING([whether to enable NETGEAR ReadyNAS support])
+AC_ARG_ENABLE(readynas,
+	[  --enable-readynas       enable NETGEAR ReadyNAS support],[
+	if test "$enableval" = "yes"; then
+		AC_DEFINE([NETGEAR],[1],[Define to 1 if you want to enable generic NETGEAR device support])
+		AC_DEFINE([READYNAS],[1],[Define to 1 if you want to enable NETGEAR ReadyNAS support])
+		AC_DEFINE([TIVO_SUPPORT], 1, [Define to 1 if you want to enable TiVo support])
+		AC_DEFINE([PNPX],[5],[Define to 5 if you want to enable NETGEAR ReadyNAS PnP-X support])
+		AC_DEFINE_UNQUOTED([OS_URL],"http://www.readynas.com/")
+		AC_DEFINE_UNQUOTED([ROOTDEV_MANUFACTURERURL],"http://www.netgear.com/")
+		AC_DEFINE_UNQUOTED([ROOTDEV_MANUFACTURER],"NETGEAR")
+		AC_DEFINE_UNQUOTED([ROOTDEV_MODELNAME],"Windows Media Connect compatible (ReadyDLNA)")
+		AC_DEFINE_UNQUOTED([ROOTDEV_MODELDESCRIPTION],"ReadyDLNA")
+                AC_MSG_RESULT([yes])
+        else
+                AC_MSG_RESULT([no])
+        fi
+        ],[
+                AC_MSG_RESULT([no])
+        ]
+)
+
+AC_MSG_CHECKING([whether to build a static binary executable])
+AC_ARG_ENABLE(static,
+	[  --enable-static         build a static binary executable],[
+	if test "$enableval" = "yes"; then
+		STATIC_CFLAGS="-DSTATIC"
+		AC_SUBST(STATIC_CFLAGS)
+		STATIC_LDFLAGS="-Wl,-Bstatic"
+		AC_SUBST(STATIC_LDFLAGS)
+                AC_MSG_RESULT([yes])
+        else
+                AC_MSG_RESULT([no])
+        fi
+        ],[
+                AC_MSG_RESULT([no])
+        ]
+)
+
 
 case "$target_os" in
 	darwin*)

@@ -42,7 +42,6 @@
 #include <arpa/inet.h>
 #include <errno.h>
 
-#include "upnpdescstrings.h"
 #include "minidlnapath.h"
 #include "upnphttp.h"
 #include "upnpglobalvars.h"

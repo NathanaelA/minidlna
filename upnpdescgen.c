@@ -35,7 +35,6 @@
 #include "upnpdescgen.h"
 #include "minidlnapath.h"
 #include "upnpglobalvars.h"
-#include "upnpdescstrings.h"
 
 #undef DESC_DEBUG
 
