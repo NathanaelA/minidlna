@@ -63,8 +63,7 @@ AddMulticastMembership(int s, in_addr_t ifaddr)
 
 	/* setting up imr structure */
 	imr.imr_multiaddr.s_addr = inet_addr(SSDP_MCAST_ADDR);
-	/*imr.imr_interface.s_addr = htonl(INADDR_ANY);*/
-	imr.imr_interface.s_addr = ifaddr;	/*inet_addr(ifaddr);*/
+	imr.imr_interface.s_addr = ifaddr;
 	
 	if (setsockopt(s, IPPROTO_IP, IP_ADD_MEMBERSHIP, (void *)&imr, sizeof(struct ip_mreq)) < 0)
 	{
@@ -78,7 +77,7 @@ AddMulticastMembership(int s, in_addr_t ifaddr)
 /* Open and configure the socket listening for 
  * SSDP udp packets sent on 239.255.255.250 port 1900 */
 int
-OpenAndConfSSDPReceiveSocket()
+OpenAndConfSSDPReceiveSocket(void)
 {
 	int s;
 	int i = 1;
@@ -99,9 +98,7 @@ OpenAndConfSSDPReceiveSocket()
 	sockname.sin_family = AF_INET;
 	sockname.sin_port = htons(SSDP_PORT);
 	/* NOTE : it seems it doesnt work when binding on the specific address */
-	/*sockname.sin_addr.s_addr = inet_addr(UPNP_MCAST_ADDR);*/
 	sockname.sin_addr.s_addr = htonl(INADDR_ANY);
-	/*sockname.sin_addr.s_addr = inet_addr(ifaddr);*/
 
 	if(bind(s, (struct sockaddr *)&sockname, sizeof(struct sockaddr_in)) < 0)
 	{

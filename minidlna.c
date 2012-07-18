@@ -65,6 +65,7 @@
 #include <signal.h>
 #include <errno.h>
 #include <pthread.h>
+#include <libgen.h>
 #include <pwd.h>
 
 #include "config.h"
@@ -409,6 +410,71 @@ check_db(sqlite3 *db, int new_db, pid_t *scanner_pid)
 	}
 }
 
+static int
+writepidfile(const char *fname, int pid, uid_t uid)
+{
+	FILE *pidfile;
+	struct stat st;
+	char path[PATH_MAX], *dir;
+	int ret = 0;
+
+	if(!fname || *fname == '\0')
+		return -1;
+
+	/* Create parent directory if it doesn't already exist */
+	strncpyt(path, fname, sizeof(path));
+	dir = dirname(path);
+	if (stat(dir, &st) == 0)
+	{
+		if (!S_ISDIR(st.st_mode))
+		{
+			DPRINTF(E_ERROR, L_GENERAL, "Pidfile path is not a directory: %s\n",
+			        fname);
+			return -1;
+		}
+	}
+	else
+	{
+		if (make_dir(dir, S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH) != 0)
+		{
+			DPRINTF(E_ERROR, L_GENERAL, "Unable to create pidfile directory: %s\n",
+			        fname);
+			return -1;
+		}
+		if (uid >= 0)
+		{
+			if (chown(dir, uid, -1) != 0)
+				DPRINTF(E_WARN, L_GENERAL, "Unable to change pidfile ownership: %s\n",
+				        dir, strerror(errno));
+		}
+	}
+	
+	pidfile = fopen(fname, "w");
+	if (!pidfile)
+	{
+		DPRINTF(E_ERROR, L_GENERAL, "Unable to open pidfile for writing %s: %s\n",
+		        fname, strerror(errno));
+		return -1;
+	}
+
+	if (fprintf(pidfile, "%d\n", pid) <= 0)
+	{
+		DPRINTF(E_ERROR, L_GENERAL, 
+			"Unable to write to pidfile %s: %s\n", fname);
+		ret = -1;
+	}
+	if (uid >= 0)
+	{
+		if (fchown(fileno(pidfile), uid, -1) != 0)
+			DPRINTF(E_WARN, L_GENERAL, "Unable to change pidfile ownership: %s\n",
+			        pidfile, strerror(errno));
+	}
+
+	fclose(pidfile);
+
+	return ret;
+}
+
 /* init phase :
  * 1) read configuration file
  * 2) read command line arguments
@@ -429,13 +495,14 @@ init(int argc, char * * argv)
 	const char * presurl = NULL;
 	const char * optionsfile = "/etc/minidlna.conf";
 	char mac_str[13];
-	char * string, * word;
+	char *string, *word;
 	enum media_types type;
-	char * path;
+	char *path;
 	char buf[PATH_MAX];
 	char ip_addr[INET_ADDRSTRLEN + 3] = {'\0'};
 	char log_str[75] = "general,artwork,database,inotify,scanner,metadata,http,ssdp,tivo=warn";
 	char *log_level = NULL;
+	uid_t uid = -1;
 
 	/* first check if "-f" option is used */
 	for(i=2; i<argc; i++)
@@ -675,6 +742,16 @@ init(int argc, char * * argv)
 			case UPNPUUID:
 				strcpy(uuidvalue+5, ary_options[i].value);
 				break;
+			case USER_ACCOUNT:
+				uid = strtol(ary_options[i].value, &string, 0);
+				if (*string) {
+					/* Symbolic username given, not UID. */
+					struct passwd *entry = getpwnam(ary_options[i].value);
+					if (!entry)
+						DPRINTF(E_FATAL, L_GENERAL, "Bad user '%s'.\n", argv[i]);
+					uid = entry->pw_uid;
+				}
+				break;
 			default:
 				DPRINTF(E_ERROR, L_GENERAL, "Unknown option in file %s\n",
 				        optionsfile);
@@ -828,6 +905,21 @@ init(int argc, char * * argv)
 			if( system(buf) != 0 )
 				DPRINTF(E_FATAL, L_GENERAL, "Failed to clean old file cache. EXITING\n");
 			break;
+		case 'u':
+			if(i+1 == argc)
+				DPRINTF(E_FATAL, L_GENERAL, "Option -%c takes one argument.\n", argv[i][1]);
+			else {
+				i++;
+				uid = strtol(argv[i], &string, 0);
+				if (*string) {
+					/* Symbolic username given, not UID. */
+					struct passwd *entry = getpwnam(argv[i]);
+					if (!entry)
+						DPRINTF(E_FATAL, L_GENERAL, "Bad user '%s'.\n", argv[i]);
+					uid = entry->pw_uid;
+				}
+			}
+			break;
 		case 'V':
 			printf("Version " MINIDLNA_VERSION "\n");
 			exit(0);
@@ -859,6 +951,7 @@ init(int argc, char * * argv)
 			/*"[-l logfile] " not functionnal */
 			"\t\t[-s serial] [-m model_number] \n"
 			"\t\t[-t notify_interval] [-P pid_filename]\n"
+			"\t\t[-u uid_to_run_as]\n"
 			"\t\t[-w url] [-R] [-V] [-h]\n"
 		        "\nNotes:\n\tNotify interval is in seconds. Default is 895 seconds.\n"
 			"\tDefault pid file is %s.\n"
@@ -926,8 +1019,12 @@ init(int argc, char * * argv)
 	if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
 		DPRINTF(E_FATAL, L_GENERAL, "Failed to set %s handler. EXITING.\n", SIGPIPE);
 
-	if (writepidfile(pidfilename, pid) != 0)
+	if (writepidfile(pidfilename, pid, uid) != 0)
 		pidfilename = NULL;
+
+	if (uid != -1 && setuid(uid) == -1)
+		DPRINTF(E_FATAL, L_GENERAL, "Failed to switch to uid '%d'. [%s] EXITING.\n",
+		        uid, strerror(errno));
 
 	return 0;
 }
@@ -1000,7 +1097,7 @@ main(int argc, char * * argv)
 		}
 	}
 #endif
-	sudp = OpenAndConfSSDPReceiveSocket(n_lan_addr, lan_addr);
+	sudp = OpenAndConfSSDPReceiveSocket();
 	if(sudp < 0)
 	{
 		DPRINTF(E_INFO, L_GENERAL, "Failed to open socket for receiving SSDP. Trying to use MiniSSDPd\n");
