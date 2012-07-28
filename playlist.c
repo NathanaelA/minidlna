@@ -233,7 +233,7 @@ found:
 				DPRINTF(E_DEBUG, L_SCANNER, "- %s not found in db\n", fname);
 				if( strchr(fname, '\\') )
 				{
-					fname = modifyString(fname, "\\", "/", 0);
+					fname = modifyString(fname, "\\", "/");
 					goto retry;
 				}
 				else if( (fname = strchr(fname, '/')) )

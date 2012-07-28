@@ -48,7 +48,7 @@ char *
 strcasestrc(const char *s, const char *p, const char t);
 
 char *
-modifyString(char * string, const char * before, const char * after, short like);
+modifyString(char * string, const char * before, const char * after);
 
 char *
 escape_tag(const char *tag, int force_alloc);

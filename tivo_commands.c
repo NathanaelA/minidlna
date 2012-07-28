@@ -96,11 +96,11 @@ SendRootContainer(struct upnphttp *h)
 static char *
 unescape_tag(char *tag)
 {
-	modifyString(tag, "&amp;amp;", "&amp;", 0);
-	modifyString(tag, "&amp;amp;lt;", "&lt;", 0);
-	modifyString(tag, "&amp;lt;", "&lt;", 0);
-	modifyString(tag, "&amp;amp;gt;", "&gt;", 0);
-	modifyString(tag, "&amp;gt;", "&gt;", 0);
+	modifyString(tag, "&amp;amp;", "&amp;");
+	modifyString(tag, "&amp;amp;lt;", "&lt;");
+	modifyString(tag, "&amp;lt;", "&lt;");
+	modifyString(tag, "&amp;amp;gt;", "&gt;");
+	modifyString(tag, "&amp;gt;", "&gt;");
 	return tag;
 }
 

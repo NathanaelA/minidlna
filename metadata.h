@@ -82,9 +82,6 @@ typedef enum {
 int
 ends_with(const char *haystack, const char *needle);
 
-char *
-modifyString(char *string, const char *before, const char *after, short like);
-
 void
 check_for_captions(const char *path, int64_t detailID);
 

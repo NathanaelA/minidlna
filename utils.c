@@ -164,14 +164,14 @@ strcasestrc(const char *s, const char *p, const char t)
 } 
 
 char *
-modifyString(char * string, const char * before, const char * after, short like)
+modifyString(char * string, const char * before, const char * after)
 {
 	int oldlen, newlen, chgcnt = 0;
-	char *s, *p, *t;
+	char *s, *p;
 
 	oldlen = strlen(before);
 	newlen = strlen(after);
-	if( newlen+like > oldlen )
+	if( newlen > oldlen )
 	{
 		s = string;
 		while( (p = strstr(s, before)) )
@@ -179,7 +179,7 @@ modifyString(char * string, const char * before, const char * after, short like)
 			chgcnt++;
 			s = p+oldlen;
 		}
-		s = realloc(string, strlen(string)+((newlen-oldlen)*chgcnt)+1+like);
+		s = realloc(string, strlen(string)+((newlen-oldlen)*chgcnt)+1);
 		/* If we failed to realloc, return the original alloc'd string */
 		if( s )
 			string = s;
@@ -195,24 +195,6 @@ modifyString(char * string, const char * before, const char * after, short like)
 			return string;
 		memmove(p + newlen, p + oldlen, strlen(p + oldlen) + 1);
 		memcpy(p, after, newlen);
-		if( like )
-		{
-			t = p+newlen;
-			while( isspace(*t) )
-				t++;
-			if( *t == '"' )
-			{
-				if( like == 2 )
-				{
-					memmove(t+2, t+1, strlen(t+1)+1);
-					*++t = '%';
-				}
-				while( *++t != '"' )
-					continue;
-				memmove(t+1, t, strlen(t)+1);
-				*t = '%';
-			}
-		}
 		s = p + newlen;
 	}
 
@@ -227,10 +209,10 @@ escape_tag(const char *tag, int force_alloc)
 	if( strchr(tag, '&') || strchr(tag, '<') || strchr(tag, '>') || strchr(tag, '"') )
 	{
 		esc_tag = strdup(tag);
-		esc_tag = modifyString(esc_tag, "&", "&amp;amp;", 0);
-		esc_tag = modifyString(esc_tag, "<", "&amp;lt;", 0);
-		esc_tag = modifyString(esc_tag, ">", "&amp;gt;", 0);
-		esc_tag = modifyString(esc_tag, "\"", "&amp;quot;", 0);
+		esc_tag = modifyString(esc_tag, "&", "&amp;amp;");
+		esc_tag = modifyString(esc_tag, "<", "&amp;lt;");
+		esc_tag = modifyString(esc_tag, ">", "&amp;gt;");
+		esc_tag = modifyString(esc_tag, "\"", "&amp;quot;");
 	}
 	else if( force_alloc )
 		esc_tag = strdup(tag);

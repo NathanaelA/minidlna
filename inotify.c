@@ -688,7 +688,7 @@ start_inotify()
 					i += EVENT_SIZE + event->len;
 					continue;
 				}
-				esc_name = modifyString(strdup(event->name), "&", "&amp;amp;", 0);
+				esc_name = modifyString(strdup(event->name), "&", "&amp;amp;");
 				sprintf(path_buf, "%s/%s", get_path_from_wd(event->wd), event->name);
 				if ( event->mask & IN_ISDIR && (event->mask & (IN_CREATE|IN_MOVED_TO)) )
 				{
