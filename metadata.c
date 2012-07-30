@@ -137,7 +137,7 @@ static inline int
 lav_open(AVFormatContext **ctx, const char *filename)
 {
 	int ret;
-#if LIBAVFORMAT_VERSION_INT >= ((53<<16)+(2<<8)+0)
+#if LIBAVFORMAT_VERSION_INT >= ((53<<16)+(17<<8)+0)
 	ret = avformat_open_input(ctx, filename, NULL, NULL);
 	if (ret == 0)
         	avformat_find_stream_info(*ctx, NULL);
@@ -152,7 +152,7 @@ lav_open(AVFormatContext **ctx, const char *filename)
 static inline void
 lav_close(AVFormatContext *ctx)
 {
-#if LIBAVFORMAT_VERSION_INT >= ((53<<16)+(2<<8)+0)
+#if LIBAVFORMAT_VERSION_INT >= ((53<<16)+(17<<8)+0)
 	avformat_close_input(&ctx);
 #else
 	av_close_input_file(ctx);
