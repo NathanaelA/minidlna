@@ -290,7 +290,7 @@ inotify_insert_file(char * name, const char * path)
 	char * id = NULL;
 	int depth = 1;
 	int ts;
-	enum media_types type = ALL_MEDIA;
+	media_types types = ALL_MEDIA;
 	struct media_dir_s * media_path = media_dirs;
 	struct stat st;
 
@@ -305,12 +305,12 @@ inotify_insert_file(char * name, const char * path)
 	{
 		if( strncmp(path, media_path->path, strlen(media_path->path)) == 0 )
 		{
-			type = media_path->type;
+			types = media_path->types;
 			break;
 		}
 		media_path = media_path->next;
 	}
-	switch( type )
+	switch( types )
 	{
 		case ALL_MEDIA:
 			if( !is_image(path) &&
@@ -319,16 +319,32 @@ inotify_insert_file(char * name, const char * path)
 			    !is_playlist(path) )
 				return -1;
 			break;
-		case AUDIO_ONLY:
+		case TYPE_AUDIO:
 			if( !is_audio(path) &&
 			    !is_playlist(path) )
 				return -1;
 			break;
-		case VIDEO_ONLY:
+		case TYPE_AUDIO|TYPE_VIDEO:
+			if( !is_audio(path) &&
+			    !is_video(path) &&
+			    !is_playlist(path) )
+			break;
+		case TYPE_AUDIO|TYPE_IMAGES:
+			if( !is_image(path) &&
+			    !is_audio(path) &&
+			    !is_playlist(path) )
+				return -1;
+			break;
+		case TYPE_VIDEO:
 			if( !is_video(path) )
 				return -1;
 			break;
-		case IMAGES_ONLY:
+		case TYPE_VIDEO|TYPE_IMAGES:
+			if( !is_image(path) &&
+			    !is_video(path) )
+				return -1;
+			break;
+		case TYPE_IMAGES:
 			if( !is_image(path) )
 				return -1;
 			break;
@@ -426,8 +442,8 @@ inotify_insert_directory(int fd, char *name, const char * path)
 	char path_buf[PATH_MAX];
 	int wd;
 	enum file_types type = TYPE_UNKNOWN;
-	enum media_types dir_type = ALL_MEDIA;
-	struct media_dir_s * media_path;
+	media_types dir_types = ALL_MEDIA;
+	struct media_dir_s* media_path;
 	struct stat st;
 
 	if( access(path, R_OK|X_OK) != 0 )
@@ -465,7 +481,7 @@ inotify_insert_directory(int fd, char *name, const char * path)
 	{
 		if( strncmp(path, media_path->path, strlen(media_path->path)) == 0 )
 		{
-			dir_type = media_path->type;
+			dir_types = media_path->types;
 			break;
 		}
 		media_path = media_path->next;
@@ -489,7 +505,7 @@ inotify_insert_directory(int fd, char *name, const char * path)
 			case DT_REG:
 			case DT_LNK:
 			case DT_UNKNOWN:
-				type = resolve_unknown_type(path_buf, dir_type);
+				type = resolve_unknown_type(path_buf, dir_types);
 			default:
 				break;
 		}

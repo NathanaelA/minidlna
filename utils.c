@@ -358,7 +358,7 @@ is_album_art(const char * name)
 }
 
 int
-resolve_unknown_type(const char * path, enum media_types dir_type)
+resolve_unknown_type(const char * path, media_types dir_type)
 {
 	struct stat entry;
 	unsigned char type = TYPE_UNKNOWN;
@@ -397,16 +397,16 @@ resolve_unknown_type(const char * path, enum media_types dir_type)
 					    is_playlist(path) )
 						type = TYPE_FILE;
 					break;
-				case AUDIO_ONLY:
+				case TYPE_AUDIO:
 					if( is_audio(path) ||
 					    is_playlist(path) )
 						type = TYPE_FILE;
 					break;
-				case VIDEO_ONLY:
+				case TYPE_VIDEO:
 					if( is_video(path) )
 						type = TYPE_FILE;
 					break;
-				case IMAGES_ONLY:
+				case TYPE_IMAGES:
 					if( is_image(path) )
 						type = TYPE_FILE;
 					break;

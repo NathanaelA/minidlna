@@ -4,6 +4,7 @@
 - Switch to autoconf from our handcrafted genconfig.sh.
 - Add configuration option for UUID.
 - Add configuration option to specify the user to run as.
+- Add support for limiting a media dir to multiple media types.
 
 1.0.25 - Released 13-July-2012
 --------------------------------

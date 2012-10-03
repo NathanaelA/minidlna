@@ -594,62 +594,90 @@ sql_failed:
 	return (ret != SQLITE_OK);
 }
 
-int
-filter_audio(scan_filter *d)
+static int
+filter_type(scan_filter *d)
 {
 	return ( (*d->d_name != '.') &&
 	         ((d->d_type == DT_DIR) ||
 	          (d->d_type == DT_LNK) ||
-	          (d->d_type == DT_UNKNOWN) ||
-		  ((d->d_type == DT_REG) &&
-		   (is_audio(d->d_name) ||
-	            is_playlist(d->d_name)
-		   )
-	       ) ));
+	          (d->d_type == DT_UNKNOWN))
+	       );
 }
 
-int
-filter_video(scan_filter *d)
+static int
+filter_a(scan_filter *d)
 {
-	return ( (*d->d_name != '.') &&
-	         ((d->d_type == DT_DIR) ||
-	          (d->d_type == DT_LNK) ||
-	          (d->d_type == DT_UNKNOWN) ||
-		  ((d->d_type == DT_REG) &&
-		   is_video(d->d_name) )
+	return ( filter_type(d) ||
+		 ((d->d_type == DT_REG) &&
+		  (is_audio(d->d_name) ||
+	           is_playlist(d->d_name))
 	       ) );
 }
 
-int
-filter_images(scan_filter *d)
+static int
+filter_av(scan_filter *d)
 {
-	return ( (*d->d_name != '.') &&
-	         ((d->d_type == DT_DIR) ||
-	          (d->d_type == DT_LNK) ||
-	          (d->d_type == DT_UNKNOWN) ||
-		  ((d->d_type == DT_REG) &&
-		   is_image(d->d_name) )
-	       ) );
+	return ( filter_type(d) ||
+		 ((d->d_type == DT_REG) &&
+		  (is_audio(d->d_name) ||
+		   is_video(d->d_name) ||
+	           is_playlist(d->d_name)))
+	       );
 }
 
-int
-filter_media(scan_filter *d)
+static int
+filter_ap(scan_filter *d)
 {
-	return ( (*d->d_name != '.') &&
-	         ((d->d_type == DT_DIR) ||
-	          (d->d_type == DT_LNK) ||
-	          (d->d_type == DT_UNKNOWN) ||
-	          ((d->d_type == DT_REG) &&
-	           (is_image(d->d_name) ||
-	            is_audio(d->d_name) ||
-	            is_video(d->d_name) ||
-	            is_playlist(d->d_name)
-	           )
-	       ) ));
+	return ( filter_type(d) ||
+		 ((d->d_type == DT_REG) &&
+		  (is_audio(d->d_name) ||
+		   is_image(d->d_name) ||
+	           is_playlist(d->d_name)))
+	       );
+}
+
+static int
+filter_v(scan_filter *d)
+{
+	return ( filter_type(d) ||
+		 (d->d_type == DT_REG &&
+	          is_video(d->d_name))
+	       );
+}
+
+static int
+filter_vp(scan_filter *d)
+{
+	return ( filter_type(d) ||
+		 ((d->d_type == DT_REG) &&
+		  (is_video(d->d_name) ||
+	           is_image(d->d_name)))
+	       );
+}
+
+static int
+filter_p(scan_filter *d)
+{
+	return ( filter_type(d) ||
+		 (d->d_type == DT_REG &&
+		  is_image(d->d_name))
+	       );
+}
+
+static int
+filter_avp(scan_filter *d)
+{
+	return ( filter_type(d) ||
+		 ((d->d_type == DT_REG) &&
+		  (is_audio(d->d_name) ||
+		   is_image(d->d_name) ||
+		   is_video(d->d_name) ||
+	           is_playlist(d->d_name)))
+	       );
 }
 
 void
-ScanDirectory(const char *dir, const char *parent, enum media_types dir_type)
+ScanDirectory(const char *dir, const char *parent, media_types dir_types)
 {
 	struct dirent **namelist;
 	int i, n, startID=0;
@@ -659,22 +687,29 @@ ScanDirectory(const char *dir, const char *parent, enum media_types dir_type)
 	static long long unsigned int fileno = 0;
 	enum file_types type;
 
-	setlocale(LC_COLLATE, "");
-
 	DPRINTF(parent?E_INFO:E_WARN, L_SCANNER, _("Scanning %s\n"), dir);
-	switch( dir_type )
+	switch( dir_types )
 	{
 		case ALL_MEDIA:
-			n = scandir(dir, &namelist, filter_media, alphasort);
+			n = scandir(dir, &namelist, filter_avp, alphasort);
 			break;
-		case AUDIO_ONLY:
-			n = scandir(dir, &namelist, filter_audio, alphasort);
+		case TYPE_AUDIO:
+			n = scandir(dir, &namelist, filter_a, alphasort);
 			break;
-		case VIDEO_ONLY:
-			n = scandir(dir, &namelist, filter_video, alphasort);
+		case TYPE_AUDIO|TYPE_VIDEO:
+			n = scandir(dir, &namelist, filter_av, alphasort);
 			break;
-		case IMAGES_ONLY:
-			n = scandir(dir, &namelist, filter_images, alphasort);
+		case TYPE_AUDIO|TYPE_IMAGES:
+			n = scandir(dir, &namelist, filter_ap, alphasort);
+			break;
+		case TYPE_VIDEO:
+			n = scandir(dir, &namelist, filter_v, alphasort);
+			break;
+		case TYPE_VIDEO|TYPE_IMAGES:
+			n = scandir(dir, &namelist, filter_vp, alphasort);
+			break;
+		case TYPE_IMAGES:
+			n = scandir(dir, &namelist, filter_p, alphasort);
 			break;
 		default:
 			n = -1;
@@ -709,13 +744,13 @@ ScanDirectory(const char *dir, const char *parent, enum media_types dir_type)
 		}
 		else
 		{
-			type = resolve_unknown_type(full_path, dir_type);
+			type = resolve_unknown_type(full_path, dir_types);
 		}
 		if( (type == TYPE_DIR) && (access(full_path, R_OK|X_OK) == 0) )
 		{
 			insert_directory(name, full_path, BROWSEDIR_ID, (parent ? parent:""), i+startID);
 			sprintf(parent_id, "%s$%X", (parent ? parent:""), i+startID);
-			ScanDirectory(full_path, parent_id, dir_type);
+			ScanDirectory(full_path, parent_id, dir_types);
 		}
 		else if( type == TYPE_FILE && (access(full_path, R_OK) == 0) )
 		{
@@ -746,13 +781,15 @@ start_scanner()
 	if( flag )
 		fclose(flag);
 #endif
+	setlocale(LC_COLLATE, "");
+
 	av_register_all();
 	av_log_set_level(AV_LOG_PANIC);
 	while( media_path )
 	{
 		strncpyt(name, media_path->path, sizeof(name));
 		GetFolderMetadata(basename(name), media_path->path, NULL, NULL, 0);
-		ScanDirectory(media_path->path, NULL, media_path->type);
+		ScanDirectory(media_path->path, NULL, media_path->types);
 		media_path = media_path->next;
 	}
 #ifdef READYNAS

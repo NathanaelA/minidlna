@@ -53,13 +53,12 @@ struct string_s {
 	int size;
 };
 
-enum media_types {
-	ALL_MEDIA,
-	AUDIO_ONLY,
-	VIDEO_ONLY,
-	IMAGES_ONLY,
-	NO_MEDIA
-};
+typedef uint8_t media_types;
+#define NO_MEDIA     0x00
+#define TYPE_AUDIO   0x01
+#define TYPE_VIDEO   0x02
+#define TYPE_IMAGES  0x04
+#define ALL_MEDIA    TYPE_AUDIO|TYPE_VIDEO|TYPE_IMAGES
 
 enum file_types {
 	TYPE_UNKNOWN,
@@ -90,15 +89,15 @@ enum client_types {
 };
 
 struct media_dir_s {
-	char * path;            /* Base path */
-	enum media_types type;  /* type of files to scan */
-	struct media_dir_s * next;
+ 	char *path;             /* base path */
+ 	media_types types;      /* types of files to scan */
+ 	struct media_dir_s *next;
 };
 
 struct album_art_name_s {
-	char * name;            /* Base path */
+	char *name;             /* base path */
 	uint8_t wildcard;
-	struct album_art_name_s * next;
+	struct album_art_name_s *next;
 };
 
 struct client_cache_s {

@@ -78,6 +78,6 @@ int
 is_album_art(const char * name);
 
 int
-resolve_unknown_type(const char * path, enum media_types dir_type);
+resolve_unknown_type(const char * path, media_types dir_type);
 
 #endif
