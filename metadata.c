@@ -668,7 +668,7 @@ no_exifdata:
 		m.dlna_pn = strdup("JPEG_SM");
 	else if( width <= 1024 && height <= 768 )
 		m.dlna_pn = strdup("JPEG_MED");
-	else if( (width <= 4096 && height <= 4096) || !(GETFLAG(DLNA_STRICT_MASK)) )
+	else if( (width <= 4096 && height <= 4096) || !GETFLAG(DLNA_STRICT_MASK) )
 		m.dlna_pn = strdup("JPEG_LRG");
 	xasprintf(&m.resolution, "%dx%d", width, height);
 

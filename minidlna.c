@@ -930,6 +930,11 @@ init(int argc, char * * argv)
 				}
 			}
 			break;
+#ifdef __linux__
+		case 'S':
+			SETFLAG(SYSTEMD_MASK);
+			break;
+#endif
 		case 'V':
 			printf("Version " MINIDLNA_VERSION "\n");
 			exit(0);
@@ -970,6 +975,9 @@ init(int argc, char * * argv)
 			"\t-h displays this text\n"
 			"\t-R forces a full rescan\n"
 			"\t-L do note create playlists\n"
+#ifdef __linux__
+			"\t-S changes behaviour for systemd\n"
+#endif
 			"\t-V print the version number\n",
 		        argv[0], pidfilename);
 		return 1;
@@ -984,26 +992,33 @@ init(int argc, char * * argv)
 	{
 		log_level = log_str;
 	}
+
+	/* Set the default log file path to NULL (stdout) */
+	path = NULL;
 	if(debug_flag)
 	{
 		pid = getpid();
 		strcpy(log_str+65, "maxdebug");
 		log_level = log_str;
-		log_init(NULL, log_level);
+	}
+	else if(GETFLAG(SYSTEMD_MASK))
+	{
+		pid = getpid();
 	}
 	else
 	{
 		pid = daemonize();
 		#ifdef READYNAS
 		unlink("/ramfs/.upnp-av_scan");
-		log_init("/var/log/upnp-av.log", log_level);
+		path = "/var/log/upnp-av.log";
 		#else
 		if( access(db_path, F_OK) != 0 )
 			make_dir(db_path, S_ISVTX|S_IRWXU|S_IRWXG|S_IRWXO);
-		sprintf(buf, "%s/minidlna.log", log_path);
-		log_init(buf, log_level);
+		snprintf(buf, sizeof(buf), "%s/minidlna.log", log_path);
+		path = buf;
 		#endif
 	}
+	log_init(path, log_level);
 
 	if (checkforrunning(pidfilename) < 0)
 	{

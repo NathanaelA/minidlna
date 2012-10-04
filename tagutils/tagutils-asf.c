@@ -252,7 +252,8 @@ _asf_load_string(FILE *fp, int type, int size, char *buf, int len)
 		case ASF_VT_UNICODE:
 			for(j = 0; j < size; j += 2)
 			{
-				wc = *(__s16*)&data[j];
+				wd16 = (__s16 *) &data[j];
+				wc = (__u16)*wd16;
 				i += utf16le_to_utf8(&buf[i], len - i, wc);
 			}
 			break;
