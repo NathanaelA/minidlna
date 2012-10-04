@@ -2,8 +2,9 @@ AM_CFLAGS = -Wall -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 @STATIC_CFLAGS@
 
 SUBDIRS=po
 
-bin_PROGRAMS = minidlna testupnpdescgen
-minidlna_SOURCES = minidlna.c upnphttp.c upnpdescgen.c upnpsoap.c \
+sbin_PROGRAMS = minidlnad
+check_PROGRAMS = testupnpdescgen
+minidlnad_SOURCES = minidlna.c upnphttp.c upnpdescgen.c upnpsoap.c \
 			upnpreplyparse.c minixml.c \
 			getifaddr.c daemonize.c upnpglobalvars.c \
 			options.c minissdp.c uuid.c upnpevents.c \
@@ -11,7 +12,6 @@ minidlna_SOURCES = minidlna.c upnphttp.c upnpdescgen.c upnpsoap.c \
 			tivo_utils.c tivo_beacon.c tivo_commands.c \
 			tagutils/textutils.c tagutils/misc.c tagutils/tagutils.c \
 			playlist.c image_utils.c albumart.c log.c
-
 
 #if NEED_VORBIS
 vorbisflag = -lvorbis
@@ -21,20 +21,19 @@ vorbisflag = -lvorbis
 flacoggflag = -logg
 #endif
 
-minidlna_LDADD = \
+minidlnad_LDADD = \
 	@LIBJPEG_LIBS@ \
 	@LIBID3TAG_LIBS@ \
 	@LIBSQLITE3_LIBS@ \
 	@LIBAVFORMAT_LIBS@ \
 	@LIBAVUTIL_LIBS@ \
 	@LIBEXIF_LIBS@ \
-	@LIBDL_LIBS@ \
 	@LIBRT_LIBS@ \
 	@LIBINTL@ \
 	@LIBICONV@ \
 	-lpthread  -lFLAC  $(flacoggflag) $(vorbisflag)
 
-minidlna_LDFLAGS = @STATIC_LDFLAGS@
+minidlnad_LDFLAGS = @STATIC_LDFLAGS@
 
 testupnpdescgen_SOURCES = testupnpdescgen.c upnpdescgen.c
 testupnpdescgen_LDADD = \
@@ -44,7 +43,6 @@ testupnpdescgen_LDADD = \
 	@LIBAVFORMAT_LIBS@ \
 	@LIBAVUTIL_LIBS@ \
 	@LIBEXIF_LIBS@ \
-	@LIBDL_LIBS@ \
 	-lpthread  -lFLAC  $(flacoggflag) $(vorbisflag)
 
 

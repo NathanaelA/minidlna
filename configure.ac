@@ -104,8 +104,6 @@ AC_COMPILE_IFELSE(
 
 ################################################################################################################
 ### Library checks
-AC_CHECK_LIB([dl], [dlopen], [LIBDL_LIBS="-ldl"],)
-AC_SUBST(LIBDL_LIBS)
 
 CPPFLAGS_SAVE="$CPPFLAGS"
 for dir in "" /usr/local $INCLUDE_DIR; do
