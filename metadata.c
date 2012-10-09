@@ -1014,8 +1014,11 @@ GetVideoMetadata(const char *path, char *name)
 						          vc->height * vc->sample_aspect_ratio.den,
 						          1024*1024);
 					}
-					fps = ctx->streams[video_stream]->r_frame_rate.num / ctx->streams[video_stream]->r_frame_rate.den;
-					interlaced = (ctx->streams[video_stream]->r_frame_rate.num / vc->time_base.den);
+					if (ctx->streams[video_stream]->r_frame_rate.den)
+						fps = ctx->streams[video_stream]->r_frame_rate.num / ctx->streams[video_stream]->r_frame_rate.den;
+					else
+						fps = 0;
+					interlaced = vc->time_base.den ? (ctx->streams[video_stream]->r_frame_rate.num / vc->time_base.den) : 0;
 					if( ((((vc->width == 1920 || vc->width == 1440) && vc->height == 1080) ||
 					      (vc->width == 720 && vc->height == 480)) && fps == 59 && interlaced) ||
 					    ((vc->width == 1280 && vc->height == 720) && fps == 59 && !interlaced) )
