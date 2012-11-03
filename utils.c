@@ -293,6 +293,72 @@ DJBHash(const char *str, int len)
 	return hash;
 }
 
+const char *
+mime_to_ext(const char * mime)
+{
+	switch( *mime )
+	{
+		/* Audio extensions */
+		case 'a':
+			if( strcmp(mime+6, "mpeg") == 0 )
+				return "mp3";
+			else if( strcmp(mime+6, "mp4") == 0 )
+				return "m4a";
+			else if( strcmp(mime+6, "x-ms-wma") == 0 )
+				return "wma";
+			else if( strcmp(mime+6, "x-flac") == 0 )
+				return "flac";
+			else if( strcmp(mime+6, "flac") == 0 )
+				return "flac";
+			else if( strcmp(mime+6, "x-wav") == 0 )
+				return "wav";
+			else if( strncmp(mime+6, "L16", 3) == 0 )
+				return "pcm";
+			else if( strcmp(mime+6, "3gpp") == 0 )
+				return "3gp";
+			else if( strcmp(mime, "application/ogg") == 0 )
+				return "ogg";
+			break;
+		case 'v':
+			if( strcmp(mime+6, "avi") == 0 )
+				return "avi";
+			else if( strcmp(mime+6, "divx") == 0 )
+				return "avi";
+			else if( strcmp(mime+6, "x-msvideo") == 0 )
+				return "avi";
+			else if( strcmp(mime+6, "mpeg") == 0 )
+				return "mpg";
+			else if( strcmp(mime+6, "mp4") == 0 )
+				return "mp4";
+			else if( strcmp(mime+6, "x-ms-wmv") == 0 )
+				return "wmv";
+			else if( strcmp(mime+6, "x-matroska") == 0 )
+				return "mkv";
+			else if( strcmp(mime+6, "x-mkv") == 0 )
+				return "mkv";
+			else if( strcmp(mime+6, "x-flv") == 0 )
+				return "flv";
+			else if( strcmp(mime+6, "vnd.dlna.mpeg-tts") == 0 )
+				return "mpg";
+			else if( strcmp(mime+6, "quicktime") == 0 )
+				return "mov";
+			else if( strcmp(mime+6, "3gpp") == 0 )
+				return "3gp";
+			else if( strncmp(mime+6, "x-tivo-mpeg", 11) == 0 )
+				return "TiVo";
+			break;
+		case 'i':
+			if( strcmp(mime+6, "jpeg") == 0 )
+				return "jpg";
+			else if( strcmp(mime+6, "png") == 0 )
+				return "png";
+			break;
+		default:
+			break;
+	}
+	return "dat";
+}
+
 int
 is_video(const char * file)
 {

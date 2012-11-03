@@ -255,7 +255,17 @@ parse_nfo(const char *path, metadata_t *m)
 
 	val = GetValueFromNameValueList(&xml, "genre");
 	if( val )
+	{
+		free(m->genre);
 		m->genre = strdup(val);
+	}
+
+	val = GetValueFromNameValueList(&xml, "mime");
+	if( val )
+	{
+		free(m->mime);
+		m->mime = strdup(val);
+	}
 
 	ClearNameValueList(&xml);
 	fclose(nfo);
@@ -756,24 +766,6 @@ GetVideoMetadata(const char *path, char *name)
 			DPRINTF(E_DEBUG, L_METADATA, "File %s does not contain a video stream.\n", basepath);
 		free(path_cpy);
 		return 0;
-	}
-
-	strcpy(nfo, path);
-	ext = strrchr(nfo, '.');
-	if( ext )
-	{
-		strcpy(ext+1, "nfo");
-		if( access(nfo, F_OK) == 0 )
-		{
-			parse_nfo(nfo, &m);
-		}
-	}
-
-	if( !m.date )
-	{
-		m.date = malloc(20);
-		modtime = localtime(&file.st_mtime);
-		strftime(m.date, 20, "%FT%T", modtime);
 	}
 
 	if( ac )
@@ -1483,26 +1475,6 @@ GetVideoMetadata(const char *path, char *name)
 				break;
 		}
 	}
-	if( !m.mime )
-	{
-		if( strcmp(ctx->iformat->name, "avi") == 0 )
-			xasprintf(&m.mime, "video/x-msvideo");
-		else if( strncmp(ctx->iformat->name, "mpeg", 4) == 0 )
-			xasprintf(&m.mime, "video/mpeg");
-		else if( strcmp(ctx->iformat->name, "asf") == 0 )
-			xasprintf(&m.mime, "video/x-ms-wmv");
-		else if( strcmp(ctx->iformat->name, "mov,mp4,m4a,3gp,3g2,mj2") == 0 )
-			if( ends_with(path, ".mov") )
-				xasprintf(&m.mime, "video/quicktime");
-			else
-				xasprintf(&m.mime, "video/mp4");
-		else if( strncmp(ctx->iformat->name, "matroska", 8) == 0 )
-			xasprintf(&m.mime, "video/x-matroska");
-		else if( strcmp(ctx->iformat->name, "flv") == 0 )
-			xasprintf(&m.mime, "video/x-flv");
-		else
-			DPRINTF(E_WARN, L_METADATA, "%s: Unhandled format: %s\n", path, ctx->iformat->name);
-	}
 
 	if( strcmp(ctx->iformat->name, "asf") == 0 )
 	{
@@ -1557,7 +1529,6 @@ GetVideoMetadata(const char *path, char *name)
 	#endif
 	#endif
 video_no_dlna:
-	lav_close(ctx);
 
 #ifdef TIVO_SUPPORT
 	if( ends_with(path, ".TiVo") && is_tivo_file(path) )
@@ -1567,10 +1538,51 @@ video_no_dlna:
 			free(m.dlna_pn);
 			m.dlna_pn = NULL;
 		}
-		m.mime = realloc(m.mime, 18);
+		m.mime = realloc(m.mime, 21);
 		strcpy(m.mime, "video/x-tivo-mpeg");
 	}
 #endif
+
+	strcpy(nfo, path);
+	ext = strrchr(nfo, '.');
+	if( ext )
+	{
+		strcpy(ext+1, "nfo");
+		if( access(nfo, F_OK) == 0 )
+		{
+			parse_nfo(nfo, &m);
+		}
+	}
+
+	if( !m.mime )
+	{
+		if( strcmp(ctx->iformat->name, "avi") == 0 )
+			xasprintf(&m.mime, "video/x-msvideo");
+		else if( strncmp(ctx->iformat->name, "mpeg", 4) == 0 )
+			xasprintf(&m.mime, "video/mpeg");
+		else if( strcmp(ctx->iformat->name, "asf") == 0 )
+			xasprintf(&m.mime, "video/x-ms-wmv");
+		else if( strcmp(ctx->iformat->name, "mov,mp4,m4a,3gp,3g2,mj2") == 0 )
+			if( ends_with(path, ".mov") )
+				xasprintf(&m.mime, "video/quicktime");
+			else
+				xasprintf(&m.mime, "video/mp4");
+		else if( strncmp(ctx->iformat->name, "matroska", 8) == 0 )
+			xasprintf(&m.mime, "video/x-matroska");
+		else if( strcmp(ctx->iformat->name, "flv") == 0 )
+			xasprintf(&m.mime, "video/x-flv");
+		else
+			DPRINTF(E_WARN, L_METADATA, "%s: Unhandled format: %s\n", path, ctx->iformat->name);
+	}
+	lav_close(ctx);
+
+	if( !m.date )
+	{
+		m.date = malloc(20);
+		modtime = localtime(&file.st_mtime);
+		strftime(m.date, 20, "%FT%T", modtime);
+	}
+
 	if( !m.title )
 		m.title = strdup(name);
 

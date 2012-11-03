@@ -26,58 +26,29 @@
 
 #include "minidlnatypes.h"
 
-int
-strcatf(struct string_s *str, char *fmt, ...);
+/* String functions */
+int strcatf(struct string_s *str, char *fmt, ...);
+void strncpyt(char *dst, const char *src, size_t len);
+inline int xasprintf(char **strp, char *fmt, ...);
+int ends_with(const char * haystack, const char * needle);
+char *trim(char *str);
+char *strstrc(const char *s, const char *p, const char t);
+char *strcasestrc(const char *s, const char *p, const char t);
+char *modifyString(char * string, const char * before, const char * after);
+char *escape_tag(const char *tag, int force_alloc);
+void strip_ext(char * name);
 
-void
-strncpyt(char *dst, const char *src, size_t len);
+/* Metadata functions */
+int is_video(const char * file);
+int is_audio(const char * file);
+int is_image(const char * file);
+int is_playlist(const char * file);
+int is_album_art(const char * name);
+int resolve_unknown_type(const char * path, media_types dir_type);
+const char *mime_to_ext(const char * mime);
 
-inline int
-xasprintf(char **strp, char *fmt, ...);
-
-int
-ends_with(const char * haystack, const char * needle);
-
-char *
-trim(char *str);
-
-char *
-strstrc(const char *s, const char *p, const char t);
-
-char *
-strcasestrc(const char *s, const char *p, const char t);
-
-char *
-modifyString(char * string, const char * before, const char * after);
-
-char *
-escape_tag(const char *tag, int force_alloc);
-
-void
-strip_ext(char * name);
-
-int
-make_dir(char * path, mode_t mode);
-
-unsigned int
-DJBHash(const char *str, int len);
-
-int
-is_video(const char * file);
-
-int
-is_audio(const char * file);
-
-int
-is_image(const char * file);
-
-int
-is_playlist(const char * file);
-
-int
-is_album_art(const char * name);
-
-int
-resolve_unknown_type(const char * path, media_types dir_type);
+/* Others */
+int make_dir(char * path, mode_t mode);
+unsigned int DJBHash(const char *str, int len);
 
 #endif

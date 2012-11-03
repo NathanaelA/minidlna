@@ -292,78 +292,6 @@ GetCurrentConnectionInfo(struct upnphttp * h, const char * action)
 	ClearNameValueList(&data);	
 }
 
-static void
-mime_to_ext(const char * mime, char * buf)
-{
-	switch( *mime )
-	{
-		/* Audio extensions */
-		case 'a':
-			if( strcmp(mime+6, "mpeg") == 0 )
-				strcpy(buf, "mp3");
-			else if( strcmp(mime+6, "mp4") == 0 )
-				strcpy(buf, "m4a");
-			else if( strcmp(mime+6, "x-ms-wma") == 0 )
-				strcpy(buf, "wma");
-			else if( strcmp(mime+6, "x-flac") == 0 )
-				strcpy(buf, "flac");
-			else if( strcmp(mime+6, "flac") == 0 )
-				strcpy(buf, "flac");
-			else if( strcmp(mime+6, "x-wav") == 0 )
-				strcpy(buf, "wav");
-			else if( strncmp(mime+6, "L16", 3) == 0 )
-				strcpy(buf, "pcm");
-			else if( strcmp(mime+6, "3gpp") == 0 )
-				strcpy(buf, "3gp");
-			else if( strcmp(mime, "application/ogg") == 0 )
-				strcpy(buf, "ogg");
-			else
-				strcpy(buf, "dat");
-			break;
-		case 'v':
-			if( strcmp(mime+6, "avi") == 0 )
-				strcpy(buf, "avi");
-			else if( strcmp(mime+6, "divx") == 0 )
-				strcpy(buf, "avi");
-			else if( strcmp(mime+6, "x-msvideo") == 0 )
-				strcpy(buf, "avi");
-			else if( strcmp(mime+6, "mpeg") == 0 )
-				strcpy(buf, "mpg");
-			else if( strcmp(mime+6, "mp4") == 0 )
-				strcpy(buf, "mp4");
-			else if( strcmp(mime+6, "x-ms-wmv") == 0 )
-				strcpy(buf, "wmv");
-			else if( strcmp(mime+6, "x-matroska") == 0 )
-				strcpy(buf, "mkv");
-			else if( strcmp(mime+6, "x-mkv") == 0 )
-				strcpy(buf, "mkv");
-			else if( strcmp(mime+6, "x-flv") == 0 )
-				strcpy(buf, "flv");
-			else if( strcmp(mime+6, "vnd.dlna.mpeg-tts") == 0 )
-				strcpy(buf, "mpg");
-			else if( strcmp(mime+6, "quicktime") == 0 )
-				strcpy(buf, "mov");
-			else if( strcmp(mime+6, "3gpp") == 0 )
-				strcpy(buf, "3gp");
-			else if( strcmp(mime+6, "x-tivo-mpeg") == 0 )
-				strcpy(buf, "TiVo");
-			else
-				strcpy(buf, "dat");
-			break;
-		case 'i':
-			if( strcmp(mime+6, "jpeg") == 0 )
-				strcpy(buf, "jpg");
-			else if( strcmp(mime+6, "png") == 0 )
-				strcpy(buf, "png");
-			else
-				strcpy(buf, "dat");
-			break;
-		default:
-			strcpy(buf, "dat");
-			break;
-	}
-}
-
 /* Standard DLNA/UPnP filter flags */
 #define FILTER_CHILDCOUNT                        0x00000001
 #define FILTER_DC_CREATOR                        0x00000002
@@ -671,7 +599,7 @@ add_resized_res(int srcw, int srch, int reqw, int reqh, char *dlna_pn,
 inline static void
 add_res(char *size, char *duration, char *bitrate, char *sampleFrequency,
         char *nrAudioChannels, char *resolution, char *dlna_pn, char *mime,
-        char *detailID, char *ext, struct Response *args)
+        char *detailID, const char *ext, struct Response *args)
 {
 	strcatf(args->str, "&lt;res ");
 	if( size && (args->filter & FILTER_RES_SIZE) ) {
@@ -728,7 +656,7 @@ callback(void *args, int argc, char **argv, char **azColName)
 	     *genre = argv[12], *comment = argv[13], *nrAudioChannels = argv[14], *track = argv[15], *date = argv[16], *resolution = argv[17],
 	     *tn = argv[18], *creator = argv[19], *dlna_pn = argv[20], *mime = argv[21], *album_art = argv[22];
 	char dlna_buf[128];
-	char ext[5];
+	const char *ext;
 	struct string_s *str = passed_args->str;
 	int ret = 0;
 
@@ -938,7 +866,7 @@ callback(void *args, int argc, char **argv, char **azColName)
 			}
 		}
 		if( passed_args->filter & FILTER_RES ) {
-			mime_to_ext(mime, ext);
+			ext = mime_to_ext(mime);
 			add_res(size, duration, bitrate, sampleFrequency, nrAudioChannels,
 			        resolution, dlna_buf, mime, detailID, ext, passed_args);
 			if( *mime == 'i' ) {
