@@ -312,7 +312,7 @@ getfriendlyname(char * buf, int len)
 }
 
 static int
-open_db(void)
+open_db(sqlite3 **thisdb)
 {
 	char path[PATH_MAX];
 	int new_db = 0;
@@ -327,11 +327,14 @@ open_db(void)
 	{
 		DPRINTF(E_FATAL, L_GENERAL, "ERROR: Failed to open sqlite database!  Exiting...\n");
 	}
+	if (thisdb)
+		*thisdb = db;
 	sqlite3_busy_timeout(db, 5000);
 	sql_exec(db, "pragma page_size = 4096");
 	sql_exec(db, "pragma journal_mode = OFF");
 	sql_exec(db, "pragma synchronous = OFF;");
 	sql_exec(db, "pragma default_cache_size = 8192;");
+
 	return new_db;
 }
 
@@ -373,14 +376,14 @@ check_db(sqlite3 *db, int new_db, pid_t *scanner_pid)
 		if( system(cmd) != 0 )
 			DPRINTF(E_FATAL, L_GENERAL, "Failed to clean old file cache!  Exiting...\n");
 
-		open_db();
+		open_db(&db);
 		if( CreateDatabase() != 0 )
 			DPRINTF(E_FATAL, L_GENERAL, "ERROR: Failed to create sqlite database!  Exiting...\n");
 #if USE_FORK
 		scanning = 1;
 		sqlite3_close(db);
 		*scanner_pid = fork();
-		open_db();
+		open_db(&db);
 		if( !(*scanner_pid) ) // child (scanner) process
 		{
 			start_scanner();
@@ -1102,10 +1105,9 @@ main(int argc, char * * argv)
 
 	LIST_INIT(&upnphttphead);
 
-	if( (i = open_db()) == 0 )
-	{
+	i = open_db(NULL);
+	if( i == 0 )
 		updateID = sql_get_int_field(db, "SELECT UPDATE_ID from SETTINGS");
-	}
 	check_db(db, i, &scanner_pid);
 	signal(SIGCHLD, &sigchld);
 #ifdef HAVE_INOTIFY
