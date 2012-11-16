@@ -5,6 +5,7 @@
 - Add configuration option for UUID.
 - Add configuration option to specify the user to run as.
 - Add support for limiting a media dir to multiple media types.
+- Force a rescan if we detect a new or missing media_dir entry.
 
 1.0.25 - Released 13-July-2012
 --------------------------------
