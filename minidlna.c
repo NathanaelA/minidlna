@@ -335,43 +335,67 @@ open_db(sqlite3 **sq3)
 static void
 check_db(sqlite3 *db, int new_db, pid_t *scanner_pid)
 {
-	int ret;
+	struct media_dir_s *media_path = NULL;
 	char cmd[PATH_MAX*2];
-	struct media_dir_s *media_path = NULL, *last_path;
-	struct album_art_name_s *art_names, *last_name;
+	char **result;
+	int i, rows = 0;
+	int ret;
 
-	/* Check if any new media dirs appeared */
-	if( !new_db )
+	if (!new_db)
 	{
+		/* Check if any new media dirs appeared */
 		media_path = media_dirs;
-		while( media_path )
+		while (media_path)
 		{
 			ret = sql_get_int_field(db, "SELECT ID from DETAILS where PATH = %Q", media_path->path);
 			if (ret < 1)
-				break;
+			{
+				ret = 1;
+				goto rescan;
+			}
 			media_path = media_path->next;
 		}
+		/* Check if any media dirs disappeared */
+		sql_get_table(db, "SELECT VALUE from SETTINGS where KEY = 'media_dir'", &result, &rows, NULL);
+		for (i=1; i <= rows; i++)
+		{
+			media_path = media_dirs;
+			while (media_path)
+			{
+				if (strcmp(result[i], media_path->path) == 0)
+					break;
+				media_path = media_path->next;
+			}
+			if (!media_path)
+			{
+				ret = 2;
+				sqlite3_free_table(result);
+				goto rescan;
+			}
+		}
+		sqlite3_free_table(result);
 	}
-	if( media_path )
-		ret = 1;
-	else 
-		ret = db_upgrade(db);
-	if( ret != 0 )
+
+	ret = db_upgrade(db);
+	if (ret != 0)
 	{
-		if( ret < 0 )
+rescan:
+		if (ret < 0)
 			DPRINTF(E_WARN, L_GENERAL, "Creating new database at %s/files.db\n", db_path);
-		else if( ret == 1 )
+		else if (ret == 1)
 			DPRINTF(E_WARN, L_GENERAL, "New media_dir detected; rescanning...\n");
+		else if (ret == 2)
+			DPRINTF(E_WARN, L_GENERAL, "Removed media_dir detected; rescanning...\n");
 		else
 			DPRINTF(E_WARN, L_GENERAL, "Database version mismatch; need to recreate...\n");
 		sqlite3_close(db);
 
 		snprintf(cmd, sizeof(cmd), "rm -rf %s/files.db %s/art_cache", db_path, db_path);
-		if( system(cmd) != 0 )
+		if (system(cmd) != 0)
 			DPRINTF(E_FATAL, L_GENERAL, "Failed to clean old file cache!  Exiting...\n");
 
 		open_db(&db);
-		if( CreateDatabase() != 0 )
+		if (CreateDatabase() != 0)
 			DPRINTF(E_FATAL, L_GENERAL, "ERROR: Failed to create sqlite database!  Exiting...\n");
 #if USE_FORK
 		scanning = 1;
@@ -1053,7 +1077,7 @@ main(int argc, char **argv)
 	ret = open_db(NULL);
 	if (ret == 0)
 	{
-		updateID = sql_get_int_field(db, "SELECT UPDATE_ID from SETTINGS");
+		updateID = sql_get_int_field(db, "SELECT VALUE from SETTINGS where KEY = 'UPDATE_ID'");
 		if (updateID == -1)
 			ret = -1;
 	}
@@ -1335,7 +1359,7 @@ shutdown:
 	if (inotify_thread)
 		pthread_join(inotify_thread, NULL);
 
-	sql_exec(db, "UPDATE SETTINGS set UPDATE_ID = %u", updateID);
+	sql_exec(db, "UPDATE SETTINGS set VALUE = '%u' where KEY = 'UPDATE_ID'", updateID);
 	sqlite3_close(db);
 
 	upnpevents_removeSubscribers();

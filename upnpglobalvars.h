@@ -66,7 +66,7 @@
 
 #define CLIENT_CACHE_SLOTS 20
 #define USE_FORK 1
-#define DB_VERSION 8
+#define DB_VERSION 9
 
 #ifdef ENABLE_NLS
 #define _(string) gettext(string)

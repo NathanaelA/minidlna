@@ -80,8 +80,8 @@ char create_playlistTable_sqlite[] = "CREATE TABLE PLAYLISTS ("
 					");";
 
 char create_settingsTable_sqlite[] = "CREATE TABLE SETTINGS ("
-					"UPDATE_ID INTEGER PRIMARY KEY DEFAULT 0, "
-					"FLAGS INTEGER DEFAULT 0"
+					"KEY TEXT NOT NULL, "
+					"VALUE TEXT"
 					");";
 
 
