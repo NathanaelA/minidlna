@@ -56,6 +56,13 @@ char *level_name[] = {
 	0
 };
 
+void
+log_close(void)
+{
+	if (log_fp)
+		fclose(log_fp);
+}
+
 int
 log_init(const char *fname, const char *debug)
 {

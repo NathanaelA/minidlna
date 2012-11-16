@@ -183,6 +183,27 @@ readoptionsfile(const char * fname)
 void
 freeoptions(void)
 {
+	struct media_dir_s *media_path, *last_path;
+	struct album_art_name_s *art_names, *last_name;
+	
+	media_path = media_dirs;
+	while (media_path)
+	{
+		free(media_path->path);
+		last_path = media_path;
+		media_path = media_path->next;
+		free(last_path);
+	}
+
+	art_names = album_art_names;
+	while (art_names)
+	{
+		free(art_names->name);
+		last_name = art_names;
+		art_names = art_names->next;
+		free(last_name);
+	}
+
 	if(ary_options)
 	{
 		free(ary_options);

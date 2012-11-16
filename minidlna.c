@@ -3,7 +3,7 @@
  * http://sourceforge.net/projects/minidlna/
  *
  * MiniDLNA media server
- * Copyright (C) 2008-2009  Justin Maggard
+ * Copyright (C) 2008-2012  Justin Maggard
  *
  * This file is part of MiniDLNA.
  *
@@ -384,26 +384,11 @@ check_db(sqlite3 *db, int new_db, pid_t *scanner_pid)
 		sqlite3_close(db);
 		*scanner_pid = fork();
 		open_db(&db);
-		if( !(*scanner_pid) ) // child (scanner) process
+		if (!(*scanner_pid)) /* child (scanner) process */
 		{
 			start_scanner();
 			sqlite3_close(db);
-			media_path = media_dirs;
-			art_names = album_art_names;
-			while( media_path )
-			{
-				free(media_path->path);
-				last_path = media_path;
-				media_path = media_path->next;
-				free(last_path);
-			}
-			while( art_names )
-			{
-				free(art_names->name);
-				last_name = art_names;
-				art_names = art_names->next;
-				free(last_name);
-			}
+			log_close();
 			freeoptions();
 			exit(EXIT_SUCCESS);
 		}
@@ -1076,8 +1061,6 @@ main(int argc, char * * argv)
 	int last_changecnt = 0;
 	pid_t scanner_pid = 0;
 	pthread_t inotify_thread = 0;
-	struct media_dir_s *media_path, *last_path;
-	struct album_art_name_s *art_names, *last_name;
 #ifdef TIVO_SUPPORT
 	uint8_t beacon_interval = 5;
 	int sbeacon = -1;
@@ -1417,26 +1400,10 @@ shutdown:
 
 	upnpevents_removeSubscribers();
 
-	media_path = media_dirs;
-	art_names = album_art_names;
-	while( media_path )
-	{
-		free(media_path->path);
-		last_path = media_path;
-		media_path = media_path->next;
-		free(last_path);
-	}
-	while( art_names )
-	{
-		free(art_names->name);
-		last_name = art_names;
-		art_names = art_names->next;
-		free(last_name);
-	}
-
-	if(pidfilename && unlink(pidfilename) < 0)
+	if (pidfilename && unlink(pidfilename) < 0)
 		DPRINTF(E_ERROR, L_GENERAL, "Failed to remove pidfile %s: %s\n", pidfilename, strerror(errno));
 
+	log_close();
 	freeoptions();
 
 	exit(EXIT_SUCCESS);
