@@ -787,8 +787,11 @@ start_scanner()
 	av_log_set_level(AV_LOG_PANIC);
 	while( media_path )
 	{
+		int64_t id;
 		strncpyt(name, media_path->path, sizeof(name));
-		GetFolderMetadata(basename(name), media_path->path, NULL, NULL, 0);
+		id = GetFolderMetadata(basename(name), media_path->path, NULL, NULL, 0);
+		/* Use TIMESTAMP to store the media type */
+		sql_exec(db, "UPDATE DETAILS set TIMESTAMP = %d where ID = %lld", media_path->types, (long long)id);
 		ScanDirectory(media_path->path, NULL, media_path->types);
 		sql_exec(db, "INSERT into SETTINGS values (%Q, %Q)", "media_dir", media_path->path);
 		media_path = media_path->next;

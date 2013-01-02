@@ -347,8 +347,8 @@ check_db(sqlite3 *db, int new_db, pid_t *scanner_pid)
 		media_path = media_dirs;
 		while (media_path)
 		{
-			ret = sql_get_int_field(db, "SELECT ID from DETAILS where PATH = %Q", media_path->path);
-			if (ret < 1)
+			ret = sql_get_int_field(db, "SELECT TIMESTAMP from DETAILS where PATH = %Q", media_path->path);
+			if (ret != media_path->types)
 			{
 				ret = 1;
 				goto rescan;
