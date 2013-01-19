@@ -272,6 +272,7 @@ check_for_album_file(const char *path)
 	char *art_file;
 	const char *dir;
 	struct stat st;
+	int ret;
 
 	if( stat(path, &st) != 0 )
 		return NULL;
@@ -286,20 +287,28 @@ check_for_album_file(const char *path)
 
 	/* First look for file-specific cover art */
 	snprintf(file, sizeof(file), "%s.cover.jpg", path);
-	if( access(file, R_OK) == 0 )
+	ret = access(file, R_OK);
+	if( ret != 0 )
 	{
-		if( art_cache_exists(file, &art_file) )
-			goto existing_file;
-		free(art_file);
-		imsrc = image_new_from_jpeg(file, 1, NULL, 0, 1, ROTATE_NONE);
-		if( imsrc )
-			goto found_file;
+		strncpyt(file, path, sizeof(file));
+		art_file = strrchr(file, '.');
+		if( art_file )
+		{
+			strcpy(art_file, ".jpg");
+			ret = access(file, R_OK);
+		}
+		if( ret != 0 )
+		{
+			art_file = strrchr(file, '/');
+			if( art_file )
+			{
+				memmove(art_file+2, art_file+1, file+MAXPATHLEN-art_file-2);
+				art_file[1] = '.';
+				ret = access(file, R_OK);
+			}
+		}
 	}
-	snprintf(file, sizeof(file), "%s", path);
-	art_file = strrchr(file, '.');
-	if( art_file )
-		strcpy(art_file, ".jpg");
-	if( access(file, R_OK) == 0 )
+	if( ret == 0 )
 	{
 		if( art_cache_exists(file, &art_file) )
 			goto existing_file;
