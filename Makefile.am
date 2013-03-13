@@ -28,10 +28,9 @@ minidlnad_LDADD = \
 	@LIBAVFORMAT_LIBS@ \
 	@LIBAVUTIL_LIBS@ \
 	@LIBEXIF_LIBS@ \
-	@LIBRT_LIBS@ \
 	@LIBINTL@ \
 	@LIBICONV@ \
-	-lpthread  -lFLAC  $(flacoggflag) $(vorbisflag)
+	-lFLAC  $(flacoggflag) $(vorbisflag)
 
 minidlnad_LDFLAGS = @STATIC_LDFLAGS@
 
@@ -43,7 +42,7 @@ testupnpdescgen_LDADD = \
 	@LIBAVFORMAT_LIBS@ \
 	@LIBAVUTIL_LIBS@ \
 	@LIBEXIF_LIBS@ \
-	-lpthread  -lFLAC  $(flacoggflag) $(vorbisflag)
+	-lFLAC  $(flacoggflag) $(vorbisflag)
 
 
 ACLOCAL_AMFLAGS = -I m4

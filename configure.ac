@@ -99,8 +99,7 @@ AC_COMPILE_IFELSE(
      ],
      [
          AC_MSG_RESULT([no])
-         AC_CHECK_LIB([rt], [clock_gettime], [LIBRT_LIBS="-lrt" AC_DEFINE([HAVE_LIBRT], [1], [use clock_gettime])],)
-         AC_SUBST(LIBRT_LIBS)
+         AC_SEARCH_LIBS([clock_gettime], [rt], [AC_DEFINE([HAVE_CLOCK_GETTIME], [1], [use clock_gettime])],)
      ])
 
 ################################################################################################################
@@ -462,28 +461,28 @@ AC_CHECK_FUNCS(inotify_init, AC_DEFINE(HAVE_INOTIFY,1,[Whether kernel has inotif
 ################################################################################################################
 ### Build Options
 
-AC_ARG_WITH(logpath,
+AC_ARG_WITH(log-path,
 	AS_HELP_STRING([--with-log-path=PATH],[Default log path]),
 	[with_logpath="$withval"],[with_logpath="/var/log"])
 AC_DEFINE_UNQUOTED([DEFAULT_LOG_PATH],"${with_logpath}",[Log path])
 
 
-AC_ARG_WITH(dbpath,
+AC_ARG_WITH(db-path,
 	AS_HELP_STRING([--with-db-path=PATH],[Default DB path]),
 	[with_dbpath="$withval"],[with_dbpath="/var/cache/minidlna"])
 AC_DEFINE_UNQUOTED([DEFAULT_DB_PATH],"${with_dbpath}",[DB path])
 
-AC_ARG_WITH(osname,
+AC_ARG_WITH(os-name,
 	AS_HELP_STRING([--with-os-name=NAME],[OS Name]),
 	[with_osname="$withval"],[with_osname="$(uname -s)"])
 AC_DEFINE_UNQUOTED([OS_NAME],"${with_osname}",[OS Name])
 
-AC_ARG_WITH(osver,
+AC_ARG_WITH(os-version,
 	AS_HELP_STRING([--with-os-version=VERS],[OS Version]),
 	[with_osver="$withval"],[with_osver="$(uname -r)"])
 AC_DEFINE_UNQUOTED([OS_VERSION],"${with_osver}",[OS Version])
 
-AC_ARG_WITH(osurl,
+AC_ARG_WITH(os-url,
 	AS_HELP_STRING([--with-os-url=URL],[OS URL]),
 	[with_osurl="$withval"],[with_osurl="http://www.netgear.com"])
 AC_DEFINE_UNQUOTED([OS_URL],"${with_osurl}",[OS URL])
@@ -579,6 +578,9 @@ case "$target_os" in
 		;;
         linux*)
 		;;
+        openbsd*)
+                OS_URL=http://www.openbsd.org/
+                ;;
         *)
                 echo "Unknown OS : $target_os"
                 ;;

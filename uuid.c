@@ -52,7 +52,7 @@ monotonic_us(void)
 {
 	struct timespec ts;
 
-#if defined(HAVE_LIBRT)
+#if HAVE_CLOCK_GETTIME
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 #elif HAVE_CLOCK_GETTIME_SYSCALL
 	syscall(__NR_clock_gettime, CLOCK_MONOTONIC, &ts);
@@ -173,7 +173,7 @@ generate_uuid(unsigned char uuid_out[16])
 	 * nanosecond intervals since 00:00:00.00, 15 October 1582 (the date of
 	 * Gregorian reform to the Christian calendar).
 	 */
-#if HAVE_LIBRT
+#if HAVE_CLOCK_GETTIME
 	clock_gettime(CLOCK_REALTIME, &ts);
 #elif HAVE_CLOCK_GETTIME_SYSCALL
 	syscall(__NR_clock_gettime, CLOCK_REALTIME, &ts);
