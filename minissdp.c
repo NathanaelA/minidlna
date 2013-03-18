@@ -346,8 +346,7 @@ ParseUPnPClient(char *location)
 	int content_len = sizeof(buf);
 	struct NameValueParserData xml;
 	int client;
-	enum client_types type = 0;
-	uint32_t flags = 0;
+	int type = 0;
 	char *model, *serial, *name;
 
 	if (strncmp(location, "http://", 7) != 0)
@@ -437,33 +436,46 @@ close:
 	name = GetValueFromNameValueList(&xml, "friendlyName");
 	if (model)
 	{
+		int i;
 		DPRINTF(E_DEBUG, L_SSDP, "Model: %s\n", model);
-		if (strstr(model, "Roku SoundBridge") != NULL)
+		for (i = 0; client_types[i].name; i++)
 		{
-			type = ERokuSoundBridge;
-			flags |= FLAG_MS_PFS;
-			flags |= FLAG_AUDIO_ONLY;
-			flags |= FLAG_MIME_WAV_WAV;
-		}
-		else if ((strcmp(model, "Samsung DTV DMR") == 0) && serial )
-		{
-			DPRINTF(E_DEBUG, L_SSDP, "Serial: %s\n", serial);
-			/* The Series B I saw was 20081224DMR.  Series A should be older than that. */
-			if (atoi(serial) > 20081200)
+			if (client_types[i].match_type != EModelName)
+				continue;
+			if (strstr(model, client_types[i].match) != NULL)
 			{
-				type = ESamsungSeriesB;
-				flags |= FLAG_SAMSUNG;
-				flags |= FLAG_DLNA;
-				flags |= FLAG_NO_RESIZE;
+				type = i;
+				break;
 			}
 		}
-		else
+
+		/* Special Samsung handling.  It's very hard to tell Series A from B */
+		if (type > 0 && client_types[type].type == ESamsungSeriesB)
 		{
-			if (name && (strcmp(name, "marantz DMP") == 0))
+			if (serial)
 			{
-				type = EMarantzDMP;
-				flags |= FLAG_DLNA;
-				flags |= FLAG_MIME_WAV_WAV;
+				DPRINTF(E_DEBUG, L_SSDP, "Serial: %s\n", serial);
+				/* The Series B I saw was 20081224DMR.  Series A should be older than that. */
+				if (atoi(serial) < 20081201)
+					type = 0;
+			}
+			else
+			{
+				type = 0;
+			}
+		}
+
+		if (type == 0 && name != NULL)
+		{
+			for (i = 0; client_types[i].name; i++)
+			{
+				if (client_types[i].match_type != EFriendlyNameSSDP)
+					continue;
+				if (strcmp(name, client_types[i].match) == 0)
+				{
+					type = i;
+					break;
+				}
 			}
 		}
 	}
@@ -474,22 +486,13 @@ close:
 	client = SearchClientCache(dest.sin_addr, 1);
 	if (client < 0)
 	{
-		for (client=0; client<CLIENT_CACHE_SLOTS; client++)
-		{
-			if (clients[client].addr.s_addr)
-				continue;
-			get_remote_mac(dest.sin_addr, clients[client].mac);
-			clients[client].addr = dest.sin_addr;
-			DPRINTF(E_DEBUG, L_SSDP, "Added client [%d/%s/%02X:%02X:%02X:%02X:%02X:%02X] to cache slot %d.\n",
-			                         type, inet_ntoa(clients[client].addr),
-			                         clients[client].mac[0], clients[client].mac[1], clients[client].mac[2],
-			                         clients[client].mac[3], clients[client].mac[4], clients[client].mac[5], client);
-			break;
-		}
+		AddClientCache(dest.sin_addr, type);
 	}
-	clients[client].type = type;
-	clients[client].flags = flags;
-	clients[client].age = time(NULL);
+	else
+	{
+		clients[client].type = type;
+		clients[client].age = time(NULL);
+	}
 }
 
 /* ProcessSSDPRequest()

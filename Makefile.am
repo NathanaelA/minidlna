@@ -5,7 +5,7 @@ SUBDIRS=po
 sbin_PROGRAMS = minidlnad
 check_PROGRAMS = testupnpdescgen
 minidlnad_SOURCES = minidlna.c upnphttp.c upnpdescgen.c upnpsoap.c \
-			upnpreplyparse.c minixml.c \
+			upnpreplyparse.c minixml.c clients.c \
 			getifaddr.c daemonize.c upnpglobalvars.c \
 			options.c minissdp.c uuid.c upnpevents.c \
 			sql.c utils.c metadata.c scanner.c inotify.c \

@@ -322,16 +322,17 @@ GetCurrentConnectionInfo(struct upnphttp * h, const char * action)
 #define FILTER_PV_SUBTITLE_FILE_URI              0x08000000
 #define FILTER_AV_MEDIA_CLASS                    0x10000000
 
-static u_int32_t
-set_filter_flags(char * filter, struct upnphttp *h)
+static uint32_t
+set_filter_flags(char *filter, struct upnphttp *h)
 {
 	char *item, *saveptr = NULL;
 	uint32_t flags = 0;
+	int samsung = client_types[h->req_client].flags & FLAG_SAMSUNG;
 
 	if( !filter || (strlen(filter) <= 1) )
 		/* Not the full 32 bits.  Skip vendor-specific stuff by default. */
 		return 0xFFFFFF;
-	if( h->reqflags & FLAG_SAMSUNG )
+	if( samsung )
 		flags |= FILTER_DLNA_NAMESPACE;
 	item = strtok_r(filter, ",", &saveptr);
 	while( item != NULL )
@@ -371,7 +372,7 @@ set_filter_flags(char * filter, struct upnphttp *h)
 		else if( strcmp(item, "upnp:albumArtURI") == 0 )
 		{
 			flags |= FILTER_UPNP_ALBUMARTURI;
-			if( h->reqflags & FLAG_SAMSUNG )
+			if( samsung )
 				flags |= FILTER_UPNP_ALBUMARTURI_DLNA_PROFILEID;
 		}
 		else if( strcmp(item, "upnp:albumArtURI@dlna:profileID") == 0 )
@@ -1124,8 +1125,8 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 
 	args.returned = 0;
 	args.requested = RequestedCount;
-	args.client = h->req_client;
-	args.flags = h->reqflags;
+	args.client = client_types[h->req_client].type;
+	args.flags = client_types[h->req_client].flags;
 	args.str = &str;
 	if( args.flags & FLAG_MS_PFS )
 	{
@@ -1201,7 +1202,7 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 				else
 					ret = asprintf(&orderBy, "order by length(OBJECT_ID), OBJECT_ID");
 			}
-			else if( args.client == ERokuSoundBridge )
+			else if( args.flags & FLAG_FORCE_SORT )
 			{
 #ifdef __sparc__
 				if( totalMatches < 10000 )
@@ -1570,8 +1571,8 @@ SearchContentDirectory(struct upnphttp * h, const char * action)
 
 	args.returned = 0;
 	args.requested = RequestedCount;
-	args.client = h->req_client;
-	args.flags = h->reqflags;
+	args.client = client_types[h->req_client].type;
+	args.flags = client_types[h->req_client].flags;
 	args.str = &str;
 	if( args.flags & FLAG_MS_PFS )
 	{

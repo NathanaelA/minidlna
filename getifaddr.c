@@ -326,7 +326,7 @@ getsyshwaddr(char * buf, int len)
 }
 
 int
-get_remote_mac(struct in_addr ip_addr, unsigned char * mac)
+get_remote_mac(struct in_addr ip_addr, unsigned char *mac)
 {
 	struct in_addr arp_ent;
 	FILE * arp;
