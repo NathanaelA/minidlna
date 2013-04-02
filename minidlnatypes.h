@@ -50,8 +50,8 @@ struct runtime_vars_s {
 
 struct string_s {
 	char *data; // ptr to start of memory area
-	int off;
-	int size;
+	size_t off;
+	size_t size;
 };
 
 typedef uint8_t media_types;
