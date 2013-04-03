@@ -394,7 +394,7 @@ SendContainer(struct upnphttp *h, const char *objectID, int itemStart, int itemC
 	}
 	else
 	{
-		item = sql_get_text_field(db, "SELECT NAME from OBJECTS where OBJECT_ID = '%s'", objectID);
+		item = sql_get_text_field(db, "SELECT NAME from OBJECTS where OBJECT_ID = '%q'", objectID);
 		if( item )
 		{
 			title = escape_tag(item, 1);
@@ -406,12 +406,12 @@ SendContainer(struct upnphttp *h, const char *objectID, int itemStart, int itemC
 
 	if( recurse )
 	{
-		xasprintf(&which, "OBJECT_ID glob '%s$*'", objectID);
+		which = sqlite3_mprintf("OBJECT_ID glob '%q$*'", objectID);
 		strcpy(groupBy, "group by DETAIL_ID");
 	}
 	else
 	{
-		xasprintf(&which, "PARENT_ID = '%s'", objectID);
+		which = sqlite3_mprintf("PARENT_ID = '%q'", objectID);
 	}
 
 	if( sortOrder )
@@ -631,8 +631,8 @@ SendContainer(struct upnphttp *h, const char *objectID, int itemStart, int itemC
 		DPRINTF(E_ERROR, L_HTTP, "SQL error: %s\n", zErrMsg);
 		sqlite3_free(zErrMsg);
 		Send500(h);
+		sqlite3_free(which);
 		free(title);
-		free(which);
 		free(resp);
 		return;
 	}
@@ -653,7 +653,7 @@ SendContainer(struct upnphttp *h, const char *objectID, int itemStart, int itemC
 	memcpy(str.data, &str_buf, ret);
 	str.size = str.off+ret;
 	free(title);
-	free(which);
+	sqlite3_free(which);
 	BuildResp_upnphttp(h, str.data, str.size);
 	free(resp);
 	SendResp_upnphttp(h);
@@ -763,7 +763,8 @@ ProcessTiVoCommand(struct upnphttp *h, const char *orig_path)
 			}
 			else
 			{
-				SendContainer(h, container, itemStart, itemCount, anchorItem, anchorOffset, recurse, sortOrder, filter, randomSeed);
+				SendContainer(h, container, itemStart, itemCount, anchorItem,
+				              anchorOffset, recurse, sortOrder, filter, randomSeed);
 			}
 		}
 		else if( strcmp(command, "QueryItem") == 0 )
