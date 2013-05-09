@@ -12,6 +12,8 @@
 - Add some logging and forking tweaks to work better with systemd.
 - Validate or escape user input to prevent SQL injection.
 - Add forced sorting support for Panasonic devices.
+- Add network interface monitoring support on Linux.
+- Don't require a configured network interface to start up.
 
 1.0.25 - Released 13-July-2012
 --------------------------------

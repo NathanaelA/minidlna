@@ -148,13 +148,11 @@ OpenAndConfHTTPSocket(unsigned short port)
 static void
 sigterm(int sig)
 {
-	/*int save_errno = errno;*/
 	signal(sig, SIG_IGN);	/* Ignore this signal while we are quitting */
 
 	DPRINTF(E_WARN, L_GENERAL, "received signal %d, good-bye\n", sig);
 
 	quitting = 1;
-	/*errno = save_errno;*/
 }
 
 static void
@@ -165,49 +163,20 @@ sigchld(int sig)
 	waitpid(-1, NULL, WNOHANG);
 }
 
+static void
+sighup(int sig)
+{
+	signal(sig, sighup);
+	DPRINTF(E_WARN, L_GENERAL, "received signal %d, re-read\n", sig);
+
+	reload_ifaces();
+}
+
 /* record the startup time */
 static void
 set_startup_time(void)
 {
 	startup_time = time(NULL);
-}
-
-/* parselanaddr()
- * parse address with mask
- * ex: 192.168.1.1/24
- * return value : 
- *    0 : ok
- *   -1 : error */
-static int
-parselanaddr(struct lan_addr_s *lan_addr, const char *str)
-{
-	const char * p;
-	int nbits = 24;
-	int n;
-	p = str;
-	while(*p && *p != '/' && !isspace(*p))
-		p++;
-	n = p - str;
-	if(*p == '/')
-	{
-		nbits = atoi(++p);
-		while(*p && !isspace(*p))
-			p++;
-	}
-	if(n>15)
-	{
-		DPRINTF(E_OFF, L_GENERAL, "Error parsing address/mask: %s\n", str);
-		return -1;
-	}
-	memcpy(lan_addr->str, str, n);
-	lan_addr->str[n] = '\0';
-	if(!inet_aton(lan_addr->str, &lan_addr->addr))
-	{
-		DPRINTF(E_OFF, L_GENERAL, "Error parsing address: %s\n", str);
-		return -1;
-	}
-	lan_addr->mask.s_addr = htonl(nbits ? (0xffffffff << (32 - nbits)) : 0);
-	return 0;
 }
 
 static void
@@ -504,10 +473,10 @@ init(int argc, char **argv)
 	char *string, *word;
 	char *path;
 	char buf[PATH_MAX];
-	char ip_addr[INET_ADDRSTRLEN + 3] = {'\0'};
 	char log_str[75] = "general,artwork,database,inotify,scanner,metadata,http,ssdp,tivo=warn";
 	char *log_level = NULL;
 	struct media_dir_s *media_dir;
+	int ifaces = 0;
 	media_types types;
 	uid_t uid = -1;
 
@@ -533,9 +502,10 @@ init(int argc, char **argv)
 
 	getfriendlyname(friendly_name, FRIENDLYNAME_MAX_LEN);
 	
-	runtime_vars.port = -1;
+	runtime_vars.port = 8200;
 	runtime_vars.notify_interval = 895;	/* seconds between SSDP announces */
 	runtime_vars.root_container = NULL;
+	runtime_vars.ifaces[0] = NULL;
 
 	/* read options file first since
 	 * command line arguments have final say */
@@ -553,29 +523,14 @@ init(int argc, char **argv)
 		case UPNPIFNAME:
 			for (string = ary_options[i].value; (word = strtok(string, ",")); string = NULL)
 			{
-				if (n_lan_addr < MAX_LAN_ADDR)
+				if (ifaces >= MAX_LAN_ADDR)
 				{
-					if (getifaddr(word, ip_addr, sizeof(ip_addr)) >= 0)
-					{
-						if (*ip_addr && parselanaddr(&lan_addr[n_lan_addr], ip_addr) == 0)
-							if (n_lan_addr < MAX_LAN_ADDR)
-								n_lan_addr++;
-					}
+					DPRINTF(E_ERROR, L_GENERAL, "Too many interfaces (max: %d), ignoring %s\n",
+			    			MAX_LAN_ADDR, word);
+					break;
 				}
-				else
-					DPRINTF(E_ERROR, L_GENERAL, "Too many listening ips (max: %d), ignoring %s\n",
-			    		    MAX_LAN_ADDR, word);
+				runtime_vars.ifaces[ifaces++] = word;
 			}
-			break;
-		case UPNPLISTENING_IP:
-			if (n_lan_addr < MAX_LAN_ADDR)
-			{
-				if (parselanaddr(&lan_addr[n_lan_addr], ary_options[i].value) == 0)
-					n_lan_addr++;
-			}
-			else
-				DPRINTF(E_ERROR, L_GENERAL, "Too many listening ips (max: %d), ignoring %s\n",
-		    		    MAX_LAN_ADDR, ary_options[i].value);
 			break;
 		case UPNPPORT:
 			runtime_vars.port = atoi(ary_options[i].value);
@@ -821,59 +776,17 @@ init(int argc, char **argv)
 			else
 				DPRINTF(E_FATAL, L_GENERAL, "Option -%c takes one argument.\n", argv[i][1]);
 			break;
-		case 'a':
-			if (i+1 < argc)
-			{
-				int address_already_there = 0;
-				int j;
-				i++;
-				for (j=0; j<n_lan_addr; j++)
-				{
-					struct lan_addr_s tmpaddr;
-					parselanaddr(&tmpaddr, argv[i]);
-					if(0 == strcmp(lan_addr[j].str, tmpaddr.str))
-						address_already_there = 1;
-				}
-				if (address_already_there)
-					break;
-				if (n_lan_addr < MAX_LAN_ADDR)
-				{
-					if (parselanaddr(&lan_addr[n_lan_addr], argv[i]) == 0)
-						n_lan_addr++;
-				}
-				else
-					DPRINTF(E_ERROR, L_GENERAL, "Too many listening ips (max: %d), ignoring %s\n",
-				    	    MAX_LAN_ADDR, argv[i]);
-			}
-			else
-				DPRINTF(E_FATAL, L_GENERAL, "Option -%c takes one argument.\n", argv[i][1]);
-			break;
 		case 'i':
 			if (i+1 < argc)
 			{
-				int address_already_there = 0;
-				int j;
 				i++;
-				if (getifaddr(argv[i], ip_addr, sizeof(ip_addr)) < 0)
-					DPRINTF(E_FATAL, L_GENERAL, "Required network interface '%s' not found.\n",
-						argv[i]);
-				for (j=0; j<n_lan_addr; j++)
+				if (ifaces >= MAX_LAN_ADDR)
 				{
-					struct lan_addr_s tmpaddr;
-					parselanaddr(&tmpaddr, ip_addr);
-					if(strcmp(lan_addr[j].str, tmpaddr.str) == 0)
-						address_already_there = 1;
-				}
-				if (address_already_there)
+					DPRINTF(E_ERROR, L_GENERAL, "Too many interfaces (max: %d), ignoring %s\n",
+			    			MAX_LAN_ADDR, argv[i]);
 					break;
-				if (n_lan_addr < MAX_LAN_ADDR)
-				{
-					if(parselanaddr(&lan_addr[n_lan_addr], ip_addr) == 0)
-						n_lan_addr++;
 				}
-				else
-					DPRINTF(E_ERROR, L_GENERAL, "Too many listening ips (max: %d), ignoring %s\n",
-				    	    MAX_LAN_ADDR, argv[i]);
+				runtime_vars.ifaces[ifaces++] = argv[i];
 			}
 			else
 				DPRINTF(E_FATAL, L_GENERAL, "Option -%c takes one argument.\n", argv[i][1]);
@@ -920,18 +833,11 @@ init(int argc, char **argv)
 			DPRINTF(E_ERROR, L_GENERAL, "Unknown option: %s\n", argv[i]);
 		}
 	}
-	/* If no IP was specified, try to detect one */
-	if (n_lan_addr < 1)
-	{
-		if (getsysaddrs() <= 0)
-			DPRINTF(E_FATAL, L_GENERAL, "No IP address automatically detected!\n");
-	}
 
-	if (!n_lan_addr || runtime_vars.port <= 0)
+	if (runtime_vars.port <= 0)
 	{
-		DPRINTF(E_ERROR, L_GENERAL, "Usage:\n\t"
-		        "%s [-d] [-v] [-f config_file]\n"
-			"\t\t[-a listening_ip] [-p port]\n"
+		printf("Usage:\n\t"
+		        "%s [-d] [-v] [-f config_file] [-p port]\n"
 			/*"[-l logfile] " not functionnal */
 			"\t\t[-s serial] [-m model_number] \n"
 			"\t\t[-t notify_interval] [-P pid_filename]\n"
@@ -994,6 +900,7 @@ init(int argc, char **argv)
 	}	
 
 	set_startup_time();
+	reload_ifaces();
 
 	/* presentation url */
 	if (presurl)
@@ -1005,11 +912,13 @@ init(int argc, char **argv)
 	memset(&sa, 0, sizeof(struct sigaction));
 	sa.sa_handler = sigterm;
 	if (sigaction(SIGTERM, &sa, NULL))
-		DPRINTF(E_FATAL, L_GENERAL, "Failed to set %s handler. EXITING.\n", SIGTERM);
+		DPRINTF(E_FATAL, L_GENERAL, "Failed to set %s handler. EXITING.\n", "SIGTERM");
 	if (sigaction(SIGINT, &sa, NULL))
-		DPRINTF(E_FATAL, L_GENERAL, "Failed to set %s handler. EXITING.\n", SIGINT);
+		DPRINTF(E_FATAL, L_GENERAL, "Failed to set %s handler. EXITING.\n", "SIGINT");
 	if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
-		DPRINTF(E_FATAL, L_GENERAL, "Failed to set %s handler. EXITING.\n", SIGPIPE);
+		DPRINTF(E_FATAL, L_GENERAL, "Failed to set %s handler. EXITING.\n", "SIGPIPE");
+	if (signal(SIGHUP, &sighup) == SIG_ERR)
+		DPRINTF(E_FATAL, L_GENERAL, "Failed to set %s handler. EXITING.\n", "SIGHUP");
 
 	if (writepidfile(pidfilename, pid, uid) != 0)
 		pidfilename = NULL;
@@ -1028,7 +937,7 @@ main(int argc, char **argv)
 {
 	int ret, i;
 	int sudp = -1, shttpl = -1;
-	int snotify[MAX_LAN_ADDR];
+	int smonitor = -1;
 	LIST_HEAD(httplisthead, upnphttp) upnphttphead;
 	struct upnphttp * e = 0;
 	struct upnphttp * next;
@@ -1087,11 +996,7 @@ main(int argc, char **argv)
 			DPRINTF(E_FATAL, L_GENERAL, "ERROR: pthread_create() failed for start_inotify. EXITING\n");
 	}
 #endif
-	for (i = 0; i < n_lan_addr; i++)
-	{
-		DPRINTF(E_INFO, L_GENERAL, "Enabled interface %s/%s\n",
-			lan_addr[i].str, inet_ntoa(lan_addr[i].mask));
-	}
+	smonitor = OpenAndConfMonitorSocket();
 
 	sudp = OpenAndConfSSDPReceiveSocket();
 	if (sudp < 0)
@@ -1100,16 +1005,11 @@ main(int argc, char **argv)
 		if (SubmitServicesToMiniSSDPD(lan_addr[0].str, runtime_vars.port) < 0)
 			DPRINTF(E_FATAL, L_GENERAL, "Failed to connect to MiniSSDPd. EXITING");
 	}
-	/* open socket for HTTP connections. Listen on the 1st LAN address */
+	/* open socket for HTTP connections. */
 	shttpl = OpenAndConfHTTPSocket(runtime_vars.port);
 	if (shttpl < 0)
 		DPRINTF(E_FATAL, L_GENERAL, "Failed to open socket for HTTP. EXITING\n");
 	DPRINTF(E_WARN, L_GENERAL, "HTTP listening on port %d\n", runtime_vars.port);
-
-	/* open socket for sending notifications */
-	if (OpenAndConfSSDPNotifySockets(snotify) < 0)
-		DPRINTF(E_FATAL, L_GENERAL, "Failed to open sockets for sending SSDP notify "
-	                "messages. EXITING\n");
 
 #ifdef TIVO_SUPPORT
 	if (GETFLAG(TIVO_MASK))
@@ -1132,7 +1032,7 @@ main(int argc, char **argv)
 		sbeacon = -1;
 #endif
 
-	SendSSDPGoodbye(snotify, n_lan_addr);
+	SendSSDPGoodbyes();
 
 	/* main loop */
 	while (!quitting)
@@ -1150,9 +1050,12 @@ main(int argc, char **argv)
 			/* the comparison is not very precise but who cares ? */
 			if (timeofday.tv_sec >= (lastnotifytime.tv_sec + runtime_vars.notify_interval))
 			{
-				SendSSDPNotifies2(snotify,
-			                  (unsigned short)runtime_vars.port,
-			                  (runtime_vars.notify_interval << 1)+10);
+				DPRINTF(E_DEBUG, L_SSDP, "Sending SSDP notifies\n");
+				for (i = 0; i < n_lan_addr; i++)
+				{
+					SendSSDPNotifies(lan_addr[i].snotify, lan_addr[i].str,
+						runtime_vars.port, runtime_vars.notify_interval);
+				}
 				memcpy(&lastnotifytime, &timeofday, sizeof(struct timeval));
 				timeout.tv_sec = runtime_vars.notify_interval;
 				timeout.tv_usec = 0;
@@ -1223,6 +1126,12 @@ main(int argc, char **argv)
 			max_fd = MAX(max_fd, sbeacon);
 		}
 #endif
+		if (smonitor >= 0) 
+		{
+			FD_SET(smonitor, &readset);
+			max_fd = MAX(max_fd, smonitor);
+		}
+
 		i = 0;	/* active HTTP connections count */
 		for (e = upnphttphead.lh_first; e != NULL; e = e->entries.le_next)
 		{
@@ -1263,6 +1172,10 @@ main(int argc, char **argv)
 			ProcessTiVoBeacon(sbeacon);
 		}
 #endif
+		if (smonitor >= 0 && FD_ISSET(smonitor, &readset))
+		{
+			ProcessMonitorEvent(smonitor);
+		}
 		/* increment SystemUpdateID if the content database has changed,
 		 * and if there is an active HTTP connection, at most once every 2 seconds */
 		if (i && (timeofday.tv_sec >= (lastupdatetime + 2)))
@@ -1350,11 +1263,13 @@ shutdown:
 		close(sbeacon);
 	#endif
 	
-	if (SendSSDPGoodbye(snotify, n_lan_addr) < 0)
+	if (SendSSDPGoodbyes() < 0)
 		DPRINTF(E_ERROR, L_GENERAL, "Failed to broadcast good-bye notifications\n");
 
-	for (i=0; i < n_lan_addr; i++)
-		close(snotify[i]);
+	for (i = 0; i < n_lan_addr; i++)
+	{
+		close(lan_addr[i].snotify);
+	}
 
 	if (inotify_thread)
 		pthread_join(inotify_thread, NULL);

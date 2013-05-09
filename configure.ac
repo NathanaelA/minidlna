@@ -83,24 +83,27 @@ esac
 AC_CHECK_HEADERS(syscall.h sys/syscall.h mach/mach_time.h)
 AC_MSG_CHECKING([for __NR_clock_gettime syscall])
 AC_COMPILE_IFELSE(
-     [AC_LANG_PROGRAM(
-         [
-             #include <asm/unistd.h>
-         ],
-         [
-             #ifndef __NR_clock_gettime
-             #error
-             #endif
-         ]
-     )],
-     [
-         AC_MSG_RESULT([yes])
-         AC_DEFINE([HAVE_CLOCK_GETTIME_SYSCALL], [1], [Whether the __NR_clock_gettime syscall is defined])
-     ],
-     [
-         AC_MSG_RESULT([no])
-         AC_SEARCH_LIBS([clock_gettime], [rt], [AC_DEFINE([HAVE_CLOCK_GETTIME], [1], [use clock_gettime])],)
-     ])
+    [AC_LANG_PROGRAM(
+        [
+            #include <asm/unistd.h>
+        ],
+        [
+            #ifndef __NR_clock_gettime
+            #error
+            #endif
+        ]
+    )],
+    [
+        AC_MSG_RESULT([yes])
+        AC_DEFINE([HAVE_CLOCK_GETTIME_SYSCALL], [1], [Whether the __NR_clock_gettime syscall is defined])
+    ],
+    [
+        AC_MSG_RESULT([no])
+        AC_SEARCH_LIBS([clock_gettime], [rt], [AC_DEFINE([HAVE_CLOCK_GETTIME], [1], [use clock_gettime])],)
+    ])
+
+AC_CHECK_HEADER(linux/netlink.h,
+    [AC_DEFINE([HAVE_NETLINK],[1],[Support for Linux netlink])])
 
 ################################################################################################################
 ### Library checks
