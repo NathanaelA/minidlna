@@ -1,6 +1,7 @@
 #ifndef __CLIENTS_H__
 #define __CLIENTS_H__
 #include <stdint.h>
+#include <sys/time.h>
 #include <netinet/in.h>
 
 #define CLIENT_CACHE_SLOTS 20
