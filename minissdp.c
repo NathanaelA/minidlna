@@ -688,6 +688,10 @@ ProcessSSDPRequest(int s, unsigned short port)
 				inet_ntoa(sendername.sin_addr), ntohs(sendername.sin_port));
 		}
 	}
+	else if (memcmp(bufr, "YOUKU-NOTIFY", 12) == 0)
+	{
+		return;
+	}
 	else
 	{
 		DPRINTF(E_WARN, L_SSDP, "Unknown udp packet received from %s:%d\n",
