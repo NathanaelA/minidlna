@@ -838,18 +838,22 @@ init(int argc, char **argv)
 	{
 		printf("Usage:\n\t"
 		        "%s [-d] [-v] [-f config_file] [-p port]\n"
-			/*"[-l logfile] " not functionnal */
-			"\t\t[-s serial] [-m model_number] \n"
+			"\t\t[-i network_interface] [-u uid_to_run_as]\n"
 			"\t\t[-t notify_interval] [-P pid_filename]\n"
-			"\t\t[-u uid_to_run_as]\n"
-			"\t\t[-w url] [-R] [-V] [-h]\n"
+			"\t\t[-s serial] [-m model_number]\n"
+#ifdef __linux__
+			"\t\t[-w url] [-R] [-L] [-S] [-V] [-h]\n"
+#else
+			"\t\t[-w url] [-R] [-L] [-V] [-h]\n"
+#endif
 		        "\nNotes:\n\tNotify interval is in seconds. Default is 895 seconds.\n"
 			"\tDefault pid file is %s.\n"
 			"\tWith -d minidlna will run in debug mode (not daemonize).\n"
 			"\t-w sets the presentation url. Default is http address on port 80\n"
+			"\t-v enables verbose output\n"
 			"\t-h displays this text\n"
 			"\t-R forces a full rescan\n"
-			"\t-L do note create playlists\n"
+			"\t-L do not create playlists\n"
 #ifdef __linux__
 			"\t-S changes behaviour for systemd\n"
 #endif
