@@ -900,7 +900,7 @@ callback(void *args, int argc, char **argv, char **azColName)
 					     strncmp(dlna_pn, "AVC_TS_MP_HD_AC3", 16) == 0 ||
 					     strncmp(dlna_pn, "AVC_TS_HP_HD_AC3", 16) == 0))
 					{
-						sprintf(dlna_buf, "DLNA.ORG_PN=%s;DLNA.ORG_OP=01;DLNA.ORG_CI=0", "MPEG_PS_NTSC");
+						sprintf(dlna_buf, "DLNA.ORG_PN=%s;DLNA.ORG_OP=01;DLNA.ORG_CI=1", "MPEG_PS_NTSC");
 						add_res(size, duration, bitrate, sampleFrequency, nrAudioChannels,
 						        resolution, dlna_buf, mime, detailID, ext, passed_args);
 					}
@@ -912,13 +912,13 @@ callback(void *args, int argc, char **argv, char **azColName)
 					{
 						if( strncmp(dlna_pn, "MPEG_TS_SD_NA", 13) != 0 )
 						{
-							sprintf(dlna_buf, "DLNA.ORG_PN=%s;DLNA.ORG_OP=01;DLNA.ORG_CI=0", "MPEG_TS_SD_NA");
+							sprintf(dlna_buf, "DLNA.ORG_PN=%s;DLNA.ORG_OP=01;DLNA.ORG_CI=1", "MPEG_TS_SD_NA");
 							add_res(size, duration, bitrate, sampleFrequency, nrAudioChannels,
 							        resolution, dlna_buf, mime, detailID, ext, passed_args);
 						}
 						if( strncmp(dlna_pn, "MPEG_TS_SD_EU", 13) != 0 )
 						{
-							sprintf(dlna_buf, "DLNA.ORG_PN=%s;DLNA.ORG_OP=01;DLNA.ORG_CI=0", "MPEG_TS_SD_EU");
+							sprintf(dlna_buf, "DLNA.ORG_PN=%s;DLNA.ORG_OP=01;DLNA.ORG_CI=1", "MPEG_TS_SD_EU");
 							add_res(size, duration, bitrate, sampleFrequency, nrAudioChannels,
 							        resolution, dlna_buf, mime, detailID, ext, passed_args);
 						}
@@ -933,13 +933,13 @@ callback(void *args, int argc, char **argv, char **azColName)
 						strcpy(mime+6, "avi");
 						if( !dlna_pn || strncmp(dlna_pn, "MPEG_PS_NTSC", 12) != 0 )
 						{
-							sprintf(dlna_buf, "DLNA.ORG_PN=%s;DLNA.ORG_OP=01;DLNA.ORG_CI=0", "MPEG_PS_NTSC");
+							sprintf(dlna_buf, "DLNA.ORG_PN=%s;DLNA.ORG_OP=01;DLNA.ORG_CI=1", "MPEG_PS_NTSC");
 							add_res(size, duration, bitrate, sampleFrequency, nrAudioChannels,
 						        	resolution, dlna_buf, mime, detailID, ext, passed_args);
 						}
 						if( !dlna_pn || strncmp(dlna_pn, "MPEG_PS_PAL", 11) != 0 )
 						{
-							sprintf(dlna_buf, "DLNA.ORG_PN=%s;DLNA.ORG_OP=01;DLNA.ORG_CI=0", "MPEG_PS_PAL");
+							sprintf(dlna_buf, "DLNA.ORG_PN=%s;DLNA.ORG_OP=01;DLNA.ORG_CI=1", "MPEG_PS_PAL");
 							add_res(size, duration, bitrate, sampleFrequency, nrAudioChannels,
 						        	resolution, dlna_buf, mime, detailID, ext, passed_args);
 						}
