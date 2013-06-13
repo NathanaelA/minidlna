@@ -6,7 +6,7 @@ sbin_PROGRAMS = minidlnad
 check_PROGRAMS = testupnpdescgen
 minidlnad_SOURCES = minidlna.c upnphttp.c upnpdescgen.c upnpsoap.c \
 			upnpreplyparse.c minixml.c clients.c \
-			getifaddr.c daemonize.c upnpglobalvars.c \
+			getifaddr.c process.c upnpglobalvars.c \
 			options.c minissdp.c uuid.c upnpevents.c \
 			sql.c utils.c metadata.c scanner.c inotify.c \
 			tivo_utils.c tivo_beacon.c tivo_commands.c \
