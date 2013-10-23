@@ -63,7 +63,7 @@
 #include "log.h"
 
 static int
-getifaddr(const char *ifname)
+getifaddr(const char *ifname, int notify)
 {
 #if HAVE_GETIFADDRS
 	struct ifaddrs *ifap, *p;
@@ -95,8 +95,9 @@ getifaddr(const char *ifname)
 		lan_addr[n_lan_addr].snotify = OpenAndConfSSDPNotifySocket(lan_addr[n_lan_addr].addr.s_addr);
 		if (lan_addr[n_lan_addr].snotify >= 0)
 		{
-			SendSSDPNotifies(lan_addr[n_lan_addr].snotify, lan_addr[n_lan_addr].str,
-				runtime_vars.port, runtime_vars.notify_interval);
+			if (notify)
+				SendSSDPNotifies(lan_addr[n_lan_addr].snotify, lan_addr[n_lan_addr].str,
+					runtime_vars.port, runtime_vars.notify_interval);
 			n_lan_addr++;
 		}
 		if (ifname || n_lan_addr >= MAX_LAN_ADDR)
@@ -153,8 +154,9 @@ getifaddr(const char *ifname)
 		lan_addr[n_lan_addr].snotify = OpenAndConfSSDPNotifySocket(lan_addr[i].addr.s_addr);
 		if (lan_addr[n_lan_addr].snotify >= 0)
 		{
-			SendSSDPNotifies(lan_addr[n_lan_addr].snotify, lan_addr[n_lan_addr].str,
-				runtime_vars.port, runtime_vars.notify_interval);
+			if (notify)
+				SendSSDPNotifies(lan_addr[n_lan_addr].snotify, lan_addr[n_lan_addr].str,
+					runtime_vars.port, runtime_vars.notify_interval);
 			n_lan_addr++;
 		}
 		if (ifname || n_lan_addr >= MAX_LAN_ADDR)
@@ -299,7 +301,7 @@ get_remote_mac(struct in_addr ip_addr, unsigned char *mac)
 }
 
 void
-reload_ifaces(void)
+reload_ifaces(int notify)
 {
 	int i;
 
@@ -313,11 +315,11 @@ reload_ifaces(void)
 	{
 		for (i = 0; runtime_vars.ifaces[i]; i++)
 		{
-			getifaddr(runtime_vars.ifaces[i]);
+			getifaddr(runtime_vars.ifaces[i], notify);
 		}
 	}
 	else
-		getifaddr(NULL);
+		getifaddr(NULL, notify);
 
 	for (i = 0; i < n_lan_addr; i++)
 	{
@@ -382,6 +384,6 @@ ProcessMonitorEvent(int s)
 		nlh = NLMSG_NEXT(nlh, len);
 	}
 	if (changed)
-		reload_ifaces();
+		reload_ifaces(1);
 #endif
 }

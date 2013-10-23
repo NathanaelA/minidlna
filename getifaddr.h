@@ -40,7 +40,7 @@
 
 int getsyshwaddr(char *buf, int len);
 int get_remote_mac(struct in_addr ip_addr, unsigned char *mac);
-void reload_ifaces(void);
+void reload_ifaces(int notify);
 
 int OpenAndConfMonitorSocket();
 void ProcessMonitorEvent(int s);
