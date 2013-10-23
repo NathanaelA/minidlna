@@ -291,7 +291,7 @@ SendSSDPNotifies(int s, const char *host, unsigned short port,
 				DPRINTF(E_WARN, L_SSDP, "SendSSDPNotifies(): truncated output\n");
 				l = sizeof(bufr);
 			}
-			//DEBUG DPRINTF(E_DEBUG, L_SSDP, "Sending NOTIFY:\n%s", bufr);
+			DPRINTF(E_MAXDEBUG, L_SSDP, "Sending ssdp:alive\n");
 			n = sendto(s, bufr, l, 0,
 				(struct sockaddr *)&sockname, sizeof(struct sockaddr_in));
 			if (n < 0)
@@ -731,7 +731,7 @@ SendSSDPGoodbyes(void)
 				             SSDP_MCAST_ADDR, SSDP_PORT,
 				             known_service_types[i], (i>1?"1":""),
 				             uuidvalue, (i>0?"::":""), (i>0?known_service_types[i]:""), (i>1?"1":"") );
-				//DEBUG DPRINTF(E_DEBUG, L_SSDP, "Sending NOTIFY:\n%s", bufr);
+				DPRINTF(E_MAXDEBUG, L_SSDP, "Sending ssdp:byebye\n");
 				n = sendto(lan_addr[j].snotify, bufr, l, 0,
 				           (struct sockaddr *)&sockname, sizeof(struct sockaddr_in) );
 				if (n < 0)
