@@ -388,6 +388,11 @@ ParseHttpHeaders(struct upnphttp * h)
 					}
 				}
 			}
+			else if(strncasecmp(line, "uctt.upnp.org:", 14)==0)
+			{
+				/* Conformance testing */
+				SETFLAG(DLNA_STRICT_MASK);
+			}
 		}
 next_header:
 		while(!(line[0] == '\r' && line[1] == '\n'))
@@ -1622,7 +1627,9 @@ SendResp_resizedimg(struct upnphttp * h, char * object)
 		dstw = (((height<<10)/srch) * srcw>>10);
 	}
 
-	if( dstw <= 640 && dsth <= 480 )
+	if( dstw <= 160 && dsth <= 160 )
+		strcpy(dlna_pn, "DLNA.ORG_PN=JPEG_TN;");
+	else if( dstw <= 640 && dsth <= 480 )
 		strcpy(dlna_pn, "DLNA.ORG_PN=JPEG_SM;");
 	else if( dstw <= 1024 && dsth <= 768 )
 		strcpy(dlna_pn, "DLNA.ORG_PN=JPEG_MED;");
