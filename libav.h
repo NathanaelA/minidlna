@@ -41,3 +41,28 @@
 #include <avformat.h>
 #endif
 
+#ifndef FF_PROFILE_H264_BASELINE
+#define FF_PROFILE_H264_BASELINE 66
+#endif
+#ifndef FF_PROFILE_H264_CONSTRAINED_BASELINE
+#define FF_PROFILE_H264_CONSTRAINED_BASELINE 578
+#endif
+#ifndef FF_PROFILE_H264_MAIN
+#define FF_PROFILE_H264_MAIN 77
+#endif
+#ifndef FF_PROFILE_H264_HIGH
+#define FF_PROFILE_H264_HIGH 100
+#endif
+#ifndef FF_PROFILE_SKIP
+#define FF_PROFILE_SKIP -100
+#endif
+
+#if LIBAVCODEC_VERSION_MAJOR < 53
+#define AVMEDIA_TYPE_AUDIO CODEC_TYPE_AUDIO
+#define AVMEDIA_TYPE_VIDEO CODEC_TYPE_VIDEO
+#endif
+
+#if LIBAVUTIL_VERSION_INT < ((50<<16)+(13<<8)+0)
+#define av_strerror(x, y, z) snprintf(y, z, "%d", x)
+#endif
+
