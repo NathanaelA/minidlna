@@ -1,3 +1,9 @@
+1.1.1 - Released 01-Nov-2013
+--------------------------------
+- Add network interface monitoring support on Linux.
+- Don't require a configured network interface to start up.
+- Fix some minor spec compliance issues.
+
 1.1.0 - Released 04-April-2013
 --------------------------------
 - Add support for other operating systems.
@@ -12,8 +18,6 @@
 - Add some logging and forking tweaks to work better with systemd.
 - Validate or escape user input to prevent SQL injection.
 - Add forced sorting support for Panasonic devices.
-- Add network interface monitoring support on Linux.
-- Don't require a configured network interface to start up.
 
 1.0.25 - Released 13-July-2012
 --------------------------------
