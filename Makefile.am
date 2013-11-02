@@ -44,7 +44,20 @@ testupnpdescgen_LDADD = \
 	@LIBEXIF_LIBS@ \
 	-lFLAC  $(flacoggflag) $(vorbisflag)
 
+SUFFIXES = .tmpl .
+
+.tmpl:
+	sed -e s@:SBINDIR:@${sbindir}@ <$< >$@
+
+GENERATED_FILES = \
+	linux/minidlna.init.d.script
+
+TEMPLATES = \
+	linux/minidlna.init.d.script.tmpl
+
+CLEANFILES = $(GENERATED_FILES)
 
 ACLOCAL_AMFLAGS = -I m4
 
-EXTRA_DIST = m4/ChangeLog
+EXTRA_DIST = m4/ChangeLog $(TEMPLATES)
+noinst_DATA = $(GENERATED_FILES)
