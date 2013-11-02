@@ -86,7 +86,7 @@
 #include "utils.h"
 #include "minissdp.h"
 #include "minidlnatypes.h"
-#include "daemonize.h"
+#include "process.h"
 #include "upnpevents.h"
 #include "scanner.h"
 #include "inotify.h"
@@ -153,14 +153,6 @@ sigterm(int sig)
 	DPRINTF(E_WARN, L_GENERAL, "received signal %d, good-bye\n", sig);
 
 	quitting = 1;
-}
-
-static void
-sigchld(int sig)
-{
-	if (!scanning)
-		signal(SIGCHLD, SIG_IGN);
-	waitpid(-1, NULL, WNOHANG);
 }
 
 static void
@@ -369,15 +361,19 @@ rescan:
 #if USE_FORK
 		scanning = 1;
 		sqlite3_close(db);
-		*scanner_pid = fork();
+		*scanner_pid = process_fork();
 		open_db(&db);
-		if (!(*scanner_pid)) /* child (scanner) process */
+		if (*scanner_pid == 0) /* child (scanner) process */
 		{
 			start_scanner();
 			sqlite3_close(db);
 			log_close();
 			freeoptions();
 			exit(EXIT_SUCCESS);
+		}
+		else if (*scanner_pid < 0)
+		{
+			start_scanner();
 		}
 #else
 		start_scanner();
@@ -884,7 +880,7 @@ init(int argc, char **argv)
 	}
 	else
 	{
-		pid = daemonize();
+		pid = process_daemonize();
 		#ifdef READYNAS
 		unlink("/ramfs/.upnp-av_scan");
 		path = "/var/log/upnp-av.log";
@@ -897,7 +893,7 @@ init(int argc, char **argv)
 	}
 	log_init(path, log_level);
 
-	if (checkforrunning(pidfilename) < 0)
+	if (process_check_if_running(pidfilename) < 0)
 	{
 		DPRINTF(E_ERROR, L_GENERAL, "MiniDLNA is already running. EXITING.\n");
 		return 1;
@@ -923,6 +919,9 @@ init(int argc, char **argv)
 		DPRINTF(E_FATAL, L_GENERAL, "Failed to set %s handler. EXITING.\n", "SIGPIPE");
 	if (signal(SIGHUP, &sighup) == SIG_ERR)
 		DPRINTF(E_FATAL, L_GENERAL, "Failed to set %s handler. EXITING.\n", "SIGHUP");
+	sa.sa_handler = process_handle_child_termination;
+	if (sigaction(SIGCHLD, &sa, NULL))
+		DPRINTF(E_FATAL, L_GENERAL, "Failed to set %s handler. EXITING.\n", "SIGCHLD");
 
 	if (writepidfile(pidfilename, pid, uid) != 0)
 		pidfilename = NULL;
@@ -989,7 +988,6 @@ main(int argc, char **argv)
 			ret = -1;
 	}
 	check_db(db, ret, &scanner_pid);
-	signal(SIGCHLD, &sigchld);
 #ifdef HAVE_INOTIFY
 	if( GETFLAG(INOTIFY_MASK) )
 	{
