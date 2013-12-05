@@ -332,9 +332,15 @@ set_filter_flags(char *filter, struct upnphttp *h)
 	uint32_t flags = 0;
 	int samsung = client_types[h->req_client].flags & FLAG_SAMSUNG;
 
-	if( !filter || (strlen(filter) <= 1) )
-		/* Not the full 32 bits.  Skip vendor-specific stuff by default. */
-		return 0xFFFFFF;
+	if( !filter || (strlen(filter) <= 1) ) {
+		if (strcmp(filter, "*") == 0 && samsung) {
+			return 0xFFFFFFFF;  /* We want FILTER_SEC_DCM_INFO */
+		} else {
+			/* Not the full 32 bits.  Skip vendor-specific stuff by default. */
+			return 0xFFFFFF;
+		}
+	}
+
 	if( samsung )
 		flags |= FILTER_DLNA_NAMESPACE;
 	item = strtok_r(filter, ",", &saveptr);
