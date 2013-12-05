@@ -846,40 +846,6 @@ callback(void *args, int argc, char **argv, char **azColName)
 		if( track && atoi(track) && (passed_args->filter & FILTER_UPNP_ORIGINALTRACKNUMBER) ) {
 			ret = strcatf(str, "&lt;upnp:originalTrackNumber&gt;%s&lt;/upnp:originalTrackNumber&gt;", track);
 		}
-		if( album_art && atoi(album_art) )
-		{
-			/* Video and audio album art is handled differently */
-			if( *mime == 'v' && (passed_args->filter & FILTER_RES) && !(passed_args->flags & FLAG_MS_PFS) ) {
-				ret = strcatf(str, "&lt;res protocolInfo=\"http-get:*:image/jpeg:DLNA.ORG_PN=JPEG_TN\"&gt;"
-				                   "http://%s:%d/AlbumArt/%s-%s.jpg"
-				                   "&lt;/res&gt;",
-				                   lan_addr[passed_args->iface].str, runtime_vars.port, album_art, detailID);
-			} else if( passed_args->filter & FILTER_UPNP_ALBUMARTURI ) {
-				ret = strcatf(str, "&lt;upnp:albumArtURI");
-				if( passed_args->filter & FILTER_UPNP_ALBUMARTURI_DLNA_PROFILEID ) {
-					ret = strcatf(str, " dlna:profileID=\"JPEG_TN\" xmlns:dlna=\"urn:schemas-dlna-org:metadata-1-0/\"");
-				}
-				ret = strcatf(str, "&gt;http://%s:%d/AlbumArt/%s-%s.jpg&lt;/upnp:albumArtURI&gt;",
-				                   lan_addr[passed_args->iface].str, runtime_vars.port, album_art, detailID);
-			}
-		}
-		if( (passed_args->flags & FLAG_MS_PFS) && *mime == 'i' ) {
-			if( passed_args->client == EMediaRoom && !album )
-				ret = strcatf(str, "&lt;upnp:album&gt;%s&lt;/upnp:album&gt;", "[No Keywords]");
-
-			/* EVA2000 doesn't seem to handle embedded thumbnails */
-			if( !(passed_args->flags & FLAG_RESIZE_THUMBS) && tn && atoi(tn) ) {
-				ret = strcatf(str, "&lt;upnp:albumArtURI&gt;"
-				                   "http://%s:%d/Thumbnails/%s.jpg"
-			        	           "&lt;/upnp:albumArtURI&gt;",
-			                	   lan_addr[passed_args->iface].str, runtime_vars.port, detailID);
-			} else {
-				ret = strcatf(str, "&lt;upnp:albumArtURI&gt;"
-				                   "http://%s:%d/Resized/%s.jpg?width=160,height=160"
-			        	           "&lt;/upnp:albumArtURI&gt;",
-			                	   lan_addr[passed_args->iface].str, runtime_vars.port, detailID);
-			}
-		}
 		if( passed_args->filter & FILTER_RES ) {
 			ext = mime_to_ext(mime);
 			add_res(size, duration, bitrate, sampleFrequency, nrAudioChannels,
@@ -996,6 +962,40 @@ callback(void *args, int argc, char **argv, char **azColName)
 					}
 					break;
 				}
+			}
+		}
+		if( album_art && atoi(album_art) )
+		{
+			/* Video and audio album art is handled differently */
+			if( *mime == 'v' && (passed_args->filter & FILTER_RES) && !(passed_args->flags & FLAG_MS_PFS) ) {
+				ret = strcatf(str, "&lt;res protocolInfo=\"http-get:*:image/jpeg:DLNA.ORG_PN=JPEG_TN\"&gt;"
+				                   "http://%s:%d/AlbumArt/%s-%s.jpg"
+				                   "&lt;/res&gt;",
+				                   lan_addr[passed_args->iface].str, runtime_vars.port, album_art, detailID);
+			} else if( passed_args->filter & FILTER_UPNP_ALBUMARTURI ) {
+				ret = strcatf(str, "&lt;upnp:albumArtURI");
+				if( passed_args->filter & FILTER_UPNP_ALBUMARTURI_DLNA_PROFILEID ) {
+					ret = strcatf(str, " dlna:profileID=\"JPEG_TN\" xmlns:dlna=\"urn:schemas-dlna-org:metadata-1-0/\"");
+				}
+				ret = strcatf(str, "&gt;http://%s:%d/AlbumArt/%s-%s.jpg&lt;/upnp:albumArtURI&gt;",
+				                   lan_addr[passed_args->iface].str, runtime_vars.port, album_art, detailID);
+			}
+		}
+		if( (passed_args->flags & FLAG_MS_PFS) && *mime == 'i' ) {
+			if( passed_args->client == EMediaRoom && !album )
+				ret = strcatf(str, "&lt;upnp:album&gt;%s&lt;/upnp:album&gt;", "[No Keywords]");
+
+			/* EVA2000 doesn't seem to handle embedded thumbnails */
+			if( !(passed_args->flags & FLAG_RESIZE_THUMBS) && tn && atoi(tn) ) {
+				ret = strcatf(str, "&lt;upnp:albumArtURI&gt;"
+				                   "http://%s:%d/Thumbnails/%s.jpg"
+				                   "&lt;/upnp:albumArtURI&gt;",
+				                   lan_addr[passed_args->iface].str, runtime_vars.port, detailID);
+			} else {
+				ret = strcatf(str, "&lt;upnp:albumArtURI&gt;"
+				                   "http://%s:%d/Resized/%s.jpg?width=160,height=160"
+				                   "&lt;/upnp:albumArtURI&gt;",
+				                   lan_addr[passed_args->iface].str, runtime_vars.port, detailID);
 			}
 		}
 		ret = strcatf(str, "&lt;/item&gt;");
