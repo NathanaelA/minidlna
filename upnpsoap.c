@@ -948,7 +948,7 @@ callback(void *args, int argc, char **argv, char **azColName)
 						free(alt_title);
 					}
 					break;
-				case ESamsungSeriesC:
+				case ESamsungSeriesCDE:
 				default:
 					if( passed_args->filter & FILTER_SEC_CAPTION_INFO_EX )
 					{

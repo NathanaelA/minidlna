@@ -53,17 +53,9 @@ struct client_type_s client_types[] =
 	  EXAVClientInfo
 	},
 
-	{ ESamsungSeriesCTV,
+	{ ESamsungSeriesCDE,
 	  FLAG_SAMSUNG | FLAG_DLNA | FLAG_NO_RESIZE | FLAG_SAMSUNG_TV,
-	  "Samsung Series C TV",
-	  "SEC_HHP_TV",
-	  EUserAgent
-	},
-
-	/* User-Agent: DLNADOC/1.50 SEC_HHP_BD-D5100/1.0 */
-	{ ESamsungSeriesC,
-	  FLAG_SAMSUNG | FLAG_DLNA | FLAG_NO_RESIZE,
-	  "Samsung Series C",
+	  "Samsung Series C/D/E",
 	  "SEC_HHP_",
 	  EUserAgent
 	},
