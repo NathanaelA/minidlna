@@ -1786,6 +1786,7 @@ SamsungGetFeatureList(struct upnphttp * h, const char * action)
 		 "&lt;container id=\"2\" type=\"object.item.videoItem\"/&gt;"
 		 "&lt;container id=\"3\" type=\"object.item.imageItem\"/&gt;"
 		"&lt;/Feature&gt;"
+		"&lt;/Features&gt;"
 		"</FeatureList></u:X_GetFeatureListResponse>";
 
 	BuildSendAndCloseSoapResp(h, resp, sizeof(resp)-1);
