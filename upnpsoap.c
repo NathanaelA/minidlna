@@ -490,7 +490,9 @@ parse_sort_criteria(char *sortCriteria, int *error)
 	struct string_s str;
 	*error = 0;
 
-	if( !sortCriteria )
+	if( force_sort_criteria )
+		sortCriteria = strdup(force_sort_criteria);
+	else if( !sortCriteria )
 		return NULL;
 
 	if( (item = strtok_r(sortCriteria, ",", &saveptr)) )
@@ -563,11 +565,16 @@ parse_sort_criteria(char *sortCriteria, int *error)
 	if( i <= 0 )
 	{
 		free(order);
+		if( force_sort_criteria )
+			free(sortCriteria);
 		return NULL;
 	}
 	/* Add a "tiebreaker" sort order */
 	if( !title_sorted )
 		strcatf(&str, ", TITLE ASC");
+
+	if( force_sort_criteria )
+		free(sortCriteria);
 
 	return order;
 }
@@ -1211,6 +1218,8 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 #endif
 				ret = asprintf(&orderBy, "order by o.CLASS, d.DISC, d.TRACK, d.TITLE");
 			}
+			else
+				orderBy = parse_sort_criteria(SortCriteria, &ret);
 			if( ret == -1 )
 			{
 				orderBy = NULL;

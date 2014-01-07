@@ -61,7 +61,8 @@ static const struct {
 	{ ENABLE_TIVO, "enable_tivo" },
 	{ ENABLE_DLNA_STRICT, "strict_dlna" },
 	{ ROOT_CONTAINER, "root_container" },
-	{ USER_ACCOUNT, "user" }
+	{ USER_ACCOUNT, "user" },
+	{ FORCE_SORT_CRITERIA, "force_sort_criteria" }
 };
 
 int

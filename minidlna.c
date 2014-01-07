@@ -694,6 +694,9 @@ init(int argc, char **argv)
 				uid = entry->pw_uid;
 			}
 			break;
+		case FORCE_SORT_CRITERIA:
+			force_sort_criteria = ary_options[i].value;
+			break;
 		default:
 			DPRINTF(E_ERROR, L_GENERAL, "Unknown option in file %s\n",
 			        optionsfile);
