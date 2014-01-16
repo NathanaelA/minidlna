@@ -202,11 +202,10 @@ getsyshwaddr(char *buf, int len)
 			if (fd < 0)
 				continue;
 			strncpy(ifr.ifr_name, p->ifa_name, IFNAMSIZ);
-			if (ioctl(fd, SIOCGIFHWADDR, &ifr) < 0)
-			{
-				close(fd);
+			ret = ioctl(fd, SIOCGIFHWADDR, &ifr);
+			close(fd);
+			if (ret < 0)
 				continue;
-			}
 			memcpy(mac, ifr.ifr_hwaddr.sa_data, 6);
 #else
 			struct sockaddr_dl *sdl;

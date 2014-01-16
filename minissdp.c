@@ -771,6 +771,7 @@ SubmitServicesToMiniSSDPD(const char *host, unsigned short port)
 	{
 		DPRINTF(E_ERROR, L_SSDP, "connect(\"%s\"): %s",
 		        minissdpdsocketpath, strerror(errno));
+		close(s);
 		return -1;
 	}
 	for (i = 0; known_service_types[i]; i++)
@@ -802,6 +803,7 @@ SubmitServicesToMiniSSDPD(const char *host, unsigned short port)
 		if(write(s, buffer, p - buffer) < 0)
 		{
 			DPRINTF(E_ERROR, L_SSDP, "write(): %s", strerror(errno));
+			close(s);
 			return -1;
 		}
 	}
