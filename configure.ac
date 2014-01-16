@@ -119,7 +119,7 @@ AC_COMPILE_IFELSE(
     ])
 
 AC_CHECK_HEADER(linux/netlink.h,
-    [AC_DEFINE([HAVE_NETLINK],[1],[Support for Linux netlink])])
+    [AC_DEFINE([HAVE_NETLINK],[1],[Support for Linux netlink])], [], [#include <sys/socket.h>])
 
 ################################################################################################################
 ### Library checks
