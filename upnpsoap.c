@@ -214,6 +214,8 @@ GetSearchCapabilities(struct upnphttp * h, const char * action)
 		  "upnp:artist,"
 		  "upnp:class,"
 		  "upnp:genre,"
+		  "@id,"
+		  "@parentID,"
 		  "@refID"
 		"</SearchCaps>"
 		"</u:%sResponse>";
@@ -1416,6 +1418,12 @@ parse_search_criteria(const char *str)
 				{
 					strcatf(&criteria, "OBJECT_ID");
 					s += 3;
+					continue;
+				}
+				else if (strncmp(s, "@parentID", 9) == 0)
+				{
+					strcatf(&criteria, "PARENT_ID");
+					s += 9;
 					continue;
 				}
 				else
