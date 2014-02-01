@@ -379,6 +379,7 @@ static const struct action X_MS_MediaReceiverRegistrarActions[] =
 {
 	{"IsAuthorized", GetIsAuthorizedArgs}, /* R */
 	{"IsValidated", GetIsValidatedArgs}, /* R */
+	{"RegisterDevice", GetRegisterDeviceArgs},
 	{0, 0}
 };
 

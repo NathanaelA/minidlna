@@ -155,6 +155,24 @@ IsAuthorizedValidated(struct upnphttp * h, const char * action)
 }
 
 static void
+RegisterDevice(struct upnphttp * h, const char * action)
+{
+	static const char resp[] =
+		"<u:%sResponse "
+		"xmlns:u=\"%s\">"
+		"<RegistrationRespMsg>%s</RegistrationRespMsg>"
+		"</u:%sResponse>";
+
+	char body[512];
+	int bodylen;
+
+	bodylen = snprintf(body, sizeof(body), resp,
+		action, "urn:microsoft.com:service:X_MS_MediaReceiverRegistrar:1",
+		uuidvalue, action);
+	BuildSendAndCloseSoapResp(h, body, bodylen);
+}
+
+static void
 GetProtocolInfo(struct upnphttp * h, const char * action)
 {
 	static const char resp[] =
@@ -1840,6 +1858,7 @@ soapMethods[] =
 	{ "GetCurrentConnectionInfo", GetCurrentConnectionInfo},
 	{ "IsAuthorized", IsAuthorizedValidated},
 	{ "IsValidated", IsAuthorizedValidated},
+	{ "RegisterDevice", RegisterDevice},
 	{ "X_GetFeatureList", SamsungGetFeatureList},
 	{ "X_SetBookmark", SamsungSetBookmark},
 	{ 0, 0 }
