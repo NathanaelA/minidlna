@@ -44,18 +44,21 @@
 
 #include "config.h"
 #if HAVE_GETIFADDRS
-#include <ifaddrs.h>
-#ifdef __linux__
-#ifndef AF_LINK
-#define AF_LINK AF_INET
-#endif
-#else
-#include <net/if_dl.h>
-#endif
+# include <ifaddrs.h>
+# ifdef __linux__
+#  ifndef AF_LINK
+#   define AF_LINK AF_INET
+#  endif
+# else
+#  include <net/if_dl.h>
+# endif
+# ifndef IFF_SLAVE
+#  define IFF_SLAVE 0
+# endif
 #endif
 #ifdef HAVE_NETLINK
-#include <linux/rtnetlink.h>
-#include <linux/netlink.h>
+# include <linux/rtnetlink.h>
+# include <linux/netlink.h>
 #endif
 #include "upnpglobalvars.h"
 #include "getifaddr.h"
