@@ -527,7 +527,7 @@ parse_sort_criteria(char *sortCriteria, int *error)
 		str.data = order;
 		str.size = 4096;
 		str.off = 0;
-		strcatf(&str, "order by  ");
+		strcatf(&str, "order by ");
 	}
 	for( i=0; item != NULL; i++ )
 	{

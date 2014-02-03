@@ -42,6 +42,7 @@ struct lan_addr_s {
 	struct in_addr addr;	/* ip */
 	struct in_addr mask;	/* netmask */
 	int snotify;	/* notify socket */
+	unsigned int ifindex;	/* interface index */
 };
 
 struct runtime_vars_s {

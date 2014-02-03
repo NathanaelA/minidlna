@@ -95,6 +95,7 @@ getifaddr(const char *ifname, int notify)
 		}
 		addr_in = (struct sockaddr_in *)p->ifa_netmask;
 		memcpy(&lan_addr[n_lan_addr].mask, &addr_in->sin_addr, sizeof(lan_addr[n_lan_addr].mask));
+		lan_addr[n_lan_addr].ifindex = if_nametoindex(p->ifa_name);
 		lan_addr[n_lan_addr].snotify = OpenAndConfSSDPNotifySocket(lan_addr[n_lan_addr].addr.s_addr);
 		if (lan_addr[n_lan_addr].snotify >= 0)
 		{
@@ -154,6 +155,7 @@ getifaddr(const char *ifname, int notify)
 			continue;
 		memcpy(&addr, &(ifr->ifr_addr), sizeof(addr));
 		memcpy(&lan_addr[n_lan_addr].mask, &addr.sin_addr, sizeof(addr));
+		lan_addr[n_lan_addr].ifindex = if_nametoindex(ifr->ifr_name);
 		lan_addr[n_lan_addr].snotify = OpenAndConfSSDPNotifySocket(lan_addr[i].addr.s_addr);
 		if (lan_addr[n_lan_addr].snotify >= 0)
 		{
@@ -313,15 +315,11 @@ reload_ifaces(int notify)
 	}
 	n_lan_addr = 0;
 
-	if (runtime_vars.ifaces[0])
-	{
-		for (i = 0; runtime_vars.ifaces[i]; i++)
-		{
-			getifaddr(runtime_vars.ifaces[i], notify);
-		}
-	}
-	else
-		getifaddr(NULL, notify);
+	i = 0;
+	do {
+		getifaddr(runtime_vars.ifaces[i], notify);
+		i++;
+	} while (runtime_vars.ifaces[i]);
 
 	for (i = 0; i < n_lan_addr; i++)
 	{
