@@ -693,9 +693,8 @@ static void
 ScanDirectory(const char *dir, const char *parent, media_types dir_types)
 {
 	struct dirent **namelist;
-	int i, n, startID=0;
-	char parent_id[PATH_MAX];
-	char full_path[PATH_MAX];
+	int i, n, startID = 0;
+	char *full_path;
 	char *name = NULL;
 	static long long unsigned int fileno = 0;
 	enum file_types type;
@@ -728,8 +727,16 @@ ScanDirectory(const char *dir, const char *parent, media_types dir_types)
 			n = -1;
 			break;
 	}
-	if (n < 0) {
+	if( n < 0 )
+	{
 		DPRINTF(E_WARN, L_SCANNER, "Error scanning %s\n", dir);
+		return;
+	}
+
+	full_path = malloc(PATH_MAX);
+	if (!full_path)
+	{
+		DPRINTF(E_ERROR, L_SCANNER, "Memory allocation failed scanning %s\n", dir);
 		return;
 	}
 
@@ -745,7 +752,7 @@ ScanDirectory(const char *dir, const char *parent, media_types dir_types)
 			break;
 #endif
 		type = TYPE_UNKNOWN;
-		sprintf(full_path, "%s/%s", dir, namelist[i]->d_name);
+		snprintf(full_path, PATH_MAX, "%s/%s", dir, namelist[i]->d_name);
 		name = escape_tag(namelist[i]->d_name, 1);
 		if( namelist[i]->d_type == DT_DIR )
 		{
@@ -761,9 +768,11 @@ ScanDirectory(const char *dir, const char *parent, media_types dir_types)
 		}
 		if( (type == TYPE_DIR) && (access(full_path, R_OK|X_OK) == 0) )
 		{
+			char *parent_id;
 			insert_directory(name, full_path, BROWSEDIR_ID, (parent ? parent:""), i+startID);
-			sprintf(parent_id, "%s$%X", (parent ? parent:""), i+startID);
+			xasprintf(&parent_id, "%s$%X", (parent ? parent:""), i+startID);
 			ScanDirectory(full_path, parent_id, dir_types);
+			free(parent_id);
 		}
 		else if( type == TYPE_FILE && (access(full_path, R_OK) == 0) )
 		{
@@ -774,6 +783,7 @@ ScanDirectory(const char *dir, const char *parent, media_types dir_types)
 		free(namelist[i]);
 	}
 	free(namelist);
+	free(full_path);
 	if( !parent )
 	{
 		DPRINTF(E_WARN, L_SCANNER, _("Scanning %s finished (%llu files)!\n"), dir, fileno);
