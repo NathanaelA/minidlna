@@ -1312,7 +1312,7 @@ charcat(struct string_s *str, char c)
 }
 
 static inline char *
-parse_search_criteria(const char *str)
+parse_search_criteria(const char *str, char *sep)
 {
 	struct string_s criteria;
 	int len;
@@ -1448,6 +1448,7 @@ parse_search_criteria(const char *str)
 				{
 					strcatf(&criteria, "PARENT_ID");
 					s += 9;
+					strcpy(sep, "*");
 					continue;
 				}
 				else
@@ -1585,7 +1586,7 @@ SearchContentDirectory(struct upnphttp * h, const char * action)
 	int totalMatches;
 	int ret;
 	char *ContainerID, *Filter, *SearchCriteria, *SortCriteria;
-	char *orderBy = NULL, *where = NULL;
+	char *orderBy = NULL, *where = NULL, sep[] = "$*";
 	char groupBy[] = "group by DETAIL_ID";
 	struct NameValueParserData data;
 	int RequestedCount = 0;
@@ -1659,23 +1660,22 @@ SearchContentDirectory(struct upnphttp * h, const char * action)
 	                        SearchCriteria, Filter, SortCriteria);
 
 	if( strcmp(ContainerID, "0") == 0 )
-		*ContainerID = '*';
-	else if( strcmp(ContainerID, MUSIC_ALL_ID) == 0 )
+		ContainerID[0] = '*';
+
+	if( strcmp(ContainerID, MUSIC_ALL_ID) == 0 ||
+	    GETFLAG(DLNA_STRICT_MASK) )
 		groupBy[0] = '\0';
 
-	if( GETFLAG(DLNA_STRICT_MASK) )
-		groupBy[0] = '\0';
-
-	where = parse_search_criteria(SearchCriteria);
+	where = parse_search_criteria(SearchCriteria, sep);
 	DPRINTF(E_DEBUG, L_HTTP, "Translated SearchCriteria: %s\n", where);
 
 	totalMatches = sql_get_int_field(db, "SELECT (select count(distinct DETAIL_ID)"
 	                                     " from OBJECTS o left join DETAILS d on (o.DETAIL_ID = d.ID)"
-	                                     " where (OBJECT_ID glob '%q$*') and (%s))"
+	                                     " where (OBJECT_ID glob '%q%s') and (%s))"
 	                                     " + "
 	                                     "(select count(*) from OBJECTS o left join DETAILS d on (o.DETAIL_ID = d.ID)"
 	                                     " where (OBJECT_ID = '%q') and (%s))",
-	                                     ContainerID, where, ContainerID, where);
+	                                     ContainerID, sep, where, ContainerID, where);
 	if( totalMatches < 0 )
 	{
 		/* Must be invalid SQL, so most likely bad or unhandled search criteria. */
@@ -1707,10 +1707,10 @@ SearchContentDirectory(struct upnphttp * h, const char * action)
 
 	sql = sqlite3_mprintf( SELECT_COLUMNS
 	                      "from OBJECTS o left join DETAILS d on (d.ID = o.DETAIL_ID)"
-	                      " where OBJECT_ID glob '%q$*' and (%s) %s "
+	                      " where OBJECT_ID glob '%q%s' and (%s) %s "
 	                      "%z %s"
 	                      " limit %d, %d",
-	                      ContainerID, where, groupBy,
+	                      ContainerID, sep, where, groupBy,
 	                      (*ContainerID == '*') ? NULL :
 	                      sqlite3_mprintf("UNION ALL " SELECT_COLUMNS
 	                                      "from OBJECTS o left join DETAILS d on (d.ID = o.DETAIL_ID)"
