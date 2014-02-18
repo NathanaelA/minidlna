@@ -111,7 +111,7 @@ OpenAndConfSSDPReceiveSocket(void)
 		return -1;
 	}
 
-	for (i = n_lan_addr; i > 0; i--)
+	for (i = 0; i < n_lan_addr; i++)
 	{
 		if (AddMulticastMembership(s, &lan_addr[i]) < 0)
 		{
