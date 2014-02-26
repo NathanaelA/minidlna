@@ -59,6 +59,7 @@
 static int
 AddMulticastMembership(int s, struct lan_addr_s *iface)
 {
+	int ret;
 #ifdef HAVE_STRUCT_IP_MREQN
 	struct ip_mreqn imr;	/* Ip multicast membership */
 	/* setting up imr structure */
@@ -70,9 +71,11 @@ AddMulticastMembership(int s, struct lan_addr_s *iface)
 	imr.imr_multiaddr.s_addr = inet_addr(SSDP_MCAST_ADDR);
 	imr.imr_interface.s_addr = iface->addr.s_addr;
 #endif
-	if (setsockopt(s, IPPROTO_IP, IP_ADD_MEMBERSHIP, (void *)&imr, sizeof(imr)) < 0)
+	ret = setsockopt(s, IPPROTO_IP, IP_ADD_MEMBERSHIP, (void *)&imr, sizeof(imr));
+	if (ret < 0 && errno != EADDRINUSE)
 	{
-		DPRINTF(E_ERROR, L_SSDP, "setsockopt(udp, IP_ADD_MEMBERSHIP): %s\n", strerror(errno));
+		DPRINTF(E_ERROR, L_SSDP, "setsockopt(udp, IP_ADD_MEMBERSHIP): %s\n",
+			strerror(errno));
 		return -1;
 	}
 
@@ -109,16 +112,6 @@ OpenAndConfSSDPReceiveSocket(void)
 		DPRINTF(E_ERROR, L_SSDP, "bind(udp): %s\n", strerror(errno));
 		close(s);
 		return -1;
-	}
-
-	for (i = 0; i < n_lan_addr; i++)
-	{
-		if (AddMulticastMembership(s, &lan_addr[i]) < 0)
-		{
-			DPRINTF(E_WARN, L_SSDP,
-			       "Failed to add multicast membership for address %s\n", 
-			       lan_addr[i].str );
-		}
 	}
 
 	return s;
@@ -177,6 +170,12 @@ OpenAndConfSSDPNotifySocket(struct lan_addr_s *iface)
 		DPRINTF(E_ERROR, L_SSDP, "bind(udp_notify): %s\n", strerror(errno));
 		close(s);
 		return -1;
+	}
+
+	if (AddMulticastMembership(sssdp, iface) < 0)
+	{
+		DPRINTF(E_WARN, L_SSDP, "Failed to add multicast membership for address %s\n", 
+			iface->str);
 	}
 
 	return s;
