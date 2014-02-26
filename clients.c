@@ -49,7 +49,7 @@ struct client_type_s client_types[] =
 	{ EPS3,
 	  FLAG_DLNA | FLAG_MIME_AVI_DIVX,
 	  "PLAYSTATION 3",
-          "PLAYSTATION 3",
+	  "PLAYSTATION 3",
 	  EXAVClientInfo
 	},
 
@@ -194,6 +194,13 @@ struct client_type_s client_types[] =
 	  EUserAgent
 	},
 
+	{ EStandardUPnP,
+	  0,
+	  "Generic UPnP 1.0",
+	  "UPnP/1.0",
+	  EUserAgent
+	},
+
 	{ 0, 0, NULL, 0 }
 };
 
@@ -216,7 +223,7 @@ SearchClientCache(struct in_addr addr, int quiet)
 				    memcmp(mac, clients[i].mac, 6) == 0)
 				{
 					/* Same MAC as last time when we were able to identify the client,
- 					 * so extend the timeout by another hour. */
+					 * so extend the timeout by another hour. */
 					clients[i].age = time(NULL);
 				}
 				else
@@ -249,9 +256,9 @@ AddClientCache(struct in_addr addr, int type)
 		clients[i].type = type;
 		clients[i].age = time(NULL);
 		DPRINTF(E_DEBUG, L_HTTP, "Added client [%s/%s/%02X:%02X:%02X:%02X:%02X:%02X] to cache slot %d.\n",
-		                         client_types[type].name, inet_ntoa(clients[i].addr),
-		                         clients[i].mac[0], clients[i].mac[1], clients[i].mac[2],
-		                         clients[i].mac[3], clients[i].mac[4], clients[i].mac[5], i);
+					client_types[type].name, inet_ntoa(clients[i].addr),
+					clients[i].mac[0], clients[i].mac[1], clients[i].mac[2],
+					clients[i].mac[3], clients[i].mac[4], clients[i].mac[5], i);
 		return 0;
 	}
 

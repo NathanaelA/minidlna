@@ -427,33 +427,28 @@ next_header:
 	 * This is done because a lot of clients like to send a
 	 * different User-Agent with different types of requests. */
 	n = SearchClientCache(h->clientaddr, 0);
-	if( h->req_client )
+	/* Add this client to the cache if it's not there already. */
+	if( n < 0 )
 	{
-		/* Add this client to the cache if it's not there already. */
-		if( n < 0 )
-		{
-			AddClientCache(h->clientaddr, h->req_client);
-		}
-		else
-		{
-			enum client_types type = client_types[h->req_client].type;
-			enum client_types ctype = client_types[clients[n].type].type;
-			/* If we know the client and our new detection is generic, use our cached info */
-			/* If we detected a Samsung Series B earlier, don't overwrite it with Series A info */
-			if ((ctype < EStandardDLNA150 && type == EStandardDLNA150) ||
-			    (ctype == ESamsungSeriesB && type == ESamsungSeriesA))
-			{
-				h->req_client = clients[n].type;
-				return;
-			}
-			clients[n].type = h->req_client;
-			clients[n].age = time(NULL);
-		}
+		AddClientCache(h->clientaddr, h->req_client);
 	}
-	else if( n >= 0 )
+	else if (h->req_client)
 	{
+		enum client_types type = client_types[h->req_client].type;
+		enum client_types ctype = client_types[clients[n].type].type;
+		/* If we know the client and our new detection is generic, use our cached info */
+		/* If we detected a Samsung Series B earlier, don't overwrite it with Series A info */
+		if ((ctype && ctype < EStandardDLNA150 && type >= EStandardDLNA150) ||
+		    (ctype == ESamsungSeriesB && type == ESamsungSeriesA))
+		{
+			h->req_client = clients[n].type;
+			return;
+		}
+		clients[n].type = h->req_client;
+		clients[n].age = time(NULL);
+	}
+	else
 		h->req_client = clients[n].type;
-	}
 }
 
 /* very minimalistic 400 error message */
@@ -991,7 +986,7 @@ ProcessHttpQuery_upnphttp(struct upnphttp * h)
 		{
 			SendResp_caption(h, HttpUrl+10);
 		}
-		else if(strcmp(HttpUrl, "/status/") == 0)
+		else if(strncmp(HttpUrl, "/status", 7) == 0)
 		{
 			SendResp_presentation(h);
 		}
