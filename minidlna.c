@@ -522,7 +522,7 @@ init(int argc, char **argv)
 				if (ifaces >= MAX_LAN_ADDR)
 				{
 					DPRINTF(E_ERROR, L_GENERAL, "Too many interfaces (max: %d), ignoring %s\n",
-			    			MAX_LAN_ADDR, word);
+						MAX_LAN_ADDR, word);
 					break;
 				}
 				runtime_vars.ifaces[ifaces++] = word;
@@ -782,7 +782,7 @@ init(int argc, char **argv)
 				if (ifaces >= MAX_LAN_ADDR)
 				{
 					DPRINTF(E_ERROR, L_GENERAL, "Too many interfaces (max: %d), ignoring %s\n",
-			    			MAX_LAN_ADDR, argv[i]);
+						MAX_LAN_ADDR, argv[i]);
 					break;
 				}
 				runtime_vars.ifaces[ifaces++] = argv[i];
@@ -836,7 +836,7 @@ init(int argc, char **argv)
 	if (runtime_vars.port <= 0)
 	{
 		printf("Usage:\n\t"
-		        "%s [-d] [-v] [-f config_file] [-p port]\n"
+			"%s [-d] [-v] [-f config_file] [-p port]\n"
 			"\t\t[-i network_interface] [-u uid_to_run_as]\n"
 			"\t\t[-t notify_interval] [-P pid_filename]\n"
 			"\t\t[-s serial] [-m model_number]\n"
@@ -845,7 +845,7 @@ init(int argc, char **argv)
 #else
 			"\t\t[-w url] [-R] [-L] [-V] [-h]\n"
 #endif
-		        "\nNotes:\n\tNotify interval is in seconds. Default is 895 seconds.\n"
+			"\nNotes:\n\tNotify interval is in seconds. Default is 895 seconds.\n"
 			"\tDefault pid file is %s.\n"
 			"\tWith -d minidlna will run in debug mode (not daemonize).\n"
 			"\t-w sets the presentation url. Default is http address on port 80\n"
@@ -857,7 +857,7 @@ init(int argc, char **argv)
 			"\t-S changes behaviour for systemd\n"
 #endif
 			"\t-V print the version number\n",
-		        argv[0], pidfilename);
+			argv[0], pidfilename);
 		return 1;
 	}
 
@@ -1083,7 +1083,7 @@ main(int argc, char **argv)
 			{
 				if (timeofday.tv_sec >= (lastbeacontime.tv_sec + beacon_interval))
 				{
-   					sendBeaconMessage(sbeacon, &tivo_bcast, sizeof(struct sockaddr_in), 1);
+					sendBeaconMessage(sbeacon, &tivo_bcast, sizeof(struct sockaddr_in), 1);
 					memcpy(&lastbeacontime, &timeofday, sizeof(struct timeval));
 					if (timeout.tv_sec > beacon_interval)
 					{

@@ -278,12 +278,12 @@ get_remote_mac(struct in_addr ip_addr, unsigned char *mac)
 	int matches, hwtype, flags;
 	memset(mac, 0xFF, 6);
 
- 	arp = fopen("/proc/net/arp", "r");
+	arp = fopen("/proc/net/arp", "r");
 	if (!arp)
 		return 1;
 	while (!feof(arp))
 	{
-	        matches = fscanf(arp, "%15s 0x%8X 0x%8X %2hhx:%2hhx:%2hhx:%2hhx:%2hhx:%2hhx",
+		matches = fscanf(arp, "%15s 0x%8X 0x%8X %2hhx:%2hhx:%2hhx:%2hhx:%2hhx:%2hhx",
 		                      remote_ip, &hwtype, &flags,
 		                      &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]);
 		if (matches != 9)
