@@ -215,10 +215,9 @@ extern char pnpx_hwid[];
 #endif
 
 /* lan addresses */
-/* MAX_LAN_ADDR : maximum number of interfaces
- * to listen to SSDP traffic */
 extern int n_lan_addr;
 extern struct lan_addr_s lan_addr[];
+extern int sssdp;
 
 extern const char *minissdpdsocketpath;
 

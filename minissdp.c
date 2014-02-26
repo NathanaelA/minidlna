@@ -127,7 +127,7 @@ OpenAndConfSSDPReceiveSocket(void)
 /* open the UDP socket used to send SSDP notifications to
  * the multicast group reserved for them */
 int
-OpenAndConfSSDPNotifySocket(in_addr_t addr)
+OpenAndConfSSDPNotifySocket(struct lan_addr_s *iface)
 {
 	int s;
 	unsigned char loopchar = 0;
@@ -143,7 +143,7 @@ OpenAndConfSSDPNotifySocket(in_addr_t addr)
 		return -1;
 	}
 
-	mc_if.s_addr = addr;	/*inet_addr(addr);*/
+	mc_if.s_addr = iface->addr.s_addr;
 
 	if (setsockopt(s, IPPROTO_IP, IP_MULTICAST_LOOP, (char *)&loopchar, sizeof(loopchar)) < 0)
 	{
@@ -170,7 +170,7 @@ OpenAndConfSSDPNotifySocket(in_addr_t addr)
 
 	memset(&sockname, 0, sizeof(struct sockaddr_in));
 	sockname.sin_family = AF_INET;
-	sockname.sin_addr.s_addr = addr;	/*inet_addr(addr);*/
+	sockname.sin_addr.s_addr = iface->addr.s_addr;
 
 	if (bind(s, (struct sockaddr *)&sockname, sizeof(struct sockaddr_in)) < 0)
 	{
@@ -294,7 +294,7 @@ SendSSDPNotifies(int s, const char *host, unsigned short port,
 				DPRINTF(E_WARN, L_SSDP, "SendSSDPNotifies(): truncated output\n");
 				l = sizeof(bufr);
 			}
-			DPRINTF(E_MAXDEBUG, L_SSDP, "Sending ssdp:alive\n");
+			DPRINTF(E_MAXDEBUG, L_SSDP, "Sending ssdp:alive [%d]\n", s);
 			n = sendto(s, bufr, l, 0,
 				(struct sockaddr *)&sockname, sizeof(struct sockaddr_in));
 			if (n < 0)
@@ -589,7 +589,7 @@ ProcessSSDPRequest(int s, unsigned short port)
 					mx++;
 				while (mx[mx_len]!='\r' && mx[mx_len]!='\n')
 					mx_len++;
-        			mx_val = strtol(mx, &mx_end, 10);
+				mx_val = strtol(mx, &mx_end, 10);
 			}
 			else if (strncasecmp(bufr+i, "MAN:", 4) == 0)
 			{
@@ -602,8 +602,7 @@ ProcessSSDPRequest(int s, unsigned short port)
 			}
 		}
 		/*DPRINTF(E_INFO, L_SSDP, "SSDP M-SEARCH packet received from %s:%d\n",
-	           inet_ntoa(sendername.sin_addr),
-	           ntohs(sendername.sin_port) );*/
+			inet_ntoa(sendername.sin_addr), ntohs(sendername.sin_port) );*/
 		if (GETFLAG(DLNA_STRICT_MASK) && (ntohs(sendername.sin_port) <= 1024 || ntohs(sendername.sin_port) == 1900))
 		{
 			DPRINTF(E_INFO, L_SSDP, "WARNING: Ignoring invalid SSDP M-SEARCH from %s [bad source port %d]\n",
@@ -639,7 +638,7 @@ ProcessSSDPRequest(int s, unsigned short port)
 					inet_ntoa(sendername.sin_addr));
 				return;
 			}
-			DPRINTF(E_INFO, L_SSDP, "SSDP M-SEARCH from %s:%d ST: %.*s, MX: %.*s, MAN: %.*s\n",
+			DPRINTF(E_DEBUG, L_SSDP, "SSDP M-SEARCH from %s:%d ST: %.*s, MX: %.*s, MAN: %.*s\n",
 				inet_ntoa(sendername.sin_addr),
 				ntohs(sendername.sin_port),
 				st_len, st, mx_len, mx, man_len, man);
@@ -698,18 +697,18 @@ ProcessSSDPRequest(int s, unsigned short port)
 	else
 	{
 		DPRINTF(E_WARN, L_SSDP, "Unknown udp packet received from %s:%d\n",
-		       inet_ntoa(sendername.sin_addr), ntohs(sendername.sin_port));
+			inet_ntoa(sendername.sin_addr), ntohs(sendername.sin_port));
 	}
 }
 
 /* This will broadcast ssdp:byebye notifications to inform 
  * the network that UPnP is going down. */
 int
-SendSSDPGoodbyes(void)
+SendSSDPGoodbyes(int s)
 {
 	struct sockaddr_in sockname;
 	int n, l;
-	int i, j;
+	int i;
 	int dup, ret = 0;
 	char bufr[512];
 
@@ -720,29 +719,29 @@ SendSSDPGoodbyes(void)
 
 	for (dup = 0; dup < 2; dup++)
 	{
-		for (j = 0; j < n_lan_addr; j++)
+		for (i = 0; known_service_types[i]; i++)
 		{
-			for (i = 0; known_service_types[i]; i++)
+			l = snprintf(bufr, sizeof(bufr),
+					"NOTIFY * HTTP/1.1\r\n"
+					"HOST:%s:%d\r\n"
+					"NT:%s%s\r\n"
+					"USN:%s%s%s%s\r\n"
+					"NTS:ssdp:byebye\r\n"
+					"\r\n",
+					SSDP_MCAST_ADDR, SSDP_PORT,
+					known_service_types[i],
+					(i > 1 ? "1" : ""), uuidvalue,
+					(i > 0 ? "::" : ""),
+					(i > 0 ? known_service_types[i] : ""),
+					(i > 1 ? "1" : ""));
+			DPRINTF(E_MAXDEBUG, L_SSDP, "Sending ssdp:byebye [%s]\n", s);
+			n = sendto(s, bufr, l, 0,
+			           (struct sockaddr *)&sockname, sizeof(struct sockaddr_in) );
+			if (n < 0)
 			{
-				l = snprintf(bufr, sizeof(bufr),
-				             "NOTIFY * HTTP/1.1\r\n"
-				             "HOST:%s:%d\r\n"
-				             "NT:%s%s\r\n"
-				             "USN:%s%s%s%s\r\n"
-			        	     "NTS:ssdp:byebye\r\n"
-				             "\r\n",
-				             SSDP_MCAST_ADDR, SSDP_PORT,
-				             known_service_types[i], (i>1?"1":""),
-				             uuidvalue, (i>0?"::":""), (i>0?known_service_types[i]:""), (i>1?"1":"") );
-				DPRINTF(E_MAXDEBUG, L_SSDP, "Sending ssdp:byebye\n");
-				n = sendto(lan_addr[j].snotify, bufr, l, 0,
-				           (struct sockaddr *)&sockname, sizeof(struct sockaddr_in) );
-				if (n < 0)
-				{
-					DPRINTF(E_ERROR, L_SSDP, "sendto(udp_shutdown=%d): %s\n", lan_addr[j].snotify, strerror(errno));
-					ret = -1;
-					break;
-				}
+				DPRINTF(E_ERROR, L_SSDP, "sendto(udp_shutdown=%d): %s\n", s, strerror(errno));
+				ret = -1;
+				break;
 			}
 		}
 	}
@@ -773,7 +772,7 @@ SubmitServicesToMiniSSDPD(const char *host, unsigned short port)
 	if (connect(s, (struct sockaddr *)&addr, sizeof(struct sockaddr_un)) < 0)
 	{
 		DPRINTF(E_ERROR, L_SSDP, "connect(\"%s\"): %s",
-		        minissdpdsocketpath, strerror(errno));
+			minissdpdsocketpath, strerror(errno));
 		close(s);
 		return -1;
 	}
@@ -810,7 +809,7 @@ SubmitServicesToMiniSSDPD(const char *host, unsigned short port)
 			return -1;
 		}
 	}
- 	close(s);
+	close(s);
 	return 0;
 }
 

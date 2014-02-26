@@ -53,9 +53,6 @@
 #include "config.h"
 #include "upnpglobalvars.h"
 
-/* LAN address */
-/*const char * listen_addr = 0;*/
-
 /* startup time */
 time_t startup_time = 0;
 
@@ -78,6 +75,7 @@ char presentationurl[PRESENTATIONURL_MAX_LEN];
 
 int n_lan_addr = 0;
 struct lan_addr_s lan_addr[MAX_LAN_ADDR];
+int sssdp = -1;
 
 /* Path of the Unix socket used to communicate with MiniSSDPd */
 const char * minissdpdsocketpath = "/var/run/minissdpd.sock";

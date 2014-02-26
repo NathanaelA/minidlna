@@ -156,6 +156,15 @@ sigterm(int sig)
 }
 
 static void
+sigusr1(int sig)
+{
+	signal(sig, sigusr1);
+	DPRINTF(E_WARN, L_GENERAL, "received signal %d, clear cache\n", sig);
+
+	memset(&clients, '\0', sizeof(clients));
+}
+
+static void
 sighup(int sig)
 {
 	signal(sig, sighup);
@@ -903,7 +912,6 @@ init(int argc, char **argv)
 	}	
 
 	set_startup_time();
-	reload_ifaces(0);
 
 	/* presentation url */
 	if (presurl)
@@ -922,6 +930,7 @@ init(int argc, char **argv)
 		DPRINTF(E_FATAL, L_GENERAL, "Failed to set %s handler. EXITING.\n", "SIGPIPE");
 	if (signal(SIGHUP, &sighup) == SIG_ERR)
 		DPRINTF(E_FATAL, L_GENERAL, "Failed to set %s handler. EXITING.\n", "SIGHUP");
+	signal(SIGUSR1, &sigusr1);
 	sa.sa_handler = process_handle_child_termination;
 	if (sigaction(SIGCHLD, &sa, NULL))
 		DPRINTF(E_FATAL, L_GENERAL, "Failed to set %s handler. EXITING.\n", "SIGCHLD");
@@ -942,7 +951,7 @@ int
 main(int argc, char **argv)
 {
 	int ret, i;
-	int sudp = -1, shttpl = -1;
+	int shttpl = -1;
 	int smonitor = -1;
 	LIST_HEAD(httplisthead, upnphttp) upnphttphead;
 	struct upnphttp * e = 0;
@@ -1003,8 +1012,8 @@ main(int argc, char **argv)
 #endif
 	smonitor = OpenAndConfMonitorSocket();
 
-	sudp = OpenAndConfSSDPReceiveSocket();
-	if (sudp < 0)
+	sssdp = OpenAndConfSSDPReceiveSocket();
+	if (sssdp < 0)
 	{
 		DPRINTF(E_INFO, L_GENERAL, "Failed to open socket for receiving SSDP. Trying to use MiniSSDPd\n");
 		if (SubmitServicesToMiniSSDPD(lan_addr[0].str, runtime_vars.port) < 0)
@@ -1037,7 +1046,8 @@ main(int argc, char **argv)
 		sbeacon = -1;
 #endif
 
-	SendSSDPGoodbyes();
+	reload_ifaces(0);
+	lastnotifytime.tv_sec = time(NULL) + runtime_vars.notify_interval;
 
 	/* main loop */
 	while (!quitting)
@@ -1113,10 +1123,10 @@ main(int argc, char **argv)
 		/* select open sockets (SSDP, HTTP listen, and all HTTP soap sockets) */
 		FD_ZERO(&readset);
 
-		if (sudp >= 0) 
+		if (sssdp >= 0) 
 		{
-			FD_SET(sudp, &readset);
-			max_fd = MAX(max_fd, sudp);
+			FD_SET(sssdp, &readset);
+			max_fd = MAX(max_fd, sssdp);
 		}
 		
 		if (shttpl >= 0) 
@@ -1165,10 +1175,10 @@ main(int argc, char **argv)
 		}
 		upnpevents_processfds(&readset, &writeset);
 		/* process SSDP packets */
-		if (sudp >= 0 && FD_ISSET(sudp, &readset))
+		if (sssdp >= 0 && FD_ISSET(sssdp, &readset))
 		{
-			/*DPRINTF(E_DEBUG, L_GENERAL, "Received UDP Packet\n");*/
-			ProcessSSDPRequest(sudp, (unsigned short)runtime_vars.port);
+			/*DPRINTF(E_DEBUG, L_GENERAL, "Received SSDP Packet\n");*/
+			ProcessSSDPRequest(sssdp, (unsigned short)runtime_vars.port);
 		}
 #ifdef TIVO_SUPPORT
 		if (sbeacon >= 0 && FD_ISSET(sbeacon, &readset))
@@ -1259,8 +1269,8 @@ shutdown:
 		LIST_REMOVE(e, entries);
 		Delete_upnphttp(e);
 	}
-	if (sudp >= 0)
-		close(sudp);
+	if (sssdp >= 0)
+		close(sssdp);
 	if (shttpl >= 0)
 		close(shttpl);
 	#ifdef TIVO_SUPPORT
@@ -1268,11 +1278,9 @@ shutdown:
 		close(sbeacon);
 	#endif
 	
-	if (SendSSDPGoodbyes() < 0)
-		DPRINTF(E_ERROR, L_GENERAL, "Failed to broadcast good-bye notifications\n");
-
 	for (i = 0; i < n_lan_addr; i++)
 	{
+		SendSSDPGoodbyes(lan_addr[i].snotify);
 		close(lan_addr[i].snotify);
 	}
 
