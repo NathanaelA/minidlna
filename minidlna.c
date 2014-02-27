@@ -938,6 +938,14 @@ init(int argc, char **argv)
 	if (writepidfile(pidfilename, pid, uid) != 0)
 		pidfilename = NULL;
 
+	if (uid >= 0)
+	{
+		struct stat st;
+		if (stat(db_path, &st) == 0 && st.st_uid != uid && chown(db_path, uid, -1) != 0)
+			DPRINTF(E_ERROR, L_GENERAL, "Unable to set db_path [%s] ownership to %d: %s\n",
+			        db_path, uid, strerror(errno));
+	}
+
 	if (uid != -1 && setuid(uid) == -1)
 		DPRINTF(E_FATAL, L_GENERAL, "Failed to switch to uid '%d'. [%s] EXITING.\n",
 		        uid, strerror(errno));

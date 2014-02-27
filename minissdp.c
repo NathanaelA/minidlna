@@ -733,7 +733,7 @@ SendSSDPGoodbyes(int s)
 					(i > 0 ? "::" : ""),
 					(i > 0 ? known_service_types[i] : ""),
 					(i > 1 ? "1" : ""));
-			DPRINTF(E_MAXDEBUG, L_SSDP, "Sending ssdp:byebye [%s]\n", s);
+			DPRINTF(E_MAXDEBUG, L_SSDP, "Sending ssdp:byebye [%d]\n", s);
 			n = sendto(s, bufr, l, 0,
 			           (struct sockaddr *)&sockname, sizeof(struct sockaddr_in) );
 			if (n < 0)
