@@ -1053,6 +1053,12 @@ Process_upnphttp(struct upnphttp * h)
 			/* if 1st arg of realloc() is null,
 			 * realloc behaves the same as malloc() */
 			h->req_buf = (char *)realloc(h->req_buf, n + h->req_buflen + 1);
+			if (!h->req_buf)
+			{
+				DPRINTF(E_ERROR, L_HTTP, "Receive headers: %s\n", strerror(errno));
+				h->state = 100;
+				break;
+			}
 			memcpy(h->req_buf + h->req_buflen, buf, n);
 			h->req_buflen += n;
 			h->req_buf[h->req_buflen] = '\0';
