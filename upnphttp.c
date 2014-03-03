@@ -1049,10 +1049,18 @@ Process_upnphttp(struct upnphttp * h)
 		}
 		else
 		{
+			size_t new_req_buflen;
 			const char * endheaders;
 			/* if 1st arg of realloc() is null,
 			 * realloc behaves the same as malloc() */
-			h->req_buf = (char *)realloc(h->req_buf, n + h->req_buflen + 1);
+			new_req_buflen = n + h->req_buflen + 1;
+			if (new_req_buflen >= 1024 * 1024)
+			{
+				DPRINTF(E_ERROR, L_HTTP, "Receive headers too large (received %d bytes)\n", new_req_buflen);
+				h->state = 100;
+				break;
+			}
+			h->req_buf = (char *)realloc(h->req_buf, new_req_buflen);
 			if (!h->req_buf)
 			{
 				DPRINTF(E_ERROR, L_HTTP, "Receive headers: %s\n", strerror(errno));
