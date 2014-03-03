@@ -104,7 +104,7 @@ readoptionsfile(const char * fname)
 				t--;
 			}
 		}
-       
+
 		/* skip leading whitespaces */
 		name = buffer;
 		while(isspace(*name))

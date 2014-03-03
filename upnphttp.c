@@ -89,9 +89,9 @@
 #include "icons.c"
 
 enum event_type {
-        E_INVALID,
-        E_SUBSCRIBE,
-        E_RENEW
+	E_INVALID,
+	E_SUBSCRIBE,
+	E_RENEW
 };
 
 struct upnphttp * 
@@ -596,9 +596,9 @@ SendResp_presentation(struct upnphttp * h)
 	char body[4096];
 	int a, v, p, i;
 
-        str.data = body;
-        str.size = sizeof(body);
-        str.off = 0;
+	str.data = body;
+	str.size = sizeof(body);
+	str.off = 0;
 
 	h->respflags = FLAG_HTML;
 
@@ -608,10 +608,10 @@ SendResp_presentation(struct upnphttp * h)
 	strcatf(&str,
 		"<HTML><HEAD><TITLE>" SERVER_NAME " " MINIDLNA_VERSION "</TITLE></HEAD>"
 		"<BODY><div style=\"text-align: center\">"
-                "<h2>" SERVER_NAME " status</h2></div>");
+		"<h2>" SERVER_NAME " status</h2></div>");
 
 	strcatf(&str,
-                "<h3>Media library</h3>"
+		"<h3>Media library</h3>"
 		"<table border=1 cellpadding=10>"
 		"<tr><td>Audio files</td><td>%d</td></tr>"
 		"<tr><td>Video files</td><td>%d</td></tr>"
@@ -619,18 +619,18 @@ SendResp_presentation(struct upnphttp * h)
 		"</table>", a, v, p);
 
 	strcatf(&str,
-                "<h3>Connected clients</h3>"
+		"<h3>Connected clients</h3>"
 		"<table border=1 cellpadding=10>"
 		"<tr><td>ID</td><td>Type</td><td>IP Address</td><td>HW Address</td></tr>");
-        for (i = 0; i < CLIENT_CACHE_SLOTS; i++)
-        {
+	for (i = 0; i < CLIENT_CACHE_SLOTS; i++)
+	{
 		if (!clients[i].addr.s_addr)
 			continue;
-                strcatf(&str, "<tr><td>%d</td><td>%s</td><td>%s</td><td>%02X:%02X:%02X:%02X:%02X:%02X</td></tr>",
-                              i, client_types[clients[i].type].name, inet_ntoa(clients[i].addr),
-                              clients[i].mac[0], clients[i].mac[1], clients[i].mac[2],
-                              clients[i].mac[3], clients[i].mac[4], clients[i].mac[5]);
-        }
+		strcatf(&str, "<tr><td>%d</td><td>%s</td><td>%s</td><td>%02X:%02X:%02X:%02X:%02X:%02X</td></tr>",
+				i, client_types[clients[i].type].name, inet_ntoa(clients[i].addr),
+				clients[i].mac[0], clients[i].mac[1], clients[i].mac[2],
+				clients[i].mac[3], clients[i].mac[4], clients[i].mac[5]);
+	}
 	strcatf(&str, "</table></BODY></HTML>\r\n");
 
 	BuildResp_upnphttp(h, str.data, str.off);
@@ -725,7 +725,7 @@ ProcessHTTPSubscribe_upnphttp(struct upnphttp * h, const char * path)
 	enum event_type type;
 	DPRINTF(E_DEBUG, L_HTTP, "ProcessHTTPSubscribe %s\n", path);
 	DPRINTF(E_DEBUG, L_HTTP, "Callback '%.*s' Timeout=%d\n",
-	       h->req_CallbackLen, h->req_Callback, h->req_Timeout);
+		h->req_CallbackLen, h->req_Callback, h->req_Timeout);
 	DPRINTF(E_DEBUG, L_HTTP, "SID '%.*s'\n", h->req_SIDLen, h->req_SID);
 
 	type = check_event(h);
@@ -845,7 +845,7 @@ ProcessHttpQuery_upnphttp(struct upnphttp * h)
 		if( h->req_chunklen )
 		{
 			h->state = 2;
-	                return;
+			return;
 		}
 		char *chunkstart, *chunk, *endptr, *endbuf;
 		chunk = endbuf = chunkstart = h->req_buf + h->req_contentoff;
@@ -887,7 +887,7 @@ ProcessHttpQuery_upnphttp(struct upnphttp * h)
 		         !(h->reqflags & FLAG_RANGE) )
 		{
 			DPRINTF(E_WARN, L_HTTP, "DLNA %s requested, responding ERROR 406\n",
-			                        h->reqflags&FLAG_TIMESEEK ? "TimeSeek" : "PlaySpeed");
+				h->reqflags&FLAG_TIMESEEK ? "TimeSeek" : "PlaySpeed");
 			Send406(h);
 			return;
 		}
@@ -1190,8 +1190,7 @@ BuildResp2_upnphttp(struct upnphttp * h, int respcode,
 
 /* responding 200 OK ! */
 void
-BuildResp_upnphttp(struct upnphttp * h,
-                        const char * body, int bodylen)
+BuildResp_upnphttp(struct upnphttp *h, const char *body, int bodylen)
 {
 	BuildResp2_upnphttp(h, 200, "OK", body, bodylen);
 }
@@ -1348,7 +1347,7 @@ SendResp_icon(struct upnphttp * h, char * icon)
 
 	if( send_data(h, header, ret, MSG_MORE) == 0 )
 	{
- 		if( h->req_command != EHead )
+		if( h->req_command != EHead )
 			send_data(h, data, size, 0);
 	}
 	CloseSocket_upnphttp(h);
@@ -1409,7 +1408,7 @@ SendResp_albumArt(struct upnphttp * h, char * object)
 
 	if( send_data(h, header, ret, MSG_MORE) == 0 )
 	{
- 		if( h->req_command != EHead )
+		if( h->req_command != EHead )
 			send_file(h, fd, 0, size-1);
 	}
 	close(fd);
@@ -1461,7 +1460,7 @@ SendResp_caption(struct upnphttp * h, char * object)
 
 	if( send_data(h, header, ret, MSG_MORE) == 0 )
 	{
- 		if( h->req_command != EHead )
+		if( h->req_command != EHead )
 			send_file(h, fd, 0, size-1);
 	}
 	close(fd);
@@ -1532,7 +1531,7 @@ SendResp_thumbnail(struct upnphttp * h, char * object)
 
 	if( send_data(h, header, ret, MSG_MORE) == 0 )
 	{
- 		if( h->req_command != EHead )
+		if( h->req_command != EHead )
 			send_data(h, (char *)ed->data, ed->size, 0);
 	}
 	exif_data_unref(ed);
@@ -1684,9 +1683,9 @@ SendResp_resizedimg(struct upnphttp * h, char * object)
 	else if( srcw>>2 >= dstw && srch>>2 >= dsth )
 		scale = 2;
 
-        str.data = header;
-        str.size = sizeof(header);
-        str.off = 0;
+	str.data = header;
+	str.size = sizeof(header);
+	str.off = 0;
 
 	strftime(date, 30,"%a, %d %b %Y %H:%M:%S GMT" , gmtime(&curtime));
 	strcatf(&str, "HTTP/1.1 200 OK\r\n"
@@ -1861,7 +1860,7 @@ SendResp_dlnafile(struct upnphttp *h, char *object)
 	if( newpid > 0 )
 	{
 		CloseSocket_upnphttp(h);
-		goto error;
+		return;
 	}
 #endif
 
@@ -1991,7 +1990,7 @@ SendResp_dlnafile(struct upnphttp *h, char *object)
 	//DEBUG DPRINTF(E_DEBUG, L_HTTP, "RESPONSE: %s\n", str.data);
 	if( send_data(h, str.data, str.off, MSG_MORE) == 0 )
 	{
- 		if( h->req_command != EHead )
+		if( h->req_command != EHead )
 			send_file(h, sendfh, offset, h->req_RangeEnd);
 	}
 	close(sendfh);
