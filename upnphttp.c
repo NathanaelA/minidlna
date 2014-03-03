@@ -1098,6 +1098,12 @@ Process_upnphttp(struct upnphttp * h)
 			buf[sizeof(buf)-1] = '\0';
 			/*fwrite(buf, 1, n, stdout);*/	/* debug */
 			h->req_buf = (char *)realloc(h->req_buf, n + h->req_buflen);
+			if (!h->req_buf)
+			{
+				DPRINTF(E_ERROR, L_HTTP, "Receive request body: %s\n", strerror(errno));
+				h->state = 100;
+				break;
+			}
 			memcpy(h->req_buf + h->req_buflen, buf, n);
 			h->req_buflen += n;
 			if((h->req_buflen - h->req_contentoff) >= h->req_contentlen)
