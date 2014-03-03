@@ -62,7 +62,8 @@ static const struct {
 	{ ENABLE_DLNA_STRICT, "strict_dlna" },
 	{ ROOT_CONTAINER, "root_container" },
 	{ USER_ACCOUNT, "user" },
-	{ FORCE_SORT_CRITERIA, "force_sort_criteria" }
+	{ FORCE_SORT_CRITERIA, "force_sort_criteria" },
+	{ MAX_CONNECTIONS, "max_connections" }
 };
 
 int

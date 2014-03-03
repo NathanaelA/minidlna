@@ -509,6 +509,7 @@ init(int argc, char **argv)
 	
 	runtime_vars.port = 8200;
 	runtime_vars.notify_interval = 895;	/* seconds between SSDP announces */
+	runtime_vars.max_connections = 50;
 	runtime_vars.root_container = NULL;
 	runtime_vars.ifaces[0] = NULL;
 
@@ -706,9 +707,12 @@ init(int argc, char **argv)
 		case FORCE_SORT_CRITERIA:
 			force_sort_criteria = ary_options[i].value;
 			break;
+		case MAX_CONNECTIONS:
+			runtime_vars.max_connections = atoi(ary_options[i].value);
+			break;
 		default:
 			DPRINTF(E_ERROR, L_GENERAL, "Unknown option in file %s\n",
-			        optionsfile);
+				optionsfile);
 		}
 	}
 	if (log_path[0] == '\0')
