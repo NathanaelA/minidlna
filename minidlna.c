@@ -734,7 +734,7 @@ init(int argc, char **argv)
 		}
 		else if (strcmp(argv[i], "--help") == 0)
 		{
-			runtime_vars.port = 0;
+			runtime_vars.port = -1;
 			break;
 		}
 		else switch(argv[i][1])
@@ -807,7 +807,7 @@ init(int argc, char **argv)
 			i++;	/* discarding, the config file is already read */
 			break;
 		case 'h':
-			runtime_vars.port = 0; // triggers help display
+			runtime_vars.port = -1; // triggers help display
 			break;
 		case 'R':
 			snprintf(buf, sizeof(buf), "rm -rf %s/files.db %s/art_cache", db_path, db_path);
@@ -843,6 +843,7 @@ init(int argc, char **argv)
 			break;
 		default:
 			DPRINTF(E_ERROR, L_GENERAL, "Unknown option: %s\n", argv[i]);
+			runtime_vars.port = -1; // triggers help display
 		}
 	}
 
