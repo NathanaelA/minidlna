@@ -240,7 +240,9 @@ SendSSDPResponse(int s, struct sockaddr_in sockname, int st_no,
 		(st_no > 0 ? known_service_types[st_no] : ""),
 		(st_no > 1 ? "1" : ""),
 		host, (unsigned int)port);
-	//DEBUG DPRINTF(E_DEBUG, L_SSDP, "Sending M-SEARCH response:\n%s", buf);
+	DPRINTF(E_DEBUG, L_SSDP, "Sending M-SEARCH response to %s:%d ST: %s\n",
+		inet_ntoa(sockname.sin_addr), ntohs(sockname.sin_port),
+		known_service_types[st_no]);
 	n = sendto(s, buf, l, 0,
 	           (struct sockaddr *)&sockname, sizeof(struct sockaddr_in) );
 	if (n < 0)
@@ -620,14 +622,14 @@ ProcessSSDPRequest(int s, unsigned short port)
 		else if (st && (st_len > 0))
 		{
 			int l;
-			int lan_addr_index = 0;
+			int iface = 0;
 			/* find in which sub network the client is */
 			for (i = 0; i < n_lan_addr; i++)
 			{
 				if((sendername.sin_addr.s_addr & lan_addr[i].mask.s_addr) ==
 				   (lan_addr[i].addr.s_addr & lan_addr[i].mask.s_addr))
 				{
-					lan_addr_index = i;
+					iface = i;
 					break;
 				}
 			}
@@ -645,31 +647,34 @@ ProcessSSDPRequest(int s, unsigned short port)
 			for (i = 0; known_service_types[i]; i++)
 			{
 				l = strlen(known_service_types[i]);
-				if ((l <= st_len) && (memcmp(st, known_service_types[i], l) == 0))
+				if ((l > st_len) || (memcmp(st, known_service_types[i], l) != 0))
+					continue;
+				if (st_len != l)
 				{
-					if (st_len != l)
+					/* Check version number - we only support 1. */
+					if ((st[l-1] == ':') && (st[l] == '1'))
+						l++;
+					while (l < st_len)
 					{
-						/* Check version number - must always be 1 currently. */
-						if ((st[l-1] == ':') && (st[l] == '1'))
-							l++;
-						while (l < st_len)
-						{
-							if (!isspace(st[l]))
-							{
-								DPRINTF(E_DEBUG, L_SSDP, "Ignoring SSDP M-SEARCH with bad extra data [%s]\n",
-									inet_ntoa(sendername.sin_addr));
-								break;
-							}
-							l++;
-						}
-						if (l != st_len)
+						if (isdigit(st[l]))
 							break;
+						if (isspace(st[l]))
+						{
+							l++;
+							continue;
+						}
+						DPRINTF(E_MAXDEBUG, L_SSDP,
+							"Ignoring SSDP M-SEARCH with bad extra data '%c' [%s]\n",
+							st[l], inet_ntoa(sendername.sin_addr));
+						break;
 					}
-					_usleep(random()>>20);
-					SendSSDPResponse(s, sendername, i,
-					                  lan_addr[lan_addr_index].str, port);
-					break;
+					if (l != st_len)
+						break;
 				}
+				_usleep(random()>>20);
+				SendSSDPResponse(s, sendername, i,
+						lan_addr[iface].str, port);
+				return;
 			}
 			/* Responds to request with ST: ssdp:all */
 			/* strlen("ssdp:all") == 8 */
@@ -679,7 +684,7 @@ ProcessSSDPRequest(int s, unsigned short port)
 				{
 					l = strlen(known_service_types[i]);
 					SendSSDPResponse(s, sendername, i,
-					                  lan_addr[lan_addr_index].str, port);
+							lan_addr[iface].str, port);
 				}
 			}
 		}
