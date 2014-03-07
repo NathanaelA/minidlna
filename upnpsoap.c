@@ -1800,12 +1800,15 @@ SamsungGetFeatureList(struct upnphttp * h, const char * action)
 		" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\""
 		" xsi:schemaLocation=\"urn:schemas-upnp-org:av:avs http://www.upnp.org/schemas/av/avs.xsd\"&gt;"
 		"&lt;Feature name=\"samsung.com_BASICVIEW\" version=\"1\"&gt;"
-		 "&lt;container id=\"1\" type=\"object.item.audioItem\"/&gt;"
-		 "&lt;container id=\"2\" type=\"object.item.videoItem\"/&gt;"
-		 "&lt;container id=\"3\" type=\"object.item.imageItem\"/&gt;"
+		 "&lt;container id=\"" MUSIC_ID "\" type=\"object.item.audioItem\"/&gt;"
+		 "&lt;container id=\"" VIDEO_ID "\" type=\"object.item.videoItem\"/&gt;"
+		 "&lt;container id=\"" IMAGE_ID "\" type=\"object.item.imageItem\"/&gt;"
 		"&lt;/Feature&gt;"
 		"&lt;/Features&gt;"
 		"</FeatureList></u:X_GetFeatureListResponse>";
+
+	if (runtime_vars.root_container)
+		return SoapError(h, 401, "Invalid Action");
 
 	BuildSendAndCloseSoapResp(h, resp, sizeof(resp)-1);
 }
