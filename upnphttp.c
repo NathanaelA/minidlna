@@ -918,7 +918,7 @@ ProcessHttpQuery_upnphttp(struct upnphttp * h)
 					friendly_name[i] = '\0';
 				memcpy(modelnumber, model_sav, 2);
 			}
-			else if( client_types[h->req_client].flags & FLAG_SAMSUNG_TV )
+			else if( client_types[h->req_client].flags & FLAG_SAMSUNG_DCM10 )
 			{
 				sendXMLdesc(h, genRootDescSamsung);
 			}

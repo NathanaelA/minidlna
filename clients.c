@@ -53,9 +53,21 @@ struct client_type_s client_types[] =
 	  EXAVClientInfo
 	},
 
+	/* Samsung Series [CDE] BDPs and TVs must be separated, or some of our
+	 * advertised extra features trigger a folder browsing bug on BDPs. */
+	/* User-Agent: DLNADOC/1.50 SEC_HHP_BD-D5100/1.0 */
+	{ ESamsungSeriesCDEBDP,
+	  FLAG_SAMSUNG | FLAG_DLNA | FLAG_NO_RESIZE,
+	  "Samsung Series [CDE] BDP",
+	  "SEC_HHP_BD",
+	  EUserAgent
+	},
+
+	/* User-Agent: DLNADOC/1.50 SEC_HHP_[TV]UE40D7000/1.0 */
+	/* User-Agent: DLNADOC/1.50 SEC_HHP_ Family TV/1.0 */
 	{ ESamsungSeriesCDE,
-	  FLAG_SAMSUNG | FLAG_DLNA | FLAG_NO_RESIZE | FLAG_SAMSUNG_TV,
-	  "Samsung Series C/D/E",
+	  FLAG_SAMSUNG | FLAG_DLNA | FLAG_NO_RESIZE | FLAG_SAMSUNG_DCM10,
+	  "Samsung Series [CDE]",
 	  "SEC_HHP_",
 	  EUserAgent
 	},

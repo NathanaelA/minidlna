@@ -32,7 +32,7 @@
 #define FLAG_NO_RESIZE          0x00000040
 #define FLAG_MS_PFS             0x00000080 // Microsoft PlaysForSure client
 #define FLAG_SAMSUNG            0x00000100
-#define FLAG_SAMSUNG_TV         0x00000200
+#define FLAG_SAMSUNG_DCM10      0x00000200
 #define FLAG_AUDIO_ONLY         0x00000400
 #define FLAG_FORCE_SORT         0x00000800
 
@@ -61,6 +61,7 @@ enum client_types {
 	ERokuSoundBridge,
 	ESamsungSeriesA,
 	ESamsungSeriesB,
+	ESamsungSeriesCDEBDP,
 	ESamsungSeriesCDE,
 	ESonyBDP,
 	ESonyBravia,
