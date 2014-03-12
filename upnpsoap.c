@@ -664,7 +664,7 @@ add_res(char *size, char *duration, char *bitrate, char *sampleFrequency,
 	}
 	if( args->filter & (FILTER_PV_SUBTITLE_FILE_TYPE|FILTER_PV_SUBTITLE_FILE_URI) )
 	{
-		if( sql_get_int_field(db, "SELECT ID from CAPTIONS where ID = '%s'", detailID) > 0 )
+		if( args->flags & FLAG_HAS_CAPTIONS )
 		{
 			if( args->filter & FILTER_PV_SUBTITLE_FILE_TYPE )
 				strcatf(args->str, "pv:subtitleFileType=\"SRT\" ");
@@ -772,6 +772,12 @@ callback(void *args, int argc, char **argv, char **azColName)
 					strcpy(mime+6, "mpeg");
 				}
 			}
+			if( (passed_args->flags & FLAG_CAPTION_RES) ||
+			    (passed_args->filter & (FILTER_SEC_CAPTION_INFO_EX|FILTER_PV_SUBTITLE_FILE_TYPE|FILTER_PV_SUBTITLE_FILE_URI)) )
+			{
+				if( sql_get_int_field(db, "SELECT ID from CAPTIONS where ID = '%s'", detailID) > 0 )
+					passed_args->flags |= FLAG_HAS_CAPTIONS;
+			}
 			/* From what I read, Samsung TV's expect a [wrong] MIME type of x-mkv. */
 			if( passed_args->flags & FLAG_SAMSUNG )
 			{
@@ -781,16 +787,13 @@ callback(void *args, int argc, char **argv, char **azColName)
 				}
 			}
 			/* LG hack: subtitles won't get used unless dc:title contains a dot. */
-			else if( passed_args->client == ELGDevice && (passed_args->filter & FILTER_RES) )
+			else if( passed_args->client == ELGDevice && (passed_args->flags & FLAG_HAS_CAPTIONS) )
 			{
-				if( sql_get_int_field(db, "SELECT ID from CAPTIONS where ID = '%s'", detailID) > 0 )
-				{
-					ret = asprintf(&alt_title, "%s.", title);
-					if( ret > 0 )
-						title = alt_title;
-					else
-						alt_title = NULL;
-				}
+				ret = asprintf(&alt_title, "%s.", title);
+				if( ret > 0 )
+					title = alt_title;
+				else
+					alt_title = NULL;
 			}
 		}
 		else if( *mime == 'a' )
@@ -962,28 +965,23 @@ callback(void *args, int argc, char **argv, char **azColName)
 						        resolution, dlna_buf, mime, detailID, ext, passed_args);
 					}
 					break;
-				case ELGDevice:
-					if( alt_title )
-					{
-						ret = strcatf(str, "&lt;res protocolInfo=\"http-get:*:text/srt:*\"&gt;"
-						                     "http://%s:%d/Captions/%s.srt"
-						                   "&lt;/res&gt;",
-						                   lan_addr[passed_args->iface].str, runtime_vars.port, detailID);
-						free(alt_title);
-					}
-					break;
 				case ESamsungSeriesCDE:
+				case ELGDevice:
 				default:
-					if( passed_args->filter & FILTER_SEC_CAPTION_INFO_EX )
+					if( passed_args->flags & FLAG_HAS_CAPTIONS )
 					{
-						if( sql_get_int_field(db, "SELECT ID from CAPTIONS where ID = '%s'", detailID) > 0 )
-						{
+						if( passed_args->flags & FLAG_CAPTION_RES )
+							ret = strcatf(str, "&lt;res protocolInfo=\"http-get:*:text/srt:*\"&gt;"
+									     "http://%s:%d/Captions/%s.srt"
+									   "&lt;/res&gt;",
+									   lan_addr[passed_args->iface].str, runtime_vars.port, detailID);
+						else if( passed_args->filter & FILTER_SEC_CAPTION_INFO_EX )
 							ret = strcatf(str, "&lt;sec:CaptionInfoEx sec:type=\"srt\"&gt;"
 							                     "http://%s:%d/Captions/%s.srt"
 							                   "&lt;/sec:CaptionInfoEx&gt;",
 							                   lan_addr[passed_args->iface].str, runtime_vars.port, detailID);
-						}
 					}
+					free(alt_title);
 					break;
 				}
 			}
