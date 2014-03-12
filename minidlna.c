@@ -717,6 +717,10 @@ init(int argc, char **argv)
 		case MAX_CONNECTIONS:
 			runtime_vars.max_connections = atoi(ary_options[i].value);
 			break;
+		case MERGE_MEDIA_DIRS:
+			if (strtobool(ary_options[i].value))
+				SETFLAG(MERGE_MEDIA_DIRS_MASK);
+			break;
 		default:
 			DPRINTF(E_ERROR, L_GENERAL, "Unknown option in file %s\n",
 				optionsfile);
