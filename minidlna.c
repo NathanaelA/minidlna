@@ -455,6 +455,13 @@ writepidfile(const char *fname, int pid, uid_t uid)
 	return ret;
 }
 
+static int strtobool(const char *str)
+{
+	return ((strcasecmp(str, "yes") == 0) ||
+		(strcasecmp(str, "true") == 0) ||
+		(atoi(str) == 1));
+}
+
 /* init phase :
  * 1) read configuration file
  * 2) read command line arguments
@@ -649,15 +656,15 @@ init(int argc, char **argv)
 			log_level = ary_options[i].value;
 			break;
 		case UPNPINOTIFY:
-			if ((strcmp(ary_options[i].value, "yes") != 0) && !atoi(ary_options[i].value))
+			if (!strtobool(ary_options[i].value))
 				CLEARFLAG(INOTIFY_MASK);
 			break;
 		case ENABLE_TIVO:
-			if ((strcmp(ary_options[i].value, "yes") == 0) || atoi(ary_options[i].value))
+			if (strtobool(ary_options[i].value))
 				SETFLAG(TIVO_MASK);
 			break;
 		case ENABLE_DLNA_STRICT:
-			if ((strcmp(ary_options[i].value, "yes") == 0) || atoi(ary_options[i].value))
+			if (strtobool(ary_options[i].value))
 				SETFLAG(DLNA_STRICT_MASK);
 			break;
 		case ROOT_CONTAINER:
