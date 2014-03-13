@@ -199,6 +199,13 @@ struct client_type_s client_types[] =
 	  EFriendlyName
 	},
 
+	{ EAsusOPlay,
+	  FLAG_DLNA | FLAG_MIME_AVI_AVI | FLAG_CAPTION_RES,
+	  "Asus OPlay Mini/Mini+",
+	  "O!Play",
+	  EUserAgent
+	},
+
 	{ EStandardDLNA150,
 	  FLAG_DLNA | FLAG_MIME_AVI_AVI,
 	  "Generic DLNA 1.5",

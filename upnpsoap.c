@@ -795,6 +795,12 @@ callback(void *args, int argc, char **argv, char **azColName)
 				else
 					alt_title = NULL;
 			}
+			/* Asus OPlay reboots with titles longer than 23 characters with some file types. */
+			else if( passed_args->client == EAsusOPlay && (passed_args->flags & FLAG_HAS_CAPTIONS) )
+			{
+				if( strlen(title) > 23 )
+					title[23] = '\0';
+			}
 		}
 		else if( *mime == 'a' )
 		{
@@ -967,6 +973,7 @@ callback(void *args, int argc, char **argv, char **azColName)
 					break;
 				case ESamsungSeriesCDE:
 				case ELGDevice:
+				case EAsusOPlay:
 				default:
 					if( passed_args->flags & FLAG_HAS_CAPTIONS )
 					{
