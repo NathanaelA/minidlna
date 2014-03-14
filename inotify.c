@@ -360,7 +360,7 @@ inotify_insert_file(char * name, const char * path)
 	ts = sql_get_int_field(db, "SELECT TIMESTAMP from DETAILS where PATH = '%q'", path);
 	if( !ts && is_playlist(path) && (sql_get_int_field(db, "SELECT ID from PLAYLISTS where PATH = '%q'", path) > 0) )
 	{
-		DPRINTF(E_DEBUG, L_INOTIFY, "Re-reading modified playlist.\n", path);
+		DPRINTF(E_DEBUG, L_INOTIFY, "Re-reading modified playlist (%s).\n", path);
 		inotify_remove_file(path);
 		next_pl_fill = 1;
 	}

@@ -236,7 +236,8 @@ check_embedded_art(const char *path, const char *image_data, int image_size)
 		fclose(dstfile);
 		if( nwritten != image_size )
 		{
-			DPRINTF(E_WARN, L_METADATA, "Embedded art error: wrote %d/%d bytes\n", nwritten, image_size);
+			DPRINTF(E_WARN, L_METADATA, "Embedded art error: wrote %lu/%d bytes\n",
+				(unsigned long)nwritten, image_size);
 			remove(art_path);
 			free(art_path);
 			art_path = NULL;

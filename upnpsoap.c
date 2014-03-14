@@ -710,8 +710,8 @@ callback(void *args, int argc, char **argv, char **azColName)
 			if( str->data )
 			{
 				str->size += DEFAULT_RESP_SIZE;
-				DPRINTF(E_DEBUG, L_HTTP, "UPnP SOAP response enlarged to %d. [%d results so far]\n",
-					str->size, passed_args->returned);
+				DPRINTF(E_DEBUG, L_HTTP, "UPnP SOAP response enlarged to %lu. [%d results so far]\n",
+					(unsigned long)str->size, passed_args->returned);
 			}
 			else
 			{
