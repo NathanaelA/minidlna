@@ -1068,19 +1068,20 @@ Process_upnphttp(struct upnphttp * h)
 		break;
 	case 1:
 	case 2:
-		n = recv(h->socket, buf, 2048, 0);
-		if(n<0)
+		n = recv(h->socket, buf, sizeof(buf), 0);
+		if(n < 0)
 		{
 			DPRINTF(E_ERROR, L_HTTP, "recv (state%d): %s\n", h->state, strerror(errno));
 			h->state = 100;
 		}
-		else if(n==0)
+		else if(n == 0)
 		{
 			DPRINTF(E_WARN, L_HTTP, "HTTP Connection closed unexpectedly\n");
 			h->state = 100;
 		}
 		else
 		{
+			buf[sizeof(buf)-1] = '\0';
 			/*fwrite(buf, 1, n, stdout);*/	/* debug */
 			h->req_buf = (char *)realloc(h->req_buf, n + h->req_buflen);
 			memcpy(h->req_buf + h->req_buflen, buf, n);

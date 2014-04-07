@@ -226,6 +226,8 @@ _asf_read_media_stream(FILE *fp, struct song_metadata *psong, uint32_t size)
 	if(len > size)
 		len = size;
 
+	memset(&s, 0, sizeof(s));
+
 	if(len != fread(&s.MajorType, 1, len, fp))
 		return -1;
 
@@ -257,6 +259,8 @@ _asf_read_stream_object(FILE *fp, struct song_metadata *psong, uint32_t size)
 	if(size < len)
 		return -1;
 
+	memset(&s, 0, sizeof(s));
+
 	if(len != fread(&s.StreamType, 1, len, fp))
 		return -1;
 
@@ -284,6 +288,8 @@ _asf_read_extended_stream_object(FILE *fp, struct song_metadata *psong, uint32_t
 
 	if(size < sizeof(asf_extended_stream_object_t))
 		return -1;
+
+	memset(&xs, 0, sizeof(xs));
 
 	len = sizeof(xs) - offsetof(asf_extended_stream_object_t, StartTime);
 	if(len != fread(&xs.StartTime, 1, len, fp))

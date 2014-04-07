@@ -689,7 +689,8 @@ start_inotify()
 		}
 		else
 		{
-			length = read(pollfds[0].fd, buffer, BUF_LEN);  
+			length = read(pollfds[0].fd, buffer, BUF_LEN);
+			buffer[BUF_LEN-1] = '\0';
 		}
 
 		i = 0;
@@ -704,7 +705,7 @@ start_inotify()
 					continue;
 				}
 				esc_name = modifyString(strdup(event->name), "&", "&amp;amp;");
-				sprintf(path_buf, "%s/%s", get_path_from_wd(event->wd), event->name);
+				snprintf(path_buf, sizeof(path_buf), "%s/%s", get_path_from_wd(event->wd), event->name);
 				if ( event->mask & IN_ISDIR && (event->mask & (IN_CREATE|IN_MOVED_TO)) )
 				{
 					DPRINTF(E_DEBUG, L_INOTIFY,  "The directory %s was %s.\n",

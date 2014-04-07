@@ -103,11 +103,11 @@ _get_aactags(char *file, struct song_metadata *psong)
 				len = 22;
 
 			current_data = (char*)malloc(len); // extra byte
-			memset(current_data, 0x00, len);
 
 			if(fread(current_data, 1, current_size - 8, fin) != current_size - 8)
 				break;
 
+			current_data[len-1] = '\0';
 			if(!memcmp(current_atom, "\xA9" "nam", 4))
 				psong->title = strdup((char*)&current_data[16]);
 			else if(!memcmp(current_atom, "\xA9" "ART", 4) ||

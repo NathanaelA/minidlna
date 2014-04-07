@@ -518,7 +518,7 @@ parse_sort_criteria(char *sortCriteria, int *error)
 
 	if( force_sort_criteria )
 		sortCriteria = strdup(force_sort_criteria);
-	else if( !sortCriteria )
+	if( !sortCriteria )
 		return NULL;
 
 	if( (item = strtok_r(sortCriteria, ",", &saveptr)) )
@@ -529,7 +529,7 @@ parse_sort_criteria(char *sortCriteria, int *error)
 		str.off = 0;
 		strcatf(&str, "order by ");
 	}
-	for( i=0; item != NULL; i++ )
+	for( i = 0; item != NULL; i++ )
 	{
 		reverse=0;
 		if( i )
@@ -1238,21 +1238,22 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 			if( strncmp(ObjectID, MUSIC_PLIST_ID, strlen(MUSIC_PLIST_ID)) == 0 )
 			{
 				if( strcmp(ObjectID, MUSIC_PLIST_ID) == 0 )
-					ret = asprintf(&orderBy, "order by d.TITLE");
+					ret = xasprintf(&orderBy, "order by d.TITLE");
 				else
-					ret = asprintf(&orderBy, "order by length(OBJECT_ID), OBJECT_ID");
+					ret = xasprintf(&orderBy, "order by length(OBJECT_ID), OBJECT_ID");
 			}
 			else if( args.flags & FLAG_FORCE_SORT )
 			{
 #ifdef __sparc__
 				if( totalMatches < 10000 )
 #endif
-				ret = asprintf(&orderBy, "order by o.CLASS, d.DISC, d.TRACK, d.TITLE");
+				ret = xasprintf(&orderBy, "order by o.CLASS, d.DISC, d.TRACK, d.TITLE");
 			}
 			else
 				orderBy = parse_sort_criteria(SortCriteria, &ret);
 			if( ret == -1 )
 			{
+				free(orderBy);
 				orderBy = NULL;
 				ret = 0;
 			}
