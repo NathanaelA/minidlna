@@ -1267,7 +1267,7 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 		sql = sqlite3_mprintf( SELECT_COLUMNS
 		                      "from OBJECTS o left join DETAILS d on (d.ID = o.DETAIL_ID)"
 				      " where PARENT_ID = '%q' %s limit %d, %d;",
-				      ObjectID, orderBy, StartingIndex, RequestedCount);
+				      ObjectID, THISORNUL(orderBy), StartingIndex, RequestedCount);
 		DPRINTF(E_DEBUG, L_HTTP, "Browse SQL: %s\n", sql);
 		ret = sqlite3_exec(db, sql, callback, (void *) &args, &zErrMsg);
 	}
@@ -1787,7 +1787,7 @@ QueryStateVariable(struct upnphttp * h, const char * action)
 	}
 	else
 	{
-		DPRINTF(E_WARN, L_HTTP, "%s: Unknown: %s\n", action, var_name?var_name:"");
+		DPRINTF(E_WARN, L_HTTP, "%s: Unknown: %s\n", action, THISORNUL(var_name));
 		SoapError(h, 404, "Invalid Var");
 	}
 

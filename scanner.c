@@ -769,14 +769,14 @@ ScanDirectory(const char *dir, const char *parent, media_types dir_types)
 		if( (type == TYPE_DIR) && (access(full_path, R_OK|X_OK) == 0) )
 		{
 			char *parent_id;
-			insert_directory(name, full_path, BROWSEDIR_ID, (parent ? parent:""), i+startID);
-			xasprintf(&parent_id, "%s$%X", (parent ? parent:""), i+startID);
+			insert_directory(name, full_path, BROWSEDIR_ID, THISORNUL(parent), i+startID);
+			xasprintf(&parent_id, "%s$%X", THISORNUL(parent), i+startID);
 			ScanDirectory(full_path, parent_id, dir_types);
 			free(parent_id);
 		}
 		else if( type == TYPE_FILE && (access(full_path, R_OK) == 0) )
 		{
-			if( insert_file(name, full_path, (parent ? parent:""), i+startID) == 0 )
+			if( insert_file(name, full_path, THISORNUL(parent), i+startID) == 0 )
 				fileno++;
 		}
 		free(name);
