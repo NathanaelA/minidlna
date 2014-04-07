@@ -92,7 +92,7 @@ fget_byte(FILE *fp)
 {
 	uint8_t d;
 
-	if (!fread(&d, sizeof(d), 1, fp))
+	if (fread(&d, sizeof(d), 1, fp) != 1)
 		return 0;
 	return d;
 }
@@ -102,7 +102,7 @@ fget_le16(FILE *fp)
 {
 	uint16_t d;
 
-	if (!fread(&d, sizeof(d), 1, fp))
+	if (fread(&d, sizeof(d), 1, fp) != 1)
 		return 0;
 	d = le16_to_cpu(d);
 	return d;
@@ -113,7 +113,7 @@ fget_le32(FILE *fp)
 {
 	uint32_t d;
 
-	if (!fread(&d, sizeof(d), 1, fp))
+	if (fread(&d, sizeof(d), 1, fp) != 1)
 		return 0;
 	d = le32_to_cpu(d);
 	return d;
