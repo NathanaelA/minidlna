@@ -354,7 +354,7 @@ find_album_art(const char *path, const char *image_data, int image_size)
 	if( (image_size && (album_art = check_embedded_art(path, image_data, image_size))) ||
 	    (album_art = check_for_album_file(path)) )
 	{
-		ret = sql_get_int_field(db, "SELECT ID from ALBUM_ART where PATH = '%q'", album_art ? album_art : path);
+		ret = sql_get_int_field(db, "SELECT ID from ALBUM_ART where PATH = '%q'", album_art);
 		if( !ret )
 		{
 			if( sql_exec(db, "INSERT into ALBUM_ART (PATH) VALUES ('%q')", album_art) == SQLITE_OK )
