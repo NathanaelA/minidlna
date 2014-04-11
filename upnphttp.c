@@ -1813,8 +1813,13 @@ SendResp_dlnafile(struct upnphttp *h, char *object)
 		{
 			char *art;
 			art = sql_get_text_field(db, "SELECT ALBUM_ART from DETAILS where ID = '%lld'", id);
-			SendResp_albumArt(h, art);
-			sqlite3_free(art);
+			if (art)
+			{
+				SendResp_albumArt(h, art);
+				sqlite3_free(art);
+			}
+			else
+				Send404(h);
 			return;
 		}
 	}

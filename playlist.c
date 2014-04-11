@@ -221,9 +221,12 @@ found:
 				if( !last_dir )
 				{
 					last_dir = sql_get_text_field(db, "SELECT PATH from DETAILS where ID = %lld", detailID);
-					fname = strrchr(last_dir, '/');
-					if( fname )
-						*fname = '\0';
+					if( last_dir )
+					{
+						fname = strrchr(last_dir, '/');
+						if( fname )
+							*fname = '\0';
+					}
 					last_hash = hash;
 				}
 				found++;
