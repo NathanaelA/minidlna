@@ -591,7 +591,7 @@ CreateDatabase(void)
 
 sql_failed:
 	if( ret != SQLITE_OK )
-		fprintf(stderr, "Error creating SQLite3 database!\n");
+		DPRINTF(E_ERROR, L_DB_SQL, "Error creating SQLite3 database!\n");
 	return (ret != SQLITE_OK);
 }
 
