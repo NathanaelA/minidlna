@@ -424,7 +424,7 @@ image_new(int32_t width, int32_t height)
 }
 
 image_s *
-image_new_from_jpeg(const char * path, int is_file, const char * buf, int size, int scale, int rotate)
+image_new_from_jpeg(const char *path, int is_file, const uint8_t *buf, int size, int scale, int rotate)
 {
 	image_s *vimage;
 	FILE  *file = NULL;
@@ -447,7 +447,7 @@ image_new_from_jpeg(const char * path, int is_file, const char * buf, int size, 
 	}
 	else
 	{
-		jpeg_memory_src(&cinfo, (const unsigned char *)buf, size);
+		jpeg_memory_src(&cinfo, buf, size);
 	}
 	if( setjmp(setjmp_buffer) )
 	{
