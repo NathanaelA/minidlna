@@ -1055,6 +1055,7 @@ callback(void *args, int argc, char **argv, char **azColName)
 					break;
 				case ESamsungSeriesCDE:
 				case ELGDevice:
+				case ELGNetCastDevice:
 				case EAsusOPlay:
 				default:
 					if( passed_args->flags & FLAG_HAS_CAPTIONS )
