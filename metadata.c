@@ -773,10 +773,10 @@ GetVideoMetadata(const char *path, char *name)
 		aac_object_type_t aac_type = AAC_INVALID;
 		switch( ac->codec_id )
 		{
-			case CODEC_ID_MP3:
+			case AV_CODEC_ID_MP3:
 				audio_profile = PROFILE_AUDIO_MP3;
 				break;
-			case CODEC_ID_AAC:
+			case AV_CODEC_ID_AAC:
 				if( !ac->extradata_size ||
 				    !ac->extradata )
 				{
@@ -817,12 +817,12 @@ GetVideoMetadata(const char *path, char *name)
 						break;
 				}
 				break;
-			case CODEC_ID_AC3:
-			case CODEC_ID_DTS:
+			case AV_CODEC_ID_AC3:
+			case AV_CODEC_ID_DTS:
 				audio_profile = PROFILE_AUDIO_AC3;
 				break;
-			case CODEC_ID_WMAV1:
-			case CODEC_ID_WMAV2:
+			case AV_CODEC_ID_WMAV1:
+			case AV_CODEC_ID_WMAV2:
 				/* WMA Baseline: stereo, up to 48 KHz, up to 192,999 bps */
 				if ( ac->bit_rate <= 193000 )
 					audio_profile = PROFILE_AUDIO_WMA_BASE;
@@ -831,19 +831,19 @@ GetVideoMetadata(const char *path, char *name)
 					audio_profile = PROFILE_AUDIO_WMA_FULL;
 				break;
 			#if LIBAVCODEC_VERSION_INT > ((51<<16)+(50<<8)+1)
-			case CODEC_ID_WMAPRO:
+			case AV_CODEC_ID_WMAPRO:
 				audio_profile = PROFILE_AUDIO_WMA_PRO;
 				break;
 			#endif
-			case CODEC_ID_MP2:
+			case AV_CODEC_ID_MP2:
 				audio_profile = PROFILE_AUDIO_MP2;
 				break;
-			case CODEC_ID_AMR_NB:
+			case AV_CODEC_ID_AMR_NB:
 				audio_profile = PROFILE_AUDIO_AMR;
 				break;
 			default:
-				if( (ac->codec_id >= CODEC_ID_PCM_S16LE) &&
-				    (ac->codec_id < CODEC_ID_ADPCM_IMA_QT) )
+				if( (ac->codec_id >= AV_CODEC_ID_PCM_S16LE) &&
+				    (ac->codec_id < AV_CODEC_ID_ADPCM_IMA_QT) )
 					audio_profile = PROFILE_AUDIO_PCM;
 				else
 					DPRINTF(E_DEBUG, L_METADATA, "Unhandled audio codec [0x%X]\n", ac->codec_id);
@@ -880,7 +880,7 @@ GetVideoMetadata(const char *path, char *name)
 		if( strcmp(ctx->iformat->name, "avi") == 0 )
 		{
 			xasprintf(&m.mime, "video/x-msvideo");
-			if( vc->codec_id == CODEC_ID_MPEG4 )
+			if( vc->codec_id == AV_CODEC_ID_MPEG4 )
 			{
         			fourcc[0] = vc->codec_tag     & 0xff;
 			        fourcc[1] = vc->codec_tag>>8  & 0xff;
@@ -904,7 +904,7 @@ GetVideoMetadata(const char *path, char *name)
 
 		switch( vc->codec_id )
 		{
-			case CODEC_ID_MPEG1VIDEO:
+			case AV_CODEC_ID_MPEG1VIDEO:
 				if( strcmp(ctx->iformat->name, "mpeg") == 0 )
 				{
 					if( (vc->width  == 352) &&
@@ -915,7 +915,7 @@ GetVideoMetadata(const char *path, char *name)
 					xasprintf(&m.mime, "video/mpeg");
 				}
 				break;
-			case CODEC_ID_MPEG2VIDEO:
+			case AV_CODEC_ID_MPEG2VIDEO:
 				m.dlna_pn = malloc(64);
 				off = sprintf(m.dlna_pn, "MPEG_");
 				if( strcmp(ctx->iformat->name, "mpegts") == 0 )
@@ -988,7 +988,7 @@ GetVideoMetadata(const char *path, char *name)
 					m.dlna_pn = NULL;
 				}
 				break;
-			case CODEC_ID_H264:
+			case AV_CODEC_ID_H264:
 				m.dlna_pn = malloc(128);
 				off = sprintf(m.dlna_pn, "AVC_");
 
@@ -1299,7 +1299,7 @@ GetVideoMetadata(const char *path, char *name)
 				}
 				DPRINTF(E_DEBUG, L_METADATA, "Stream %d of %s is h.264\n", video_stream, basepath);
 				break;
-			case CODEC_ID_MPEG4:
+			case AV_CODEC_ID_MPEG4:
         			fourcc[0] = vc->codec_tag     & 0xff;
 			        fourcc[1] = vc->codec_tag>>8  & 0xff;
 			        fourcc[2] = vc->codec_tag>>16 & 0xff;
@@ -1362,7 +1362,7 @@ GetVideoMetadata(const char *path, char *name)
 					}
 				}
 				break;
-			case CODEC_ID_WMV3:
+			case AV_CODEC_ID_WMV3:
 				/* I'm not 100% sure this is correct, but it works on everything I could get my hands on */
 				if( vc->extradata_size > 0 )
 				{
@@ -1371,7 +1371,7 @@ GetVideoMetadata(const char *path, char *name)
 					if( !((vc->extradata[0] >> 6) & 1) )
 						vc->profile = 0;
 				}
-			case CODEC_ID_VC1:
+			case AV_CODEC_ID_VC1:
 				if( strcmp(ctx->iformat->name, "asf") != 0 )
 				{
 					DPRINTF(E_DEBUG, L_METADATA, "Skipping DLNA parsing for non-ASF VC1 file %s\n", path);
@@ -1470,7 +1470,7 @@ GetVideoMetadata(const char *path, char *name)
 					}
 				}
 				break;
-			case CODEC_ID_MSMPEG4V3:
+			case AV_CODEC_ID_MSMPEG4V3:
 				xasprintf(&m.mime, "video/x-msvideo");
 			default:
 				DPRINTF(E_DEBUG, L_METADATA, "Stream %d of %s is %s [type %d]\n",
