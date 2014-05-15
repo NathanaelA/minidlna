@@ -57,9 +57,8 @@
 #define FLAG_RESOLUTION	0x00000400
 #define FLAG_BITRATE	0x00000800
 #define FLAG_FREQUENCY	0x00001000
-#define FLAG_BPS	0x00002000
-#define FLAG_CHANNELS	0x00004000
-#define FLAG_ROTATION	0x00008000
+#define FLAG_CHANNELS	0x00002000
+#define FLAG_ROTATION	0x00004000
 
 /* Audio profile flags */
 enum audio_profiles {
@@ -75,40 +74,6 @@ enum audio_profiles {
 	PROFILE_AUDIO_AAC_MULT5,
 	PROFILE_AUDIO_AMR
 };
-
-static inline int
-lav_open(AVFormatContext **ctx, const char *filename)
-{
-	int ret;
-#if LIBAVFORMAT_VERSION_INT >= ((53<<16)+(17<<8)+0)
-	ret = avformat_open_input(ctx, filename, NULL, NULL);
-	if (ret == 0)
-		avformat_find_stream_info(*ctx, NULL);
-#else
-	ret = av_open_input_file(ctx, filename, NULL, 0, NULL);
-	if (ret == 0)
-		av_find_stream_info(*ctx);
-#endif
-	return ret;
-}
-
-static inline void
-lav_close(AVFormatContext *ctx)
-{
-#if LIBAVFORMAT_VERSION_INT >= ((53<<16)+(17<<8)+0)
-	avformat_close_input(&ctx);
-#else
-	av_close_input_file(ctx);
-#endif
-}
-
-#if LIBAVFORMAT_VERSION_INT >= ((52<<16)+(31<<8)+0)
-# if LIBAVUTIL_VERSION_INT < ((51<<16)+(5<<8)+0) && !defined(FF_API_OLD_METADATA2)
-#define AV_DICT_IGNORE_SUFFIX AV_METADATA_IGNORE_SUFFIX
-#define av_dict_get av_metadata_get
-typedef AVMetadataTag AVDictionaryEntry;
-# endif
-#endif
 
 /* This function shamelessly copied from libdlna */
 #define MPEG_TS_SYNC_CODE 0x47
@@ -300,8 +265,6 @@ free_metadata(metadata_t *m, uint32_t flags)
 		free(m->bitrate);
 	if( flags & FLAG_FREQUENCY )
 		free(m->frequency);
-	if( flags & FLAG_BPS )
-		free(m->bps);
 	if( flags & FLAG_CHANNELS )
 		free(m->channels);
 	if( flags & FLAG_ROTATION )
@@ -830,11 +793,9 @@ GetVideoMetadata(const char *path, char *name)
 				else if ( ac->bit_rate <= 385000 )
 					audio_profile = PROFILE_AUDIO_WMA_FULL;
 				break;
-			#if LIBAVCODEC_VERSION_INT > ((51<<16)+(50<<8)+1)
 			case AV_CODEC_ID_WMAPRO:
 				audio_profile = PROFILE_AUDIO_WMA_PRO;
 				break;
-			#endif
 			case AV_CODEC_ID_MP2:
 				audio_profile = PROFILE_AUDIO_MP2;
 				break;
@@ -850,11 +811,6 @@ GetVideoMetadata(const char *path, char *name)
 				break;
 		}
 		xasprintf(&m.frequency, "%u", ac->sample_rate);
-		#if LIBAVCODEC_VERSION_INT < (52<<16)
-		xasprintf(&m.bps, "%u", ac->bits_per_sample);
-		#else
-		xasprintf(&m.bps, "%u", ac->bits_per_coded_sample);
-		#endif
 		xasprintf(&m.channels, "%u", ac->channels);
 	}
 	if( vc )
@@ -1006,11 +962,8 @@ GetVideoMetadata(const char *path, char *name)
 						          vc->height * vc->sample_aspect_ratio.den,
 						          1024*1024);
 					}
-					if (ctx->streams[video_stream]->r_frame_rate.den)
-						fps = ctx->streams[video_stream]->r_frame_rate.num / ctx->streams[video_stream]->r_frame_rate.den;
-					else
-						fps = 0;
-					interlaced = vc->time_base.den ? (ctx->streams[video_stream]->r_frame_rate.num / vc->time_base.den) : 0;
+					fps = lav_get_fps(ctx->streams[video_stream]);
+					interlaced = lav_get_interlaced(vc, ctx->streams[video_stream]);
 					if( ((((vc->width == 1920 || vc->width == 1440) && vc->height == 1080) ||
 					      (vc->width == 720 && vc->height == 480)) && fps == 59 && interlaced) ||
 					    ((vc->width == 1280 && vc->height == 720) && fps == 59 && !interlaced) )
