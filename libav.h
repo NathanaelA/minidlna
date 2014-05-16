@@ -163,3 +163,20 @@ lav_get_interlaced(AVCodecContext *vc, AVStream *s)
 	return (vc->time_base.den ? (s->avg_frame_rate.num / vc->time_base.den) : 0);
 #endif
 }
+
+static inline int
+lav_is_thumbnail_stream(AVStream *s, uint8_t **data, int *size)
+{
+#if LIBAVFORMAT_VERSION_INT >= ((54<<16)+(6<<8))
+	if (s->disposition & AV_DISPOSITION_ATTACHED_PIC &&
+	    s->codec->codec_id == AV_CODEC_ID_MJPEG)
+	{
+		if (data)
+			*data = s->attached_pic.data;
+		if (size)
+			*size = s->attached_pic.size;
+		return 1;
+	}
+#endif
+	return 0;
+}

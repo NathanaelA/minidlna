@@ -712,6 +712,7 @@ GetVideoMetadata(const char *path, char *name)
 			continue;
 		}
 		else if( video_stream == -1 &&
+		         !lav_is_thumbnail_stream(ctx->streams[i], &video.image, &video.image_size) &&
 			 ctx->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO )
 		{
 			video_stream = i;
@@ -1530,7 +1531,6 @@ video_no_dlna:
 		else
 			DPRINTF(E_WARN, L_METADATA, "%s: Unhandled format: %s\n", path, ctx->iformat->name);
 	}
-	lav_close(ctx);
 
 	if( !m.date )
 	{
@@ -1544,6 +1544,7 @@ video_no_dlna:
 
 	album_art = find_album_art(path, video.image, video.image_size);
 	freetags(&video);
+	lav_close(ctx);
 
 	ret = sql_exec(db, "INSERT into DETAILS"
 	                   " (PATH, SIZE, TIMESTAMP, DURATION, DATE, CHANNELS, BITRATE, SAMPLERATE, RESOLUTION,"
