@@ -55,10 +55,6 @@
 #define FLAG_MIME	0x00000100
 #define FLAG_DURATION	0x00000200
 #define FLAG_RESOLUTION	0x00000400
-#define FLAG_BITRATE	0x00000800
-#define FLAG_FREQUENCY	0x00001000
-#define FLAG_CHANNELS	0x00002000
-#define FLAG_ROTATION	0x00004000
 
 /* Audio profile flags */
 enum audio_profiles {
@@ -261,14 +257,6 @@ free_metadata(metadata_t *m, uint32_t flags)
 		free(m->duration);
 	if( flags & FLAG_RESOLUTION )
 		free(m->resolution);
-	if( flags & FLAG_BITRATE )
-		free(m->bitrate);
-	if( flags & FLAG_FREQUENCY )
-		free(m->frequency);
-	if( flags & FLAG_CHANNELS )
-		free(m->channels);
-	if( flags & FLAG_ROTATION )
-		free(m->rotation);
 }
 
 int64_t
@@ -568,24 +556,21 @@ GetImageMetadata(const char *path, char *name)
 	e = exif_content_get_entry(ed->ifd[EXIF_IFD_0], EXIF_TAG_ORIENTATION);
 	if( e )
 	{
-		int rotate;
 		switch( exif_get_short(e->data, exif_data_get_byte_order(ed)) )
 		{
 		case 3:
-			rotate = 180;
+			m.rotation = 180;
 			break;
 		case 6:
-			rotate = 90;
+			m.rotation = 90;
 			break;
 		case 8:
-			rotate = 270;
+			m.rotation = 270;
 			break;
 		default:
-			rotate = 0;
+			m.rotation = 0;
 			break;
 		}
-		if( rotate )
-			xasprintf(&m.rotation, "%d", rotate);
 	}
 
 	if( ed->size )
@@ -649,7 +634,7 @@ no_exifdata:
 	                   " (PATH, TITLE, SIZE, TIMESTAMP, DATE, RESOLUTION,"
 	                    " ROTATION, THUMBNAIL, CREATOR, DLNA_PN, MIME) "
 	                   "VALUES"
-	                   " (%Q, '%q', %lld, %ld, %Q, %Q, %Q, %d, %Q, %Q, %Q);",
+	                   " (%Q, '%q', %lld, %ld, %Q, %Q, %u, %d, %Q, %Q, %Q);",
 	                   path, name, (long long)file.st_size, file.st_mtime, m.date, m.resolution,
 	                   m.rotation, thumb, m.creator, m.dlna_pn, m.mime);
 	if( ret != SQLITE_OK )
@@ -712,7 +697,7 @@ GetVideoMetadata(const char *path, char *name)
 			continue;
 		}
 		else if( video_stream == -1 &&
-		         !lav_is_thumbnail_stream(ctx->streams[i], &video.image, &video.image_size) &&
+		         !lav_is_thumbnail_stream(ctx->streams[i], &m.thumb_data, &m.thumb_size) &&
 			 ctx->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO )
 		{
 			video_stream = i;
@@ -811,8 +796,8 @@ GetVideoMetadata(const char *path, char *name)
 					DPRINTF(E_DEBUG, L_METADATA, "Unhandled audio codec [0x%X]\n", ac->codec_id);
 				break;
 		}
-		xasprintf(&m.frequency, "%u", ac->sample_rate);
-		xasprintf(&m.channels, "%u", ac->channels);
+		m.frequency = ac->sample_rate;
+		m.channels = ac->channels;
 	}
 	if( vc )
 	{
@@ -822,7 +807,7 @@ GetVideoMetadata(const char *path, char *name)
 		DPRINTF(E_DEBUG, L_METADATA, "Container: '%s' [%s]\n", ctx->iformat->name, basepath);
 		xasprintf(&m.resolution, "%dx%d", vc->width, vc->height);
 		if( ctx->bit_rate > 8 )
-			xasprintf(&m.bitrate, "%u", ctx->bit_rate / 8);
+			m.bitrate = ctx->bit_rate / 8;
 		if( ctx->duration > 0 ) {
 			duration = (int)(ctx->duration / AV_TIME_BASE);
 			hours = (int)(duration / 3600);
@@ -1458,6 +1443,11 @@ GetVideoMetadata(const char *path, char *name)
 				m.creator = m.artist;
 				free_flags &= ~FLAG_CREATOR;
 			}
+			if (!m.thumb_data)
+			{
+				m.thumb_data = video.image;
+				m.thumb_size = video.image_size;
+			}
 		}
 	}
 	#ifndef NETGEAR
@@ -1542,7 +1532,7 @@ video_no_dlna:
 	if( !m.title )
 		m.title = strdup(name);
 
-	album_art = find_album_art(path, video.image, video.image_size);
+	album_art = find_album_art(path, m.thumb_data, m.thumb_size);
 	freetags(&video);
 	lav_close(ctx);
 
@@ -1550,7 +1540,7 @@ video_no_dlna:
 	                   " (PATH, SIZE, TIMESTAMP, DURATION, DATE, CHANNELS, BITRATE, SAMPLERATE, RESOLUTION,"
 	                   "  TITLE, CREATOR, ARTIST, GENRE, COMMENT, DLNA_PN, MIME, ALBUM_ART) "
 	                   "VALUES"
-	                   " (%Q, %lld, %ld, %Q, %Q, %Q, %Q, %Q, %Q, '%q', %Q, %Q, %Q, %Q, %Q, '%q', %lld);",
+	                   " (%Q, %lld, %ld, %Q, %Q, %u, %u, %u, %Q, '%q', %Q, %Q, %Q, %Q, %Q, '%q', %lld);",
 	                   path, (long long)file.st_size, file.st_mtime, m.duration,
 	                   m.date, m.channels, m.bitrate, m.frequency, m.resolution,
 			   m.title, m.creator, m.artist, m.genre, m.comment, m.dlna_pn,
