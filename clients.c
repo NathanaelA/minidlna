@@ -58,7 +58,7 @@ struct client_type_s client_types[] =
 	/* User-Agent: DLNADOC/1.50 SEC_HHP_BD-D5100/1.0 */
 	{ ESamsungSeriesCDEBDP,
 	  FLAG_SAMSUNG | FLAG_DLNA | FLAG_NO_RESIZE,
-	  "Samsung Series [CDE] BDP",
+	  "Samsung Series [CDEF] BDP",
 	  "SEC_HHP_BD",
 	  EUserAgent
 	},
@@ -66,8 +66,8 @@ struct client_type_s client_types[] =
 	/* User-Agent: DLNADOC/1.50 SEC_HHP_[TV]UE40D7000/1.0 */
 	/* User-Agent: DLNADOC/1.50 SEC_HHP_ Family TV/1.0 */
 	{ ESamsungSeriesCDE,
-	  FLAG_SAMSUNG | FLAG_DLNA | FLAG_NO_RESIZE | FLAG_SAMSUNG_DCM10,
-	  "Samsung Series [CDE]",
+	  FLAG_SAMSUNG | FLAG_DLNA | FLAG_NO_RESIZE,
+	  "Samsung Series [CDEF]",
 	  "SEC_HHP_",
 	  EUserAgent
 	},
