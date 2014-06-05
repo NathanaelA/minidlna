@@ -94,6 +94,14 @@ struct client_type_s client_types[] =
 	  EUserAgent
 	},
 
+	/* User-Agent: IPI/1.0 UPnP/1.0 DLNADOC/1.50 */
+	{ ENetFrontLivingConnect,
+	  FLAG_DLNA | FLAG_FORCE_SORT | FLAG_CAPTION_RES,
+	  "NetFront Living Connect",
+	  "IPI/1",
+	  EUserAgent
+	},
+
 	{ EDenonReceiver,
 	  FLAG_DLNA,
 	  "Denon Receiver",
