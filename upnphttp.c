@@ -83,8 +83,7 @@
 
 #include "sendfile.h"
 
-//#define MAX_BUFFER_SIZE 4194304 // 4MB -- Too much?
-#define MAX_BUFFER_SIZE 2147483647 // 2GB -- Too much?
+#define MAX_BUFFER_SIZE 2147483647
 #define MIN_BUFFER_SIZE 65536
 
 #include "icons.c"
@@ -615,17 +614,20 @@ SendResp_presentation(struct upnphttp * h)
 	strcatf(&str,
 		"<h3>Connected clients</h3>"
 		"<table border=1 cellpadding=10>"
-		"<tr><td>ID</td><td>Type</td><td>IP Address</td><td>HW Address</td></tr>");
+		"<tr><td>ID</td><td>Type</td><td>IP Address</td><td>HW Address</td><td>Connections</td></tr>");
 	for (i = 0; i < CLIENT_CACHE_SLOTS; i++)
 	{
 		if (!clients[i].addr.s_addr)
 			continue;
-		strcatf(&str, "<tr><td>%d</td><td>%s</td><td>%s</td><td>%02X:%02X:%02X:%02X:%02X:%02X</td></tr>",
+		strcatf(&str, "<tr><td>%d</td><td>%s</td><td>%s</td><td>%02X:%02X:%02X:%02X:%02X:%02X</td><td>%d</td></tr>",
 				i, clients[i].type->name, inet_ntoa(clients[i].addr),
 				clients[i].mac[0], clients[i].mac[1], clients[i].mac[2],
-				clients[i].mac[3], clients[i].mac[4], clients[i].mac[5]);
+				clients[i].mac[3], clients[i].mac[4], clients[i].mac[5], clients[i].connections);
 	}
-	strcatf(&str, "</table></BODY></HTML>\r\n");
+	strcatf(&str, "</table>");
+
+	strcatf(&str, "<br>%d connection%s currently open<br>", number_of_children, (number_of_children == 1 ? "" : "s"));
+	strcatf(&str, "</BODY></HTML>\r\n");
 
 	BuildResp_upnphttp(h, str.data, str.off);
 	SendResp_upnphttp(h);
@@ -1633,7 +1635,7 @@ SendResp_resizedimg(struct upnphttp * h, char * object)
 
 #if USE_FORK
 	pid_t newpid = 0;
-	newpid = process_fork();
+	newpid = process_fork(h->req_client);
 	if( newpid > 0 )
 	{
 		CloseSocket_upnphttp(h);
@@ -1875,7 +1877,7 @@ SendResp_dlnafile(struct upnphttp *h, char *object)
 		sqlite3_free_table(result);
 	}
 #if USE_FORK
-	newpid = process_fork();
+	newpid = process_fork(h->req_client);
 	if( newpid > 0 )
 	{
 		CloseSocket_upnphttp(h);

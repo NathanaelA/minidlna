@@ -93,6 +93,7 @@ struct client_cache_s {
 	unsigned char mac[6];
 	struct client_type_s *type;
 	time_t age;
+	int connections;
 };
 
 extern struct client_type_s client_types[];
