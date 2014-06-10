@@ -349,7 +349,7 @@ set_filter_flags(char *filter, struct upnphttp *h)
 {
 	char *item, *saveptr = NULL;
 	uint32_t flags = 0;
-	int samsung = client_types[h->req_client].flags & FLAG_SAMSUNG;
+	int samsung = h->req_client && (h->req_client->type->flags & FLAG_SAMSUNG);
 
 	if( !filter || (strlen(filter) <= 1) ) {
 		/* Not the full 32 bits.  Skip vendor-specific stuff by default. */
@@ -1166,8 +1166,8 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 
 	args.returned = 0;
 	args.requested = RequestedCount;
-	args.client = client_types[h->req_client].type;
-	args.flags = client_types[h->req_client].flags;
+	args.client = h->req_client ? h->req_client->type->type : 0;
+	args.flags = h->req_client ? h->req_client->type->flags : 0;
 	args.str = &str;
 	if( args.flags & FLAG_MS_PFS )
 	{
@@ -1638,8 +1638,8 @@ SearchContentDirectory(struct upnphttp * h, const char * action)
 
 	args.returned = 0;
 	args.requested = RequestedCount;
-	args.client = client_types[h->req_client].type;
-	args.flags = client_types[h->req_client].flags;
+	args.client = h->req_client ? h->req_client->type->type : 0;
+	args.flags = h->req_client ? h->req_client->type->flags : 0;
 	args.str = &str;
 	if( args.flags & FLAG_MS_PFS )
 	{

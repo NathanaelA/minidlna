@@ -137,6 +137,7 @@ Delete_upnphttp(struct upnphttp * h)
 static void
 ParseHttpHeaders(struct upnphttp * h)
 {
+	int client = 0;
 	char * line;
 	char * colon;
 	char * p;
@@ -274,7 +275,7 @@ ParseHttpHeaders(struct upnphttp * h)
 			{
 				int i;
 				/* Skip client detection if we already detected it. */
-				if( h->req_client )
+				if( client )
 					goto next_header;
 				p = colon + 1;
 				while(isspace(*p))
@@ -285,7 +286,7 @@ ParseHttpHeaders(struct upnphttp * h)
 						continue;
 					if (strstrc(p, client_types[i].match, '\r') != NULL)
 					{
-						h->req_client = i;
+						client = i;
 						break;
 					}
 				}
@@ -294,7 +295,7 @@ ParseHttpHeaders(struct upnphttp * h)
 			{
 				int i;
 				/* Skip client detection if we already detected it. */
-				if( h->req_client && client_types[h->req_client].type < EStandardDLNA150 )
+				if( client && client_types[client].type < EStandardDLNA150 )
 					goto next_header;
 				p = colon + 1;
 				while(isspace(*p))
@@ -305,7 +306,7 @@ ParseHttpHeaders(struct upnphttp * h)
 						continue;
 					if (strstrc(p, client_types[i].match, '\r') != NULL)
 					{
-						h->req_client = i;
+						client = i;
 						break;
 					}
 				}
@@ -386,7 +387,7 @@ ParseHttpHeaders(struct upnphttp * h)
 						continue;
 					if (strstrc(p, client_types[i].match, '\r') != NULL)
 					{
-						h->req_client = i;
+						client = i;
 						break;
 					}
 				}
@@ -432,29 +433,24 @@ next_header:
 	/* If the client type wasn't found, search the cache.
 	 * This is done because a lot of clients like to send a
 	 * different User-Agent with different types of requests. */
-	n = SearchClientCache(h->clientaddr, 0);
+	h->req_client = SearchClientCache(h->clientaddr, 0);
 	/* Add this client to the cache if it's not there already. */
-	if( n < 0 )
+	if (!h->req_client)
 	{
-		AddClientCache(h->clientaddr, h->req_client);
+		h->req_client = AddClientCache(h->clientaddr, client);
 	}
-	else if (h->req_client)
+	else if (client)
 	{
-		enum client_types type = client_types[h->req_client].type;
-		enum client_types ctype = client_types[clients[n].type].type;
+		enum client_types type = client_types[client].type;
+		enum client_types ctype = client_types[n].type;
 		/* If we know the client and our new detection is generic, use our cached info */
 		/* If we detected a Samsung Series B earlier, don't overwrite it with Series A info */
 		if ((ctype && ctype < EStandardDLNA150 && type >= EStandardDLNA150) ||
 		    (ctype == ESamsungSeriesB && type == ESamsungSeriesA))
-		{
-			h->req_client = clients[n].type;
 			return;
-		}
-		clients[n].type = h->req_client;
+		clients[n].type = &client_types[client];
 		clients[n].age = time(NULL);
 	}
-	else
-		h->req_client = clients[n].type;
 }
 
 /* very minimalistic 400 error message */
@@ -625,7 +621,7 @@ SendResp_presentation(struct upnphttp * h)
 		if (!clients[i].addr.s_addr)
 			continue;
 		strcatf(&str, "<tr><td>%d</td><td>%s</td><td>%s</td><td>%02X:%02X:%02X:%02X:%02X:%02X</td></tr>",
-				i, client_types[clients[i].type].name, inet_ntoa(clients[i].addr),
+				i, clients[i].type->name, inet_ntoa(clients[i].addr),
 				clients[i].mac[0], clients[i].mac[1], clients[i].mac[2],
 				clients[i].mac[3], clients[i].mac[4], clients[i].mac[5]);
 	}
@@ -907,7 +903,7 @@ ProcessHttpQuery_upnphttp(struct upnphttp * h)
 		if(strcmp(ROOTDESC_PATH, HttpUrl) == 0)
 		{
 			/* If it's a Xbox360, we might need a special friendly_name to be recognized */
-			if( client_types[h->req_client].type == EXbox )
+			if( h->req_client && h->req_client->type->type == EXbox )
 			{
 				char model_sav[2];
 				i = 0;
@@ -923,7 +919,7 @@ ProcessHttpQuery_upnphttp(struct upnphttp * h)
 					friendly_name[i] = '\0';
 				memcpy(modelnumber, model_sav, 2);
 			}
-			else if( client_types[h->req_client].flags & FLAG_SAMSUNG_DCM10 )
+			else if( h->req_client && h->req_client->type->flags & FLAG_SAMSUNG_DCM10 )
 			{
 				sendXMLdesc(h, genRootDescSamsung);
 			}
@@ -1800,7 +1796,8 @@ SendResp_dlnafile(struct upnphttp *h, char *object)
 	int64_t id;
 	int sendfh;
 	uint32_t dlna_flags = DLNA_FLAG_DLNA_V1_5|DLNA_FLAG_HTTP_STALLING|DLNA_FLAG_TM_B;
-	uint32_t cflags = client_types[h->req_client].flags;
+	uint32_t cflags = h->req_client ? h->req_client->type->flags : 0;
+	enum client_types ctype = h->req_client ? h->req_client->type->type : 0;
 	static struct { int64_t id;
 	                enum client_types client;
 	                char path[PATH_MAX];
@@ -1828,7 +1825,7 @@ SendResp_dlnafile(struct upnphttp *h, char *object)
 			return;
 		}
 	}
-	if( id != last_file.id || h->req_client != last_file.client )
+	if( id != last_file.id || ctype != last_file.client )
 	{
 		snprintf(buf, sizeof(buf), "SELECT PATH, MIME, DLNA_PN from DETAILS where ID = '%lld'", (long long)id);
 		ret = sql_get_table(db, buf, &result, &rows, NULL);
@@ -1847,7 +1844,7 @@ SendResp_dlnafile(struct upnphttp *h, char *object)
 		}
 		/* Cache the result */
 		last_file.id = id;
-		last_file.client = h->req_client;
+		last_file.client = ctype;
 		strncpy(last_file.path, result[3], sizeof(last_file.path)-1);
 		if( result[4] )
 		{
@@ -1860,12 +1857,11 @@ SendResp_dlnafile(struct upnphttp *h, char *object)
 				/* Samsung TV's such as the A750 can natively support many
 				   Xvid/DivX AVI's however, the DLNA server needs the 
 				   mime type to say video/mpeg */
-				else if( h->req_client == ESamsungSeriesA &&
-				         strcmp(last_file.mime+6, "x-msvideo") == 0 )
+				else if( ctype == ESamsungSeriesA && strcmp(last_file.mime+6, "x-msvideo") == 0 )
 					strcpy(last_file.mime+6, "mpeg");
 			}
 			/* ... and Sony BDP-S370 won't play MKV unless we pretend it's a DiVX file */
-			else if( h->req_client == ESonyBDP )
+			else if( ctype == ESonyBDP )
 			{
 				if( strcmp(last_file.mime+6, "x-matroska") == 0 ||
 				    strcmp(last_file.mime+6, "mpeg") == 0 )

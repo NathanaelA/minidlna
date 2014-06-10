@@ -91,14 +91,14 @@ struct client_type_s {
 struct client_cache_s {
 	struct in_addr addr;
 	unsigned char mac[6];
-	enum client_types type;
+	struct client_type_s *type;
 	time_t age;
 };
 
 extern struct client_type_s client_types[];
 extern struct client_cache_s clients[CLIENT_CACHE_SLOTS];
 
-int SearchClientCache(struct in_addr addr, int quiet);
-int AddClientCache(struct in_addr addr, int type);
+struct client_cache_s *SearchClientCache(struct in_addr addr, int quiet);
+struct client_cache_s *AddClientCache(struct in_addr addr, int type);
 
 #endif
