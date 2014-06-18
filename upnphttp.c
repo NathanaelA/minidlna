@@ -441,14 +441,14 @@ next_header:
 	else if (client)
 	{
 		enum client_types type = client_types[client].type;
-		enum client_types ctype = client_types[n].type;
+		enum client_types ctype = h->req_client->type->type;
 		/* If we know the client and our new detection is generic, use our cached info */
 		/* If we detected a Samsung Series B earlier, don't overwrite it with Series A info */
 		if ((ctype && ctype < EStandardDLNA150 && type >= EStandardDLNA150) ||
 		    (ctype == ESamsungSeriesB && type == ESamsungSeriesA))
 			return;
-		clients[n].type = &client_types[client];
-		clients[n].age = time(NULL);
+		h->req_client->type = &client_types[client];
+		h->req_client->age = time(NULL);
 	}
 }
 
