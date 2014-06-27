@@ -1094,6 +1094,29 @@ callback(void *args, int argc, char **argv, char **azColName)
 	return 0;
 }
 
+static int
+translate_object_id(char **id, struct Response *args)
+{
+	if (args->flags & FLAG_MS_PFS)
+	{
+		if( !strchr(*id, '$') && (strcmp(*id, "0") != 0) )
+		{
+			char *s;
+			s = sql_get_text_field(db, "SELECT OBJECT_ID from OBJECTS"
+			                           " where OBJECT_ID in "
+			                           "('"MUSIC_ID"$%q', '"VIDEO_ID"$%q', '"IMAGE_ID"$%q')",
+			                           *id, *id, *id);
+			if (s)
+			{
+				*id = s;
+				args->flags |= FLAG_FREE_OBJECT_ID;
+			}
+		}
+	}
+
+	return 0;
+}
+
 static void
 BrowseContentDirectory(struct upnphttp * h, const char * action)
 {
@@ -1169,21 +1192,7 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 	args.client = h->req_client ? h->req_client->type->type : 0;
 	args.flags = h->req_client ? h->req_client->type->flags : 0;
 	args.str = &str;
-	if( args.flags & FLAG_MS_PFS )
-	{
-		if( !strchr(ObjectID, '$') && (strcmp(ObjectID, "0") != 0) )
-		{
-			ptr = sql_get_text_field(db, "SELECT OBJECT_ID from OBJECTS"
-			                             " where OBJECT_ID in "
-			                             "('"MUSIC_ID"$%q', '"VIDEO_ID"$%q', '"IMAGE_ID"$%q')",
-			                             ObjectID, ObjectID, ObjectID);
-			if( ptr )
-			{
-				ObjectID = ptr;
-				args.flags |= FLAG_FREE_OBJECT_ID;
-			}
-		}
-	}
+	translate_object_id(&ObjectID, &args);
 	DPRINTF(E_DEBUG, L_HTTP, "Browsing ContentDirectory:\n"
 	                         " * ObjectID: %s\n"
 	                         " * Count: %d\n"
@@ -1641,21 +1650,7 @@ SearchContentDirectory(struct upnphttp * h, const char * action)
 	args.client = h->req_client ? h->req_client->type->type : 0;
 	args.flags = h->req_client ? h->req_client->type->flags : 0;
 	args.str = &str;
-	if( args.flags & FLAG_MS_PFS )
-	{
-		if( !strchr(ContainerID, '$') && (strcmp(ContainerID, "0") != 0) )
-		{
-			ptr = sql_get_text_field(db, "SELECT OBJECT_ID from OBJECTS"
-			                             " where OBJECT_ID in "
-			                             "('"MUSIC_ID"$%q', '"VIDEO_ID"$%q', '"IMAGE_ID"$%q')",
-			                             ContainerID, ContainerID, ContainerID);
-			if( ptr )
-			{
-				ContainerID = ptr;
-				args.flags |= FLAG_FREE_OBJECT_ID;
-			}
-		}
-	}
+	translate_object_id(&ContainerID, &args);
 	DPRINTF(E_DEBUG, L_HTTP, "Searching ContentDirectory:\n"
 	                         " * ObjectID: %s\n"
 	                         " * Count: %d\n"
