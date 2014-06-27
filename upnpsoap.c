@@ -681,6 +681,23 @@ add_res(char *size, char *duration, char *bitrate, char *sampleFrequency,
 	                          runtime_vars.port, detailID, ext);
 }
 
+static int
+get_child_count(const char *object)
+{
+	int ret;
+	ret = sql_get_int_field(db, "SELECT count(*) from OBJECTS where PARENT_ID = '%s';", object);
+	return (ret > 0) ? ret : 0;
+}
+
+static int
+object_exists(const char *object)
+{
+	int ret;
+	ret = sql_get_int_field(db, "SELECT count(*) from OBJECTS where OBJECT_ID = '%q'",
+				strcmp(object, "*") == 0 ? "0" : object);
+	return (ret > 0);
+}
+
 #define COLUMNS "o.REF_ID, o.DETAIL_ID, o.CLASS," \
                 " d.SIZE, d.TITLE, d.DURATION, d.BITRATE, d.SAMPLERATE, d.ARTIST," \
                 " d.ALBUM, d.GENRE, d.COMMENT, d.CHANNELS, d.TRACK, d.DATE, d.RESOLUTION," \
@@ -1037,10 +1054,7 @@ callback(void *args, int argc, char **argv, char **azColName)
 			ret = strcatf(str, "searchable=\"1\" ");
 		}
 		if( passed_args->filter & FILTER_CHILDCOUNT ) {
-			int children;
-			ret = sql_get_int_field(db, "SELECT count(*) from OBJECTS where PARENT_ID = '%s';", id);
-			children = (ret > 0) ? ret : 0;
-			ret = strcatf(str, "childCount=\"%d\"", children);
+			ret = strcatf(str, "childCount=\"%d\"", get_child_count(id));
 		}
 		/* If the client calls for BrowseMetadata on root, we have to include our "upnp:searchClass"'s, unless they're filtered out */
 		if( passed_args->requested == 1 && strcmp(id, "0") == 0 && (passed_args->filter & FILTER_UPNP_SEARCHCLASS) ) {
@@ -1130,7 +1144,7 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 	char *sql, *ptr;
 	struct Response args;
 	struct string_s str;
-	int totalMatches;
+	int totalMatches = 0;
 	int ret;
 	char *ObjectID, *Filter, *BrowseFlag, *SortCriteria;
 	char *orderBy = NULL;
@@ -1233,8 +1247,8 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 	}
 	else
 	{
-		ret = sql_get_int_field(db, "SELECT count(*) from OBJECTS where PARENT_ID = '%q'", ObjectID);
-		totalMatches = (ret > 0) ? ret : 0;
+		if (!totalMatches)
+			totalMatches = get_child_count(ObjectID);
 		ret = 0;
 		if( SortCriteria )
 		{
@@ -1243,7 +1257,7 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 #endif
 			orderBy = parse_sort_criteria(SortCriteria, &ret);
 		}
-		else
+		else if (!orderBy)
 		{
 			if( strncmp(ObjectID, MUSIC_PLIST_ID, strlen(MUSIC_PLIST_ID)) == 0 )
 			{
@@ -1293,8 +1307,7 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 	/* Does the object even exist? */
 	if( !totalMatches )
 	{
-		ret = sql_get_int_field(db, "SELECT count(*) from OBJECTS where OBJECT_ID = '%q'", ObjectID);
-		if( ret <= 0 )
+		if( !object_exists(ObjectID) )
 		{
 			SoapError(h, 701, "No such object error");
 			goto browse_error;
@@ -1687,9 +1700,7 @@ SearchContentDirectory(struct upnphttp * h, const char * action)
 	/* Does the object even exist? */
 	if( !totalMatches )
 	{
-		ret = sql_get_int_field(db, "SELECT count(*) from OBJECTS where OBJECT_ID = '%q'",
-		                        !strcmp(ContainerID, "*")?"0":ContainerID);
-		if( ret <= 0 )
+		if( !object_exists(ContainerID) )
 		{
 			SoapError(h, 710, "No such container");
 			goto search_error;
