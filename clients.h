@@ -38,9 +38,7 @@
 #define FLAG_FORCE_SORT         0x00000800
 #define FLAG_CAPTION_RES        0x00001000
 /* Response-related flags */
-#define FLAG_HAS_CAPTIONS       0x20000000
-#define FLAG_FREE_OBJECT_ID     0x40000000
-#define FLAG_ROOT_CONTAINER     0x80000000
+#define FLAG_HAS_CAPTIONS       0x80000000
 
 enum match_types {
 	EMatchNone,

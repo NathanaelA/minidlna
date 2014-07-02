@@ -65,11 +65,18 @@
 #include "utils.h"
 #include "upnphttp.h"
 #include "upnpsoap.h"
+#include "containers.h"
 #include "upnpreplyparse.h"
 #include "getifaddr.h"
 #include "scanner.h"
 #include "sql.h"
 #include "log.h"
+
+#ifdef __sparc__ /* Sorting takes too long on slow processors with very large containers */
+# define __SORT_LIMIT if( totalMatches < 10000 )
+#else
+# define __SORT_LIMIT
+#endif
 
 static void
 BuildSendAndCloseSoapResp(struct upnphttp * h,
@@ -682,10 +689,17 @@ add_res(char *size, char *duration, char *bitrate, char *sampleFrequency,
 }
 
 static int
-get_child_count(const char *object)
+get_child_count(const char *object, struct magic_container_s *magic)
 {
 	int ret;
-	ret = sql_get_int_field(db, "SELECT count(*) from OBJECTS where PARENT_ID = '%s';", object);
+
+	if (magic && magic->child_count)
+		ret = sql_get_int_field(db, "SELECT count(*) from %s", magic->child_count);
+	else if (magic && magic->objectid && *(magic->objectid))
+		ret = sql_get_int_field(db, "SELECT count(*) from OBJECTS where PARENT_ID = '%s';", *(magic->objectid));
+	else
+		ret = sql_get_int_field(db, "SELECT count(*) from OBJECTS where PARENT_ID = '%s';", object);
+
 	return (ret > 0) ? ret : 0;
 }
 
@@ -698,11 +712,11 @@ object_exists(const char *object)
 	return (ret > 0);
 }
 
-#define COLUMNS "o.REF_ID, o.DETAIL_ID, o.CLASS," \
+#define COLUMNS "o.DETAIL_ID, o.CLASS," \
                 " d.SIZE, d.TITLE, d.DURATION, d.BITRATE, d.SAMPLERATE, d.ARTIST," \
                 " d.ALBUM, d.GENRE, d.COMMENT, d.CHANNELS, d.TRACK, d.DATE, d.RESOLUTION," \
                 " d.THUMBNAIL, d.CREATOR, d.DLNA_PN, d.MIME, d.ALBUM_ART, d.DISC "
-#define SELECT_COLUMNS "SELECT o.OBJECT_ID, o.PARENT_ID, " COLUMNS
+#define SELECT_COLUMNS "SELECT o.OBJECT_ID, o.PARENT_ID, o.REF_ID, " COLUMNS
 
 static int
 callback(void *args, int argc, char **argv, char **azColName)
@@ -746,9 +760,6 @@ callback(void *args, int argc, char **argv, char **azColName)
 #endif
 	}
 	passed_args->returned++;
-
-	if( runtime_vars.root_container && strcmp(parent, runtime_vars.root_container) == 0 )
-		parent = "0";
 
 	if( strncmp(class, "item", 4) == 0 )
 	{
@@ -1051,10 +1062,10 @@ callback(void *args, int argc, char **argv, char **azColName)
 	{
 		ret = strcatf(str, "&lt;container id=\"%s\" parentID=\"%s\" restricted=\"1\" ", id, parent);
 		if( passed_args->filter & FILTER_SEARCHABLE ) {
-			ret = strcatf(str, "searchable=\"1\" ");
+			ret = strcatf(str, "searchable=\"%d\" ", check_magic_container(id, passed_args->flags) ? 0 : 1);
 		}
 		if( passed_args->filter & FILTER_CHILDCOUNT ) {
-			ret = strcatf(str, "childCount=\"%d\"", get_child_count(id));
+			ret = strcatf(str, "childCount=\"%d\"", get_child_count(id, check_magic_container(id, passed_args->flags)));
 		}
 		/* If the client calls for BrowseMetadata on root, we have to include our "upnp:searchClass"'s, unless they're filtered out */
 		if( passed_args->requested == 1 && strcmp(id, "0") == 0 && (passed_args->filter & FILTER_UPNP_SEARCHCLASS) ) {
@@ -1108,29 +1119,6 @@ callback(void *args, int argc, char **argv, char **azColName)
 	return 0;
 }
 
-static int
-translate_object_id(char **id, struct Response *args)
-{
-	if (args->flags & FLAG_MS_PFS)
-	{
-		if( !strchr(*id, '$') && (strcmp(*id, "0") != 0) )
-		{
-			char *s;
-			s = sql_get_text_field(db, "SELECT OBJECT_ID from OBJECTS"
-			                           " where OBJECT_ID in "
-			                           "('"MUSIC_ID"$%q', '"VIDEO_ID"$%q', '"IMAGE_ID"$%q')",
-			                           *id, *id, *id);
-			if (s)
-			{
-				*id = s;
-				args->flags |= FLAG_FREE_OBJECT_ID;
-			}
-		}
-	}
-
-	return 0;
-}
-
 static void
 BrowseContentDirectory(struct upnphttp * h, const char * action)
 {
@@ -1140,13 +1128,19 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 			"<Result>"
 			"&lt;DIDL-Lite"
 			CONTENT_DIRECTORY_SCHEMAS;
+	struct magic_container_s *magic;
 	char *zErrMsg = NULL;
 	char *sql, *ptr;
 	struct Response args;
 	struct string_s str;
 	int totalMatches = 0;
 	int ret;
-	char *ObjectID, *Filter, *BrowseFlag, *SortCriteria;
+	const char *ObjectID, *BrowseFlag;
+	char *Filter, *SortCriteria;
+	const char *objectid_sql = "o.OBJECT_ID";
+	const char *parentid_sql = "o.PARENT_ID";
+	const char *refid_sql = "o.REF_ID";
+	char where[256] = "";
 	char *orderBy = NULL;
 	struct NameValueParserData data;
 	int RequestedCount = 0;
@@ -1206,7 +1200,6 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 	args.client = h->req_client ? h->req_client->type->type : 0;
 	args.flags = h->req_client ? h->req_client->type->flags : 0;
 	args.str = &str;
-	translate_object_id(&ObjectID, &args);
 	DPRINTF(E_DEBUG, L_HTTP, "Browsing ContentDirectory:\n"
 	                         " * ObjectID: %s\n"
 	                         " * Count: %d\n"
@@ -1217,44 +1210,59 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 				ObjectID, RequestedCount, StartingIndex,
 	                        BrowseFlag, Filter, SortCriteria);
 
-	if( strcmp(ObjectID, "0") == 0 )
-	{
-		args.flags |= FLAG_ROOT_CONTAINER;
-		if( runtime_vars.root_container )
-		{
-			if( (args.flags & FLAG_AUDIO_ONLY) && (strcmp(runtime_vars.root_container, BROWSEDIR_ID) == 0) )
-				ObjectID = MUSIC_DIR_ID;
-			else
-				ObjectID = runtime_vars.root_container;
-		}
-		else
-		{
-			if( args.flags & FLAG_AUDIO_ONLY )
-				ObjectID = MUSIC_ID;
-		}
-	}
-
 	if( strcmp(BrowseFlag+6, "Metadata") == 0 )
 	{
+		const char *id = ObjectID;
 		args.requested = 1;
-		sql = sqlite3_mprintf("SELECT %s, " COLUMNS
-		                      "from OBJECTS o left join DETAILS d on (d.ID = o.DETAIL_ID)"
-	        	              " where OBJECT_ID = '%q';",
-		                      (args.flags & FLAG_ROOT_CONTAINER) ? "0, -1" : "o.OBJECT_ID, o.PARENT_ID",
-		                      ObjectID);
+		magic = in_magic_container(ObjectID, args.flags, &id);
+		if (magic)
+		{
+			if (magic->objectid_sql && strcmp(id, ObjectID) != 0)
+				objectid_sql = magic->objectid_sql;
+			if (magic->parentid_sql && strcmp(id, ObjectID) != 0)
+				parentid_sql = magic->parentid_sql;
+			if (magic->refid_sql)
+				refid_sql = magic->refid_sql;
+		}
+		sql = sqlite3_mprintf("SELECT %s, %s, %s, " COLUMNS
+				      "from OBJECTS o left join DETAILS d on (d.ID = o.DETAIL_ID)"
+				      " where OBJECT_ID = '%q';",
+				      objectid_sql, parentid_sql, refid_sql, id);
 		ret = sqlite3_exec(db, sql, callback, (void *) &args, &zErrMsg);
 		totalMatches = args.returned;
 	}
 	else
 	{
+		magic = check_magic_container(ObjectID, args.flags);
+		if (magic)
+		{
+			if (magic->objectid && *(magic->objectid))
+				ObjectID = *(magic->objectid);
+			if (magic->objectid_sql)
+				objectid_sql = magic->objectid_sql;
+			if (magic->parentid_sql)
+				parentid_sql = magic->parentid_sql;
+			if (magic->refid_sql)
+				refid_sql = magic->refid_sql;
+			if (magic->where)
+				strncpyt(where, magic->where, sizeof(where));
+			if (magic->max_count > 0)
+			{
+				ret = get_child_count(ObjectID, magic);
+				totalMatches = ret > magic->max_count ? magic->max_count : ret;
+				if (RequestedCount > magic->max_count || RequestedCount < 0)
+					RequestedCount = magic->max_count;
+			}
+		}
+		if (!where[0])
+			sqlite3_snprintf(sizeof(where), where, "PARENT_ID = '%q'", ObjectID);
+
 		if (!totalMatches)
-			totalMatches = get_child_count(ObjectID);
+			totalMatches = get_child_count(ObjectID, magic);
 		ret = 0;
 		if( SortCriteria )
 		{
-#ifdef __sparc__ /* Sorting takes too long on slow processors with very large containers */
-			if( totalMatches < 10000 )
-#endif
+			__SORT_LIMIT
 			orderBy = parse_sort_criteria(SortCriteria, &ret);
 		}
 		else if (!orderBy)
@@ -1268,9 +1276,7 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 			}
 			else if( args.flags & FLAG_FORCE_SORT )
 			{
-#ifdef __sparc__
-				if( totalMatches < 10000 )
-#endif
+				__SORT_LIMIT
 				ret = xasprintf(&orderBy, "order by o.CLASS, d.DISC, d.TRACK, d.TITLE");
 			}
 			else
@@ -1289,10 +1295,11 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 			goto browse_error;
 		}
 
-		sql = sqlite3_mprintf( SELECT_COLUMNS
+		sql = sqlite3_mprintf("SELECT %s, %s, %s, " COLUMNS
 		                      "from OBJECTS o left join DETAILS d on (d.ID = o.DETAIL_ID)"
-				      " where PARENT_ID = '%q' %s limit %d, %d;",
-				      ObjectID, THISORNUL(orderBy), StartingIndex, RequestedCount);
+				      " where %s %s limit %d, %d;",
+				      objectid_sql, parentid_sql, refid_sql,
+				      where, THISORNUL(orderBy), StartingIndex, RequestedCount);
 		DPRINTF(E_DEBUG, L_HTTP, "Browse SQL: %s\n", sql);
 		ret = sqlite3_exec(db, sql, callback, (void *) &args, &zErrMsg);
 	}
@@ -1322,8 +1329,6 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 	BuildSendAndCloseSoapResp(h, str.data, str.off);
 browse_error:
 	ClearNameValueList(&data);
-	if( args.flags & FLAG_FREE_OBJECT_ID )
-		sqlite3_free(ObjectID);
 	free(orderBy);
 	free(str.data);
 }
@@ -1608,13 +1613,15 @@ SearchContentDirectory(struct upnphttp * h, const char * action)
 			"<Result>"
 			"&lt;DIDL-Lite"
 			CONTENT_DIRECTORY_SCHEMAS;
+	struct magic_container_s *magic;
 	char *zErrMsg = NULL;
 	char *sql, *ptr;
 	struct Response args;
 	struct string_s str;
 	int totalMatches;
 	int ret;
-	char *ContainerID, *Filter, *SearchCriteria, *SortCriteria;
+	const char *ContainerID;
+	char *Filter, *SearchCriteria, *SortCriteria;
 	char *orderBy = NULL, *where = NULL, sep[] = "$*";
 	char groupBy[] = "group by DETAIL_ID";
 	struct NameValueParserData data;
@@ -1663,7 +1670,6 @@ SearchContentDirectory(struct upnphttp * h, const char * action)
 	args.client = h->req_client ? h->req_client->type->type : 0;
 	args.flags = h->req_client ? h->req_client->type->flags : 0;
 	args.str = &str;
-	translate_object_id(&ContainerID, &args);
 	DPRINTF(E_DEBUG, L_HTTP, "Searching ContentDirectory:\n"
 	                         " * ObjectID: %s\n"
 	                         " * Count: %d\n"
@@ -1674,8 +1680,12 @@ SearchContentDirectory(struct upnphttp * h, const char * action)
 				ContainerID, RequestedCount, StartingIndex,
 	                        SearchCriteria, Filter, SortCriteria);
 
+	magic = check_magic_container(ContainerID, args.flags);
+	if (magic && magic->objectid && *(magic->objectid))
+		ContainerID = *(magic->objectid);
+
 	if( strcmp(ContainerID, "0") == 0 )
-		ContainerID[0] = '*';
+		ContainerID = "*";
 
 	if( strcmp(ContainerID, MUSIC_ALL_ID) == 0 ||
 	    GETFLAG(DLNA_STRICT_MASK) )
@@ -1706,11 +1716,9 @@ SearchContentDirectory(struct upnphttp * h, const char * action)
 			goto search_error;
 		}
 	}
-#ifdef __sparc__ /* Sorting takes too long on slow processors with very large containers */
 	ret = 0;
-	if( totalMatches < 10000 )
-#endif
-		orderBy = parse_sort_criteria(SortCriteria, &ret);
+	__SORT_LIMIT
+	orderBy = parse_sort_criteria(SortCriteria, &ret);
 	/* If it's a DLNA client, return an error for bad sort criteria */
 	if( ret < 0 && ((args.flags & FLAG_DLNA) || GETFLAG(DLNA_STRICT_MASK)) )
 	{
@@ -1746,8 +1754,6 @@ SearchContentDirectory(struct upnphttp * h, const char * action)
 	BuildSendAndCloseSoapResp(h, str.data, str.off);
 search_error:
 	ClearNameValueList(&data);
-	if( args.flags & FLAG_FREE_OBJECT_ID )
-		sqlite3_free(ContainerID);
 	free(orderBy);
 	free(where);
 	free(str.data);
