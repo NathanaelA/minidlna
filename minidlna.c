@@ -464,6 +464,16 @@ static int strtobool(const char *str)
 		(atoi(str) == 1));
 }
 
+static void init_nls(void)
+{
+#ifdef ENABLE_NLS
+	setlocale(LC_MESSAGES, "");
+	setlocale(LC_CTYPE, "en_US.utf8");
+	DPRINTF(E_DEBUG, L_GENERAL, "Using locale dir %s\n", bindtextdomain("minidlna", getenv("TEXTDOMAINDIR")));
+	textdomain("minidlna");
+#endif
+}
+
 /* init phase :
  * 1) read configuration file
  * 2) read command line arguments
@@ -974,7 +984,7 @@ init(int argc, char **argv)
 	{
 		DPRINTF(E_ERROR, L_GENERAL, "Allocation failed\n");
 		return 1;
-	}	
+	}
 
 	return 0;
 }
@@ -1007,12 +1017,7 @@ main(int argc, char **argv)
 
 	for (i = 0; i < L_MAX; i++)
 		log_level[i] = E_WARN;
-#ifdef ENABLE_NLS
-	setlocale(LC_MESSAGES, "");
-	setlocale(LC_CTYPE, "en_US.utf8");
-	DPRINTF(E_DEBUG, L_GENERAL, "Using locale dir %s\n", bindtextdomain("minidlna", getenv("TEXTDOMAINDIR")));
-	textdomain("minidlna");
-#endif
+	init_nls();
 
 	ret = init(argc, argv);
 	if (ret != 0)
@@ -1189,11 +1194,6 @@ main(int argc, char **argv)
 				i++;
 			}
 		}
-#ifdef DEBUG
-		/* for debug */
-		if (i > 1)
-			DPRINTF(E_DEBUG, L_GENERAL, "%d active incoming HTTP connections\n", i);
-#endif
 		FD_ZERO(&writeset);
 		upnpevents_selectfds(&readset, &writeset, &max_fd);
 
@@ -1309,10 +1309,10 @@ shutdown:
 		close(sssdp);
 	if (shttpl >= 0)
 		close(shttpl);
-	#ifdef TIVO_SUPPORT
+#ifdef TIVO_SUPPORT
 	if (sbeacon >= 0)
 		close(sbeacon);
-	#endif
+#endif
 	
 	for (i = 0; i < n_lan_addr; i++)
 	{
