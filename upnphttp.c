@@ -94,6 +94,13 @@ enum event_type {
 	E_RENEW
 };
 
+static void SendResp_icon(struct upnphttp *, char * url);
+static void SendResp_albumArt(struct upnphttp *, char * url);
+static void SendResp_caption(struct upnphttp *, char * url);
+static void SendResp_resizedimg(struct upnphttp *, char * url);
+static void SendResp_thumbnail(struct upnphttp *, char * url);
+static void SendResp_dlnafile(struct upnphttp *, char * url);
+
 struct upnphttp * 
 New_upnphttp(int s)
 {
@@ -1224,7 +1231,7 @@ SendResp_upnphttp(struct upnphttp * h)
 	}
 }
 
-int
+static int
 send_data(struct upnphttp * h, char * header, size_t size, int flags)
 {
 	int n;
@@ -1247,7 +1254,7 @@ send_data(struct upnphttp * h, char * header, size_t size, int flags)
 	return 1;
 }
 
-void
+static void
 send_file(struct upnphttp * h, int sendfd, off_t offset, off_t end_offset)
 {
 	off_t send_size;
@@ -1306,7 +1313,7 @@ send_file(struct upnphttp * h, int sendfd, off_t offset, off_t end_offset)
 	free(buf);
 }
 
-void
+static void
 SendResp_icon(struct upnphttp * h, char * icon)
 {
 	char header[512];
@@ -1368,7 +1375,7 @@ SendResp_icon(struct upnphttp * h, char * icon)
 	CloseSocket_upnphttp(h);
 }
 
-void
+static void
 SendResp_albumArt(struct upnphttp * h, char * object)
 {
 	char header[512];
@@ -1430,7 +1437,7 @@ SendResp_albumArt(struct upnphttp * h, char * object)
 	CloseSocket_upnphttp(h);
 }
 
-void
+static void
 SendResp_caption(struct upnphttp * h, char * object)
 {
 	char header[512];
@@ -1482,7 +1489,7 @@ SendResp_caption(struct upnphttp * h, char * object)
 	CloseSocket_upnphttp(h);
 }
 
-void
+static void
 SendResp_thumbnail(struct upnphttp * h, char * object)
 {
 	char header[512];
@@ -1554,7 +1561,7 @@ SendResp_thumbnail(struct upnphttp * h, char * object)
 	CloseSocket_upnphttp(h);
 }
 
-void
+static void
 SendResp_resizedimg(struct upnphttp * h, char * object)
 {
 	char header[512];
@@ -1784,7 +1791,7 @@ resized_error:
 #endif
 }
 
-void
+static void
 SendResp_dlnafile(struct upnphttp *h, char *object)
 {
 	char header[1024];
