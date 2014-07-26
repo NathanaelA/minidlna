@@ -129,7 +129,7 @@ in_magic_container(const char *id, int flags, const char **real_id)
 			continue;
 		if (magic_containers[i].objectid && !(*magic_containers[i].objectid))
 			continue;
-		DPRINTF(E_DEBUG, L_HTTP, "Checking magic container %d [%s]\n", i, magic_containers[i].objectid_match);
+		DPRINTF(E_MAXDEBUG, L_HTTP, "Checking magic container %d [%s]\n", i, magic_containers[i].objectid_match);
 		len = strlen(magic_containers[i].objectid_match);
 		if (strncmp(id, magic_containers[i].objectid_match, len) == 0)
 		{
@@ -158,7 +158,7 @@ check_magic_container(const char *id, int flags)
 			continue;
 		if (magic_containers[i].objectid && !(*magic_containers[i].objectid))
 			continue;
-		DPRINTF(E_DEBUG, L_HTTP, "Checking magic container %d [%s]\n", i, magic_containers[i].objectid_match);
+		DPRINTF(E_MAXDEBUG, L_HTTP, "Checking magic container %d [%s]\n", i, magic_containers[i].objectid_match);
 		if (strcmp(id, magic_containers[i].objectid_match) == 0)
 		{
 			DPRINTF(E_DEBUG, L_HTTP, "Found magic container %d [%s]\n", i, magic_containers[i].objectid_match);
