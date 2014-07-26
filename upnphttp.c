@@ -80,11 +80,12 @@
 #include "tivo_commands.h"
 #include "clients.h"
 #include "process.h"
-
 #include "sendfile.h"
 
 #define MAX_BUFFER_SIZE 2147483647
 #define MIN_BUFFER_SIZE 65536
+
+#define INIT_STR(s, d) { s.data = d; s.size = sizeof(d); s.off = 0; }
 
 #include "icons.c"
 
@@ -592,9 +593,7 @@ SendResp_presentation(struct upnphttp * h)
 	char body[4096];
 	int a, v, p, i;
 
-	str.data = body;
-	str.size = sizeof(body);
-	str.off = 0;
+	INIT_STR(str, body);
 
 	h->respflags = FLAG_HTML;
 
@@ -1181,9 +1180,6 @@ BuildHeader_upnphttp(struct upnphttp * h, int respcode,
 	strftime(date, 30,"%a, %d %b %Y %H:%M:%S GMT" , gmtime(&curtime));
 	strcatf(&res, "Date: %s\r\n", date);
 	strcatf(&res, "EXT:\r\n");
-#if 0 // DLNA
-	strcatf(&res, "contentFeatures.dlna.org: \r\n");
-#endif
 	strcatf(&res, "\r\n");
 	h->res_buflen = res.off;
 	if(h->res_buf_alloclen < (h->res_buflen + bodylen))
@@ -1314,14 +1310,32 @@ send_file(struct upnphttp * h, int sendfd, off_t offset, off_t end_offset)
 }
 
 static void
+start_dlna_header(struct string_s *str, int respcode, const char *tmode, const char *mime)
+{
+	char date[30];
+	time_t now;
+
+	now = time(NULL);
+	strftime(date, sizeof(date),"%a, %d %b %Y %H:%M:%S GMT" , gmtime(&now));
+	strcatf(str, "HTTP/1.1 %d OK\r\n"
+	             "Connection: close\r\n"
+	             "Date: %s\r\n"
+	             "Server: " MINIDLNA_SERVER_STRING "\r\n"
+	             "EXT:\r\n"
+	             "realTimeInfo.dlna.org: DLNA.ORG_TLAG=*\r\n"
+	             "transferMode.dlna.org: %s\r\n"
+	             "Content-Type: %s\r\n",
+	             respcode, date, tmode, mime);
+}
+
+static void
 SendResp_icon(struct upnphttp * h, char * icon)
 {
 	char header[512];
 	char mime[12] = "image/";
-	char date[30];
 	char *data;
-	int size, ret;
-	time_t curtime = time(NULL);
+	int size;
+	struct string_s str;
 
 	if( strcmp(icon, "sm.png") == 0 )
 	{
@@ -1358,16 +1372,12 @@ SendResp_icon(struct upnphttp * h, char * icon)
 		return;
 	}
 
-	strftime(date, 30,"%a, %d %b %Y %H:%M:%S GMT" , gmtime(&curtime));
-	ret = snprintf(header, sizeof(header), "HTTP/1.1 200 OK\r\n"
-	                                       "Content-Type: %s\r\n"
-	                                       "Content-Length: %d\r\n"
-	                                       "Connection: close\r\n"
-	                                       "Date: %s\r\n"
-	                                       "Server: " MINIDLNA_SERVER_STRING "\r\n\r\n",
-	                                       mime, size, date);
+	INIT_STR(str, header);
 
-	if( send_data(h, header, ret, MSG_MORE) == 0 )
+	start_dlna_header(&str, 200, "Interactive", mime);
+	strcatf(&str, "Content-Length: %d\r\n\r\n", size);
+
+	if( send_data(h, str.data, str.off, MSG_MORE) == 0 )
 	{
 		if( h->req_command != EHead )
 			send_data(h, data, size, 0);
@@ -1380,11 +1390,10 @@ SendResp_albumArt(struct upnphttp * h, char * object)
 {
 	char header[512];
 	char *path;
-	char date[30];
-	time_t curtime = time(NULL);
 	off_t size;
 	long long id;
-	int fd, ret;
+	int fd;
+	struct string_s str;
 
 	if( h->reqflags & (FLAG_XFERSTREAMING|FLAG_RANGE) )
 	{
@@ -1415,20 +1424,14 @@ SendResp_albumArt(struct upnphttp * h, char * object)
 	size = lseek(fd, 0, SEEK_END);
 	lseek(fd, 0, SEEK_SET);
 
-	strftime(date, 30,"%a, %d %b %Y %H:%M:%S GMT" , gmtime(&curtime));
-	ret = snprintf(header, sizeof(header), "HTTP/1.1 200 OK\r\n"
-	                                       "Content-Type: image/jpeg\r\n"
-	                                       "Content-Length: %jd\r\n"
-	                                       "Connection: close\r\n"
-	                                       "Date: %s\r\n"
-	                                       "EXT:\r\n"
-	                                       "realTimeInfo.dlna.org: DLNA.ORG_TLAG=*\r\n"
-	                                       "contentFeatures.dlna.org: DLNA.ORG_PN=JPEG_TN\r\n"
-	                                       "Server: " MINIDLNA_SERVER_STRING "\r\n"
-	                                       "transferMode.dlna.org: Interactive\r\n\r\n",
-	                                       (intmax_t)size, date);
+	INIT_STR(str, header);
 
-	if( send_data(h, header, ret, MSG_MORE) == 0 )
+	start_dlna_header(&str, 200, "Interactive", "image/jpeg");
+	strcatf(&str, "Content-Length: %jd\r\n"
+	              "contentFeatures.dlna.org: DLNA.ORG_PN=JPEG_TN\r\n\r\n",
+	              (intmax_t)size);
+
+	if( send_data(h, str.data, str.off, MSG_MORE) == 0 )
 	{
 		if( h->req_command != EHead )
 			send_file(h, fd, 0, size-1);
@@ -1442,11 +1445,10 @@ SendResp_caption(struct upnphttp * h, char * object)
 {
 	char header[512];
 	char *path;
-	char date[30];
-	time_t curtime = time(NULL);
 	off_t size;
 	long long id;
-	int fd, ret;
+	int fd;
+	struct string_s str;
 
 	id = strtoll(object, NULL, 10);
 
@@ -1470,17 +1472,12 @@ SendResp_caption(struct upnphttp * h, char * object)
 	size = lseek(fd, 0, SEEK_END);
 	lseek(fd, 0, SEEK_SET);
 
-	strftime(date, 30,"%a, %d %b %Y %H:%M:%S GMT" , gmtime(&curtime));
-	ret = snprintf(header, sizeof(header), "HTTP/1.1 200 OK\r\n"
-	                                       "Content-Type: smi/caption\r\n"
-	                                       "Content-Length: %jd\r\n"
-	                                       "Connection: close\r\n"
-	                                       "Date: %s\r\n"
-	                                       "EXT:\r\n"
-	                                       "Server: " MINIDLNA_SERVER_STRING "\r\n\r\n",
-	                                       (intmax_t)size, date);
+	INIT_STR(str, header);
 
-	if( send_data(h, header, ret, MSG_MORE) == 0 )
+	start_dlna_header(&str, 200, "Interactive", "smi/caption");
+	strcatf(&str, "Content-Length: %jd\r\n\r\n", (intmax_t)size);
+
+	if( send_data(h, str.data, str.off, MSG_MORE) == 0 )
 	{
 		if( h->req_command != EHead )
 			send_file(h, fd, 0, size-1);
@@ -1494,12 +1491,10 @@ SendResp_thumbnail(struct upnphttp * h, char * object)
 {
 	char header[512];
 	char *path;
-	char date[30];
-	time_t curtime = time(NULL);
 	long long id;
-	int ret;
 	ExifData *ed;
 	ExifLoader *l;
+	struct string_s str;
 
 	if( h->reqflags & (FLAG_XFERSTREAMING|FLAG_RANGE) )
 	{
@@ -1539,20 +1534,15 @@ SendResp_thumbnail(struct upnphttp * h, char * object)
 			exif_data_unref(ed);
 		return;
 	}
-	strftime(date, 30,"%a, %d %b %Y %H:%M:%S GMT" , gmtime(&curtime));
-	ret = snprintf(header, sizeof(header), "HTTP/1.1 200 OK\r\n"
-	                                       "Content-Type: image/jpeg\r\n"
-	                                       "Content-Length: %jd\r\n"
-	                                       "Connection: close\r\n"
-	                                       "Date: %s\r\n"
-	                                       "EXT:\r\n"
-	                                       "realTimeInfo.dlna.org: DLNA.ORG_TLAG=*\r\n"
-	                                       "contentFeatures.dlna.org: DLNA.ORG_PN=JPEG_TN;DLNA.ORG_CI=1\r\n"
-	                                       "Server: " MINIDLNA_SERVER_STRING "\r\n"
-	                                       "transferMode.dlna.org: Interactive\r\n\r\n",
-	                                       (intmax_t)ed->size, date);
 
-	if( send_data(h, header, ret, MSG_MORE) == 0 )
+	INIT_STR(str, header);
+
+	start_dlna_header(&str, 200, "Interactive", "image/jpeg");
+	strcatf(&str, "Content-Length: %jd\r\n"
+	              "contentFeatures.dlna.org: DLNA.ORG_PN=JPEG_TN;DLNA.ORG_CI=1\r\n\r\n",
+	              (intmax_t)ed->size);
+
+	if( send_data(h, str.data, str.off, MSG_MORE) == 0 )
 	{
 		if( h->req_command != EHead )
 			send_data(h, (char *)ed->data, ed->size, 0);
@@ -1568,10 +1558,8 @@ SendResp_resizedimg(struct upnphttp * h, char * object)
 	char buf[128];
 	struct string_s str;
 	char **result;
-	char date[30];
 	char dlna_pn[22];
 	uint32_t dlna_flags = DLNA_FLAG_DLNA_V1_5|DLNA_FLAG_HTTP_STALLING|DLNA_FLAG_TM_B|DLNA_FLAG_TM_I;
-	time_t curtime = time(NULL);
 	int width=640, height=480, dstw, dsth, size;
 	int srcw, srch;
 	unsigned char * data = NULL;
@@ -1586,6 +1574,7 @@ SendResp_resizedimg(struct upnphttp * h, char * object)
 	int rows=0, chunked, ret;
 	image_s *imsrc = NULL, *imdst = NULL;
 	int scale = 1;
+	const char *tmode;
 
 	id = strtoll(object, &saveptr, 10);
 	snprintf(buf, sizeof(buf), "SELECT PATH, RESOLUTION, ROTATION from DETAILS where ID = '%lld'", (long long)id);
@@ -1706,26 +1695,17 @@ SendResp_resizedimg(struct upnphttp * h, char * object)
 	else if( srcw>>2 >= dstw && srch>>2 >= dsth )
 		scale = 2;
 
-	str.data = header;
-	str.size = sizeof(header);
-	str.off = 0;
+	INIT_STR(str, header);
 
-	strftime(date, 30,"%a, %d %b %Y %H:%M:%S GMT" , gmtime(&curtime));
-	strcatf(&str, "HTTP/1.1 200 OK\r\n"
-	              "Content-Type: image/jpeg\r\n"
-	              "Connection: close\r\n"
-	              "Date: %s\r\n"
-	              "EXT:\r\n"
-	              "realTimeInfo.dlna.org: DLNA.ORG_TLAG=*\r\n"
-	              "contentFeatures.dlna.org: %sDLNA.ORG_CI=%X;DLNA.ORG_FLAGS=%08X%024X\r\n"
-	              "Server: " MINIDLNA_SERVER_STRING "\r\n",
-	              date, dlna_pn, 1, dlna_flags, 0);
 #if USE_FORK
 	if( (h->reqflags & FLAG_XFERBACKGROUND) && (setpriority(PRIO_PROCESS, 0, 19) == 0) )
-		strcatf(&str, "transferMode.dlna.org: Background\r\n");
+		tmode = "Background";
 	else
 #endif
-		strcatf(&str, "transferMode.dlna.org: Interactive\r\n");
+		tmode = "Interactive";
+	start_dlna_header(&str, 200, tmode, "image/jpeg");
+	strcatf(&str, "contentFeatures.dlna.org: %sDLNA.ORG_CI=1;DLNA.ORG_FLAGS=%08X%024X\r\n",
+	              dlna_pn, dlna_flags, 0);
 
 	if( strcmp(h->HttpVer, "HTTP/1.0") == 0 )
 	{
@@ -1799,13 +1779,12 @@ SendResp_dlnafile(struct upnphttp *h, char *object)
 	char buf[128];
 	char **result;
 	int rows, ret;
-	char date[30];
-	time_t curtime = time(NULL);
 	off_t total, offset, size;
 	int64_t id;
 	int sendfh;
 	uint32_t dlna_flags = DLNA_FLAG_DLNA_V1_5|DLNA_FLAG_HTTP_STALLING|DLNA_FLAG_TM_B;
 	uint32_t cflags = h->req_client ? h->req_client->type->flags : 0;
+	const char *tmode;
 	enum client_types ctype = h->req_client ? h->req_client->type->type : 0;
 	static struct { int64_t id;
 	                enum client_types client;
@@ -1934,14 +1913,20 @@ SendResp_dlnafile(struct upnphttp *h, char *object)
 	size = lseek(sendfh, 0, SEEK_END);
 	lseek(sendfh, 0, SEEK_SET);
 
-	str.data = header;
-	str.size = sizeof(header);
-	str.off = 0;
+	INIT_STR(str, header);
 
-	strcatf(&str, "HTTP/1.1 20%c OK\r\n"
-	              "Content-Type: %s\r\n",
-	              (h->reqflags & FLAG_RANGE ? '6' : '0'),
-	              last_file.mime);
+#if USE_FORK
+	if( (h->reqflags & FLAG_XFERBACKGROUND) && (setpriority(PRIO_PROCESS, 0, 19) == 0) )
+		tmode = "Background";
+	else
+#endif
+	if( strncmp(last_file.mime, "image", 5) == 0 )
+		tmode = "Interactive";
+	else
+		tmode = "Streaming";
+
+	start_dlna_header(&str, (h->reqflags & FLAG_RANGE ? 206 : 200), tmode, last_file.mime);
+
 	if( h->reqflags & FLAG_RANGE )
 	{
 		if( !h->req_RangeEnd || h->req_RangeEnd == size )
@@ -1976,16 +1961,6 @@ SendResp_dlnafile(struct upnphttp *h, char *object)
 		strcatf(&str, "Content-Length: %jd\r\n", (intmax_t)total);
 	}
 
-#if USE_FORK
-	if( (h->reqflags & FLAG_XFERBACKGROUND) && (setpriority(PRIO_PROCESS, 0, 19) == 0) )
-		strcatf(&str, "transferMode.dlna.org: Background\r\n");
-	else
-#endif
-	if( strncmp(last_file.mime, "image", 5) == 0 )
-		strcatf(&str, "transferMode.dlna.org: Interactive\r\n");
-	else
-		strcatf(&str, "transferMode.dlna.org: Streaming\r\n");
-
 	switch( *last_file.mime )
 	{
 		case 'i':
@@ -2005,15 +1980,9 @@ SendResp_dlnafile(struct upnphttp *h, char *object)
 			              lan_addr[h->iface].str, runtime_vars.port, (long long)id);
 	}
 
-	strftime(date, 30,"%a, %d %b %Y %H:%M:%S GMT" , gmtime(&curtime));
 	strcatf(&str, "Accept-Ranges: bytes\r\n"
-	              "Connection: close\r\n"
-	              "Date: %s\r\n"
-	              "EXT:\r\n"
-	              "realTimeInfo.dlna.org: DLNA.ORG_TLAG=*\r\n"
-	              "contentFeatures.dlna.org: %sDLNA.ORG_OP=%02X;DLNA.ORG_CI=%X;DLNA.ORG_FLAGS=%08X%024X\r\n"
-	              "Server: " MINIDLNA_SERVER_STRING "\r\n\r\n",
-	              date, last_file.dlna, 1, 0, dlna_flags, 0);
+	              "contentFeatures.dlna.org: %sDLNA.ORG_OP=%02X;DLNA.ORG_CI=%X;DLNA.ORG_FLAGS=%08X%024X\r\n\r\n",
+	              last_file.dlna, 1, 0, dlna_flags, 0);
 
 	//DEBUG DPRINTF(E_DEBUG, L_HTTP, "RESPONSE: %s\n", str.data);
 	if( send_data(h, str.data, str.off, MSG_MORE) == 0 )
