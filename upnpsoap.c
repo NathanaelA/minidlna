@@ -1927,11 +1927,14 @@ SamsungSetBookmark(struct upnphttp * h, const char * action)
 	if( ObjectID && PosSecond )
 	{
 		int ret;
+		const char *rid = ObjectID;
+
+		in_magic_container(ObjectID, 0, &rid);
 		ret = sql_exec(db, "INSERT OR REPLACE into BOOKMARKS"
 		                   " VALUES "
-		                   "((select DETAIL_ID from OBJECTS where OBJECT_ID = '%q'), %q)", ObjectID, PosSecond);
+		                   "((select DETAIL_ID from OBJECTS where OBJECT_ID = '%q'), %q)", rid, PosSecond);
 		if( ret != SQLITE_OK )
-			DPRINTF(E_WARN, L_METADATA, "Error setting bookmark %s on ObjectID='%s'\n", PosSecond, ObjectID);
+			DPRINTF(E_WARN, L_METADATA, "Error setting bookmark %s on ObjectID='%s'\n", PosSecond, rid);
 		BuildSendAndCloseSoapResp(h, resp, sizeof(resp)-1);
 	}
 	else
