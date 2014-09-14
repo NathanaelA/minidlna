@@ -1924,6 +1924,10 @@ SamsungSetBookmark(struct upnphttp * h, const char * action)
 	ParseNameValue(h->req_buf + h->req_contentoff, h->req_contentlen, &data, 0);
 	ObjectID = GetValueFromNameValueList(&data, "ObjectID");
 	PosSecond = GetValueFromNameValueList(&data, "PosSecond");
+
+	if ( atoi(PosSecond) < 30 )
+		PosSecond = "0";
+
 	if( ObjectID && PosSecond )
 	{
 		int ret;
