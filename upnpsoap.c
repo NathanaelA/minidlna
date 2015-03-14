@@ -812,6 +812,7 @@ callback(void *args, int argc, char **argv, char **azColName)
 #endif
 	}
 	passed_args->returned++;
+	passed_args->flags &= ~RESPONSE_FLAGS;
 
 	if( strncmp(class, "item", 4) == 0 )
 	{
