@@ -1251,10 +1251,11 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 				strncpyt(where, magic->where, sizeof(where));
 			if (magic->max_count > 0)
 			{
+				int limit = MAX(magic->max_count - StartingIndex, 0);
 				ret = get_child_count(ObjectID, magic);
-				totalMatches = ret > magic->max_count ? magic->max_count : ret;
-				if (RequestedCount > magic->max_count || RequestedCount < 0)
-					RequestedCount = magic->max_count;
+				totalMatches = MIN(ret, limit);
+				if (RequestedCount > limit || RequestedCount < 0)
+					RequestedCount = limit;
 			}
 		}
 		if (!where[0])
