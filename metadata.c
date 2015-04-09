@@ -184,16 +184,16 @@ parse_nfo(const char *path, metadata_t *m)
 	val = GetValueFromNameValueList(&xml, "title");
 	if( val )
 	{
-		char *esc_tag = unescape_tag(val, 1);
+		char *esc_tag, *title;
 		val2 = GetValueFromNameValueList(&xml, "episodetitle");
-		if( val2 ) {
-			char *esc_tag2 = unescape_tag(val2, 1);
-			xasprintf(&m->title, "%s - %s", esc_tag, esc_tag2);
-			free(esc_tag2);
-		} else {
-			m->title = escape_tag(esc_tag, 1);
-		}
+		if( val2 )
+			xasprintf(&title, "%s - %s", val, val2);
+		else
+			title = strdup(val);
+		esc_tag = unescape_tag(title, 1);
+		m->title = escape_tag(esc_tag, 1);
 		free(esc_tag);
+		free(title);
 	}
 
 	val = GetValueFromNameValueList(&xml, "plot");
@@ -406,7 +406,7 @@ GetAudioMetadata(const char *path, char *name)
 	{
 		for( i = ROLE_ALBUMARTIST; i <= ROLE_BAND; i++ )
 		{
-	        	if( song.contributor[i] && *song.contributor[i] )
+			if( song.contributor[i] && *song.contributor[i] )
 				break;
 		}
 	        if( i <= ROLE_BAND )
