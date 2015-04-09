@@ -620,7 +620,7 @@ add_resized_res(int srcw, int srch, int reqw, int reqh, char *dlna_pn,
 	int dstw = reqw;
 	int dsth = reqh;
 
-	if( args->flags & FLAG_NO_RESIZE )
+	if( (args->flags & FLAG_NO_RESIZE) && reqw > 160 && reqh > 160 )
 		return;
 
 	strcatf(args->str, "&lt;res ");
