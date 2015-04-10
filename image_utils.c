@@ -456,6 +456,7 @@ image_new_from_jpeg(const char *path, int is_file, const uint8_t *buf, int size,
 	cinfo.scale_denom = scale;
 	cinfo.do_fancy_upsampling = FALSE;
 	cinfo.do_block_smoothing = FALSE;
+	cinfo.dct_method = JDCT_IFAST;
 	jpeg_start_decompress(&cinfo);
 	w = cinfo.output_width;
 	h = cinfo.output_height;
