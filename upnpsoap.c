@@ -78,6 +78,55 @@
 # define __SORT_LIMIT
 #endif
 
+/* Standard Errors:
+ *
+ * errorCode errorDescription Description
+ * --------	---------------- -----------
+ * 401 		Invalid Action 	No action by that name at this service.
+ * 402 		Invalid Args 	Could be any of the following: not enough in args,
+ * 							too many in args, no in arg by that name, 
+ * 							one or more in args are of the wrong data type.
+ * 403 		Out of Sync 	Out of synchronization.
+ * 501 		Action Failed 	May be returned in current state of service
+ * 							prevents invoking that action.
+ * 600-699 	TBD 			Common action errors. Defined by UPnP Forum
+ * 							Technical Committee.
+ * 700-799 	TBD 			Action-specific errors for standard actions.
+ * 							Defined by UPnP Forum working committee.
+ * 800-899 	TBD 			Action-specific errors for non-standard actions. 
+ * 							Defined by UPnP vendor.
+*/
+static void
+SoapError(struct upnphttp * h, int errCode, const char * errDesc)
+{
+	static const char resp[] = 
+		"<s:Envelope "
+		"xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" "
+		"s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
+		"<s:Body>"
+		"<s:Fault>"
+		"<faultcode>s:Client</faultcode>"
+		"<faultstring>UPnPError</faultstring>"
+		"<detail>"
+		"<UPnPError xmlns=\"urn:schemas-upnp-org:control-1-0\">"
+		"<errorCode>%d</errorCode>"
+		"<errorDescription>%s</errorDescription>"
+		"</UPnPError>"
+		"</detail>"
+		"</s:Fault>"
+		"</s:Body>"
+		"</s:Envelope>";
+
+	char body[2048];
+	int bodylen;
+
+	DPRINTF(E_WARN, L_HTTP, "Returning UPnPError %d: %s\n", errCode, errDesc);
+	bodylen = snprintf(body, sizeof(body), resp, errCode, errDesc);
+	BuildResp2_upnphttp(h, 500, "Internal Server Error", body, bodylen);
+	SendResp_upnphttp(h);
+	CloseSocket_upnphttp(h);
+}
+
 static void
 BuildSendAndCloseSoapResp(struct upnphttp * h,
                           const char * body, int bodylen)
@@ -515,7 +564,7 @@ set_filter_flags(char *filter, struct upnphttp *h)
 	return flags;
 }
 
-char *
+static char *
 parse_sort_criteria(char *sortCriteria, int *error)
 {
 	char *order = NULL;
@@ -1337,7 +1386,7 @@ browse_error:
 	free(str.data);
 }
 
-inline void
+static inline void
 charcat(struct string_s *str, char c)
 {
 	if (str->size <= str->off)
@@ -1943,54 +1992,5 @@ ExecuteSoapAction(struct upnphttp * h, const char * action, int n)
 	}
 
 	SoapError(h, 401, "Invalid Action");
-}
-
-/* Standard Errors:
- *
- * errorCode errorDescription Description
- * --------	---------------- -----------
- * 401 		Invalid Action 	No action by that name at this service.
- * 402 		Invalid Args 	Could be any of the following: not enough in args,
- * 							too many in args, no in arg by that name, 
- * 							one or more in args are of the wrong data type.
- * 403 		Out of Sync 	Out of synchronization.
- * 501 		Action Failed 	May be returned in current state of service
- * 							prevents invoking that action.
- * 600-699 	TBD 			Common action errors. Defined by UPnP Forum
- * 							Technical Committee.
- * 700-799 	TBD 			Action-specific errors for standard actions.
- * 							Defined by UPnP Forum working committee.
- * 800-899 	TBD 			Action-specific errors for non-standard actions. 
- * 							Defined by UPnP vendor.
-*/
-void
-SoapError(struct upnphttp * h, int errCode, const char * errDesc)
-{
-	static const char resp[] = 
-		"<s:Envelope "
-		"xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" "
-		"s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
-		"<s:Body>"
-		"<s:Fault>"
-		"<faultcode>s:Client</faultcode>"
-		"<faultstring>UPnPError</faultstring>"
-		"<detail>"
-		"<UPnPError xmlns=\"urn:schemas-upnp-org:control-1-0\">"
-		"<errorCode>%d</errorCode>"
-		"<errorDescription>%s</errorDescription>"
-		"</UPnPError>"
-		"</detail>"
-		"</s:Fault>"
-		"</s:Body>"
-		"</s:Envelope>";
-
-	char body[2048];
-	int bodylen;
-
-	DPRINTF(E_WARN, L_HTTP, "Returning UPnPError %d: %s\n", errCode, errDesc);
-	bodylen = snprintf(body, sizeof(body), resp, errCode, errDesc);
-	BuildResp2_upnphttp(h, 500, "Internal Server Error", body, bodylen);
-	SendResp_upnphttp(h);
-	CloseSocket_upnphttp(h);
 }
 
