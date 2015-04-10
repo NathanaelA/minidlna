@@ -1818,22 +1818,41 @@ SamsungGetFeatureList(struct upnphttp * h, const char * action)
 	static const char resp[] =
 		"<u:X_GetFeatureListResponse xmlns:u=\"urn:schemas-upnp-org:service:ContentDirectory:1\">"
 		"<FeatureList>"
-		"<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n"
 		"&lt;Features xmlns=\"urn:schemas-upnp-org:av:avs\""
 		" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\""
 		" xsi:schemaLocation=\"urn:schemas-upnp-org:av:avs http://www.upnp.org/schemas/av/avs.xsd\"&gt;"
 		"&lt;Feature name=\"samsung.com_BASICVIEW\" version=\"1\"&gt;"
-		 "&lt;container id=\"" MUSIC_ID "\" type=\"object.item.audioItem\"/&gt;"
-		 "&lt;container id=\"" VIDEO_ID "\" type=\"object.item.videoItem\"/&gt;"
-		 "&lt;container id=\"" IMAGE_ID "\" type=\"object.item.imageItem\"/&gt;"
+		 "&lt;container id=\"%s\" type=\"object.item.audioItem\"/&gt;"
+		 "&lt;container id=\"%s\" type=\"object.item.videoItem\"/&gt;"
+		 "&lt;container id=\"%s\" type=\"object.item.imageItem\"/&gt;"
 		"&lt;/Feature&gt;"
 		"&lt;/Features&gt;"
 		"</FeatureList></u:X_GetFeatureListResponse>";
+	const char *audio = MUSIC_ID;
+	const char *video = VIDEO_ID;
+	const char *image = IMAGE_ID;
+	char body[1024];
+	int len;
 
 	if (runtime_vars.root_container)
-		return SoapError(h, 401, "Invalid Action");
+	{
+		if (strcmp(runtime_vars.root_container, BROWSEDIR_ID) == 0)
+		{
+			audio = MUSIC_DIR_ID;
+			video = VIDEO_DIR_ID;
+			image = IMAGE_DIR_ID;
+		}
+		else
+		{
+			audio = runtime_vars.root_container;
+			video = runtime_vars.root_container;
+			image = runtime_vars.root_container;
+		}
+	}
 
-	BuildSendAndCloseSoapResp(h, resp, sizeof(resp)-1);
+	len = snprintf(body, sizeof(body), resp, audio, video, image);
+
+	BuildSendAndCloseSoapResp(h, body, len);
 }
 
 static void
