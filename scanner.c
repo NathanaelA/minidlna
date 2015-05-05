@@ -717,17 +717,42 @@ static void
 readPassword(const char *dir, char *password, int size)
 {
     FILE *pFile = NULL;
+    char *p;
     int i;
     pFile = fopen(dir, "r");
-    memset((void *)password, 0, size+1);
-    fgets(password, size, pFile);
+    memset((void *)password, 0, size);
+    p = fgets(password, size, pFile);
+    if (!p) {
+	password[0] = 0;
+    }
     // Turn it into a Digit if it isn't a digit...
     for (i=0;i<strlen(password);i++) {
 	if (password[i] < '0' || password[i] > '9') {
+	    DPRINTF(E_WARN, L_SCANNER, "Password has a non-digit character, replacing with a 0\n");
 	    password[i] = '0';
 	}
     }
     fclose(pFile);
+
+    // I thought about adjusting the size of the password to match the password_length; however
+    // the problem with doing this is that if they went and added all the .password file then started minidlna
+    // realized they forgot to change the password_length to the correct value then they will end up with
+    // truncated passwords or zero padded passwords.     So for simplicity I decided to just leave the passwords
+    // alone and log a warning if they don't match the proper size
+
+    if (strlen(password) != runtime_vars.password_length) {
+		DPRINTF(E_WARN, L_SCANNER, "Password size %d does not match configuration password_length of %d\n", (int)strlen(password), runtime_vars.password_length);
+    }
+
+    // Check for Magic 0 password
+    for (i=0;i<strlen(password);i++) {
+	if (password[i] != '0') break;
+    }
+    if (i == strlen(password)) {
+	DPRINTF(E_WARN, L_SCANNER, "Password is all ZERO's -- disabling.\n");
+	password[0] = 0;
+    }
+
 }
 
 static void
@@ -790,7 +815,7 @@ ScanDirectory(const char *dir, const char *parent, media_types dir_types, const 
 
 	snprintf(full_path, PATH_MAX, "%s/.password", dir);
 	if (access(full_path, 0) == 0) {
-	    readPassword(full_path, password, 10);
+	    readPassword(full_path, password, 11);
 	} else {
 	    strcpy(password, currentPassword);
 	}

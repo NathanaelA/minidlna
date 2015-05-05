@@ -1214,7 +1214,6 @@ static void createPasswordContainer(struct Response *passed_args, const char *id
 		    strcpy(mainroot, "0");
 	}
 
-
 	strcpy(parent, id);
 
 	for (i=0;i<strlen(id);i++) {
@@ -1238,17 +1237,16 @@ static void createPasswordContainer(struct Response *passed_args, const char *id
 
 	if (depth == runtime_vars.password_length-1) cnt = 0;
 
-	DPRINTF(E_DEBUG, L_HTTP, "Generating Password Set:\n"
+	/* DPRINTF(E_DEBUG, L_HTTP, "Generating Password Set:\n"
 	                         " * ObjectID: %s\n"
 				 " * Parent: %s\n"
 	                         " * Start: %d/%d\n"
 	                         " * Depth: %d\n"
 	                         " * isMeta: %d\n",
-				 id, parent, start, end, depth, isMeta); 
+				 id, parent, start, end, depth, isMeta);  */
 
 
 	if (depth == runtime_vars.password_length) {
-//		passed_args->returned++;
 		if (!isMeta) {
 			// Find the First Parent after the Primary Parent
 			for (i=0; id[i] != '$' && i < strlen(id);i++);
@@ -1258,7 +1256,7 @@ static void createPasswordContainer(struct Response *passed_args, const char *id
 				pin[j] = id[i];
 			}
 			pin[j] = 0;
-			DPRINTF(E_DEBUG, L_HTTP, "Generating Password Pin: %s\n", pin);
+			//DPRINTF(E_DEBUG, L_HTTP, "Generating Password Pin: %s\n", pin);
 
 			if (passed_args->password == NULL) {
 				cnt = runtime_vars.password_length+3;
@@ -1273,7 +1271,17 @@ static void createPasswordContainer(struct Response *passed_args, const char *id
 				strcat(passed_args->password, pin);
 				strcat(passed_args->password, "'");
 			}
-			DPRINTF(E_DEBUG, L_HTTP, "Generating Password Stored: %s\n", passed_args->password);
+			
+			// Check for all Zero's (0) to clear the password
+			for (i=0;i<strlen(pin);i++) {
+			    if (pin[i] != '0') break;
+			}
+			if (i == strlen(pin)) {
+			    free(passed_args->password);
+			    passed_args->password = NULL;
+			}
+
+			//DPRINTF(E_DEBUG, L_HTTP, "Generating Password Stored: %s\n", passed_args->password);
 
 		}
 		cnt = 0;

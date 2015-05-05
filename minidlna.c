@@ -561,6 +561,7 @@ init(int argc, char **argv)
 		case PASSWORD_LENGTH:
 			runtime_vars.password_length = atoi(ary_options[i].value);
 			if (runtime_vars.password_length > 10) runtime_vars.password_length = 10;
+			if (runtime_vars.password_length < 1) runtime_vars.password_length = 1;
 			break;
 		case UPNPPORT:
 			runtime_vars.port = atoi(ary_options[i].value);
