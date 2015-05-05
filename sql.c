@@ -262,7 +262,7 @@ sql_get_text_field(sqlite3 *db, const char *fmt, ...)
 int
 db_upgrade(sqlite3 *db)
 {
-	int db_vers;
+	int db_vers, ret;
 
 	db_vers = sql_get_int_field(db, "PRAGMA user_version");
 
@@ -274,6 +274,12 @@ db_upgrade(sqlite3 *db)
 		return -1;
 	if (db_vers < 9)
 		return db_vers;
+
+	if (db_vers == 9) {
+	    ret = sql_exec(db, "ALTER TABLE OBJECTS ADD COLUMN PASSWORD CHAR(10) DEFAULT NULL");
+	    if (ret != SQLITE_OK) return -1;
+	}
+
 	sql_exec(db, "PRAGMA user_version = %d", DB_VERSION);
 
 	return 0;

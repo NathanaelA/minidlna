@@ -288,6 +288,7 @@ inotify_insert_file(char * name, const char * path)
 	char * base_copy;
 	char * parent_buf = NULL;
 	char * id = NULL;
+	char * password = NULL;
 	int depth = 1;
 	int ts;
 	media_types types = ALL_MEDIA;
@@ -393,11 +394,12 @@ inotify_insert_file(char * name, const char * path)
 			{
 				if( !depth )
 					break;
+				password = sql_get_text_field(db, "select PASSWORD from OBJECTS where OBJECT_ID='%s'", id);
 				DPRINTF(E_DEBUG, L_INOTIFY, "Found first known parentID: %s [%s]\n", id, parent_buf);
 				/* Insert newly-found directory */
 				strcpy(base_name, last_dir);
 				base_copy = basename(base_name);
-				insert_directory(base_copy, last_dir, BROWSEDIR_ID, id+2, get_next_available_id("OBJECTS", id));
+				insert_directory(base_copy, last_dir, BROWSEDIR_ID, id+2, get_next_available_id("OBJECTS", id), password);
 				sqlite3_free(id);
 				break;
 			}
@@ -422,7 +424,7 @@ inotify_insert_file(char * name, const char * path)
 	if( !depth )
 	{
 		//DEBUG DPRINTF(E_DEBUG, L_INOTIFY, "Inserting %s\n", name);
-		insert_file(name, path, id+2, get_next_available_id("OBJECTS", id), types);
+		insert_file(name, path, id+2, get_next_available_id("OBJECTS", id), types, password);
 		sqlite3_free(id);
 		if( (is_audio(path) || is_playlist(path)) && next_pl_fill != 1 )
 		{
@@ -462,7 +464,7 @@ inotify_insert_directory(int fd, char *name, const char * path)
 	                            " where d.PATH = '%q' and REF_ID is NULL", dirname(parent_buf));
 	if( !id )
 		id = sqlite3_mprintf("%s", BROWSEDIR_ID);
-	insert_directory(name, path, BROWSEDIR_ID, id+2, get_next_available_id("OBJECTS", id));
+	insert_directory(name, path, BROWSEDIR_ID, id+2, get_next_available_id("OBJECTS", id), "");
 	sqlite3_free(id);
 	free(parent_buf);
 

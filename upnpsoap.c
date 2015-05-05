@@ -738,16 +738,22 @@ add_res(char *size, char *duration, char *bitrate, char *sampleFrequency,
 }
 
 static int
-get_child_count(const char *object, struct magic_container_s *magic)
+get_child_count(const char *object, struct magic_container_s *magic, const char *password)
 {
 	int ret;
 
-	if (magic && magic->child_count)
-		ret = sql_get_int_field(db, "SELECT count(*) from %s", magic->child_count);
-	else if (magic && magic->objectid && *(magic->objectid))
-		ret = sql_get_int_field(db, "SELECT count(*) from OBJECTS where PARENT_ID = '%s';", *(magic->objectid));
-	else
-		ret = sql_get_int_field(db, "SELECT count(*) from OBJECTS where PARENT_ID = '%s';", object);
+	if (magic && magic->child_count) {
+		if (strcmp(magic->child_count, "OBJECTS") == 0) {
+			ret = sql_get_int_field(db, "SELECT count(*) from %s where (password is null or password = '' or password in (%s))", magic->child_count, password ? password : "''");
+		} else {
+			ret = sql_get_int_field(db, "SELECT count(*) from %s", magic->child_count);
+		}
+
+	} else if (magic && magic->objectid && *(magic->objectid)) {
+		ret = sql_get_int_field(db, "SELECT count(*) from OBJECTS where PARENT_ID = '%s' and (password is null or password = '' or password in (%s));", *(magic->objectid), password ? password : "''");
+	} else {
+		ret = sql_get_int_field(db, "SELECT count(*) from OBJECTS where PARENT_ID = '%s' and (password is null or password = '' or password in (%s));", object, password ? password : "''");
+	}
 
 	return (ret > 0) ? ret : 0;
 }
@@ -1117,7 +1123,11 @@ callback(void *args, int argc, char **argv, char **azColName)
 			ret = strcatf(str, "searchable=\"%d\" ", check_magic_container(id, passed_args->flags) ? 0 : 1);
 		}
 		if( passed_args->filter & FILTER_CHILDCOUNT ) {
-			ret = strcatf(str, "childCount=\"%d\"", get_child_count(id, check_magic_container(id, passed_args->flags)));
+			if (strcmp(id, PASSWORD_CONTAINER) == 0) {
+				ret = strcatf(str, "childCount=\"%d\"", 10);
+			} else {
+				ret = strcatf(str, "childCount=\"%d\"", get_child_count(id, check_magic_container(id, passed_args->flags), passed_args->password));
+			}
 		}
 		/* If the client calls for BrowseMetadata on root, we have to include our "upnp:searchClass"'s, unless they're filtered out */
 		if( passed_args->requested == 1 && strcmp(id, "0") == 0 && (passed_args->filter & FILTER_UPNP_SEARCHCLASS) ) {
@@ -1171,6 +1181,119 @@ callback(void *args, int argc, char **argv, char **azColName)
 	return 0;
 }
 
+
+
+static void createPasswordPrimaryContainer(struct Response *passed_args, const char *parent)
+{
+	struct string_s *str = passed_args->str;
+		passed_args->returned++;
+
+		strcatf(str, "&lt;container id=\"%s\" parentID=\"%s\" restricted=\"1\" searchable=\"0\" ", PASSWORD_CONTAINER, parent);
+		if( passed_args->filter & FILTER_CHILDCOUNT ) {
+			strcatf(str, "childCount=\"%d\"", 10);
+		}
+		strcatf(str, "&gt;"
+	                   "&lt;dc:title&gt;Password&lt;/dc:title&gt;"
+	                   "&lt;upnp:class&gt;object.container.storageFolder&lt;/upnp:class&gt;");
+		strcatf(str, "&lt;/container&gt;");
+		return;
+}
+
+
+
+
+static void createPasswordContainer(struct Response *passed_args, const char *id, int isMeta)
+{
+	struct string_s *str = passed_args->str;
+	char pin[11], parent[128], mainroot[128];
+	int  i, j, depth=0, cnt=10, start=0, end=10, ret;
+
+	if (runtime_vars.root_container) {
+		    strcpy(mainroot, runtime_vars.root_container);
+	} else {
+		    strcpy(mainroot, "0");
+	}
+
+
+	strcpy(parent, id);
+
+	for (i=0;i<strlen(id);i++) {
+		if (id[i] == '$') depth++;
+	}
+
+	if (isMeta) {
+		start=id[strlen(id)-1] - '0';
+		end = start+1;
+		ret = strlen(parent);
+    		if (ret == strlen(PASSWORD_CONTAINER)) {
+		    strcpy(parent, mainroot);
+    		} else {
+	    	    for (i=ret-1;i>0;i--) {
+			if (parent[i] == '$') {
+	            	    parent[i] = 0; i=0;
+			}
+		    }
+		}
+	}
+
+	if (depth == runtime_vars.password_length-1) cnt = 0;
+
+	DPRINTF(E_DEBUG, L_HTTP, "Generating Password Set:\n"
+	                         " * ObjectID: %s\n"
+				 " * Parent: %s\n"
+	                         " * Start: %d/%d\n"
+	                         " * Depth: %d\n"
+	                         " * isMeta: %d\n",
+				 id, parent, start, end, depth, isMeta); 
+
+
+	if (depth == runtime_vars.password_length) {
+//		passed_args->returned++;
+		if (!isMeta) {
+			// Find the First Parent after the Primary Parent
+			for (i=0; id[i] != '$' && i < strlen(id);i++);
+
+			// Copy each digit out into the Pin
+			for (i++,j=0;i<strlen(id) && j<runtime_vars.password_length;i+=2,j++) {
+				pin[j] = id[i];
+			}
+			pin[j] = 0;
+			DPRINTF(E_DEBUG, L_HTTP, "Generating Password Pin: %s\n", pin);
+
+			if (passed_args->password == NULL) {
+				cnt = runtime_vars.password_length+3;
+				passed_args->password = malloc(cnt);
+				strcpy(passed_args->password, "'");
+				strcat(passed_args->password, pin);
+				strcat(passed_args->password, "'");
+			} else {
+				cnt = strlen(passed_args->password)+runtime_vars.password_length+4;
+				passed_args->password = realloc(passed_args->password, cnt);
+				strcat(passed_args->password, ",'");
+				strcat(passed_args->password, pin);
+				strcat(passed_args->password, "'");
+			}
+			DPRINTF(E_DEBUG, L_HTTP, "Generating Password Stored: %s\n", passed_args->password);
+
+		}
+		cnt = 0;
+		return;
+	}
+
+	for (i=start;i<end;i++) {
+		passed_args->returned++;
+		ret = strcatf(str, "&lt;container id=\"%s$%d\" parentID=\"%s\" restricted=\"1\" searchable=\"0\" ", id, i, parent);
+		if( passed_args->filter & FILTER_CHILDCOUNT ) {
+			ret = strcatf(str, "childCount=\"%d\"", cnt);
+		}
+		ret = strcatf(str, "&gt;"
+	                   "&lt;dc:title&gt;%d&lt;/dc:title&gt;"
+	                   "&lt;upnp:class&gt;object.container.storageFolder&lt;/upnp:class&gt;",
+	                   i);
+		ret = strcatf(str, "&lt;/container&gt;");
+	}
+}
+
 static void
 BrowseContentDirectory(struct upnphttp * h, const char * action)
 {
@@ -1197,6 +1320,8 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 	struct NameValueParserData data;
 	int RequestedCount = 0;
 	int StartingIndex = 0;
+	int isPasswd = 0;
+	int AddedPasswordContainer=0;
 
 	memset(&args, 0, sizeof(args));
 	memset(&str, 0, sizeof(str));
@@ -1252,6 +1377,9 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 	args.client = h->req_client ? h->req_client->type->type : 0;
 	args.flags = h->req_client ? h->req_client->type->flags : 0;
 	args.str = &str;
+	
+	args.password = h->req_client ? h->req_client->password : NULL;
+
 	DPRINTF(E_DEBUG, L_HTTP, "Browsing ContentDirectory:\n"
 	                         " * ObjectID: %s\n"
 	                         " * Count: %d\n"
@@ -1262,115 +1390,145 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 				ObjectID, RequestedCount, StartingIndex,
 	                        BrowseFlag, Filter, SortCriteria);
 
+	isPasswd = check_password_container(ObjectID);
+
 	if( strcmp(BrowseFlag+6, "Metadata") == 0 )
 	{
 		const char *id = ObjectID;
 		args.requested = 1;
-		magic = in_magic_container(ObjectID, args.flags, &id);
-		if (magic)
-		{
-			if (magic->objectid_sql && strcmp(id, ObjectID) != 0)
-				objectid_sql = magic->objectid_sql;
-			if (magic->parentid_sql && strcmp(id, ObjectID) != 0)
-				parentid_sql = magic->parentid_sql;
-			if (magic->refid_sql)
-				refid_sql = magic->refid_sql;
-		}
-		sql = sqlite3_mprintf("SELECT %s, %s, %s, " COLUMNS
+        if (isPasswd) {
+		    DPRINTF(E_INFO, L_HTTP, "Is Password MetaData %s", ObjectID);
+		    totalMatches = 1;
+		    createPasswordContainer(&args, ObjectID, 1);
+        } else {
+			magic = in_magic_container(ObjectID, args.flags, &id);
+			if (magic)
+			{
+				if (magic->objectid_sql && strcmp(id, ObjectID) != 0)
+					objectid_sql = magic->objectid_sql;
+				if (magic->parentid_sql && strcmp(id, ObjectID) != 0)
+					parentid_sql = magic->parentid_sql;
+				if (magic->refid_sql)
+					refid_sql = magic->refid_sql;
+			}
+			sql = sqlite3_mprintf("SELECT %s, %s, %s, " COLUMNS
 				      "from OBJECTS o left join DETAILS d on (d.ID = o.DETAIL_ID)"
-				      " where OBJECT_ID = '%q';",
-				      objectid_sql, parentid_sql, refid_sql, id);
-		ret = sqlite3_exec(db, sql, callback, (void *) &args, &zErrMsg);
-		totalMatches = args.returned;
+				      " where OBJECT_ID = '%q' and (o.password is null or o.password = '' or o.password in (%s));",
+				      objectid_sql, parentid_sql, refid_sql, id, args.password ? args.password : "''");
+			ret = sqlite3_exec(db, sql, callback, (void *) &args, &zErrMsg);
+			totalMatches = args.returned;
+		}
 	}
 	else
 	{
-		magic = check_magic_container(ObjectID, args.flags);
-		if (magic)
-		{
-			if (magic->objectid && *(magic->objectid))
-				ObjectID = *(magic->objectid);
-			if (magic->objectid_sql)
-				objectid_sql = magic->objectid_sql;
-			if (magic->parentid_sql)
-				parentid_sql = magic->parentid_sql;
-			if (magic->refid_sql)
-				refid_sql = magic->refid_sql;
-			if (magic->where)
-				strncpyt(where, magic->where, sizeof(where));
-			if (magic->max_count > 0)
-			{
-				int limit = MAX(magic->max_count - StartingIndex, 0);
-				ret = get_child_count(ObjectID, magic);
-				totalMatches = MIN(ret, limit);
-				if (RequestedCount > limit || RequestedCount < 0)
-					RequestedCount = limit;
-			}
-		}
-		if (!where[0])
-			sqlite3_snprintf(sizeof(where), where, "PARENT_ID = '%q'", ObjectID);
+	    if (isPasswd) {
+			DPRINTF(E_INFO, L_HTTP, "Is Password %s", ObjectID);
+			createPasswordContainer(&args, ObjectID, 0);
+			totalMatches = args.returned;
+		        if (h->req_client && args.password) {
+				DPRINTF(E_INFO, L_HTTP, "Passwords %s", args.password);
+				h->req_client->password = args.password;
 
-		if (!totalMatches)
-			totalMatches = get_child_count(ObjectID, magic);
-		ret = 0;
-		if( SortCriteria )
-		{
-			__SORT_LIMIT
-			orderBy = parse_sort_criteria(SortCriteria, &ret);
-		}
-		else if (!orderBy)
-		{
-			if( strncmp(ObjectID, MUSIC_PLIST_ID, strlen(MUSIC_PLIST_ID)) == 0 )
-			{
-				if( strcmp(ObjectID, MUSIC_PLIST_ID) == 0 )
-					ret = xasprintf(&orderBy, "order by d.TITLE");
-				else
-					ret = xasprintf(&orderBy, "order by length(OBJECT_ID), OBJECT_ID");
 			}
-			else if( args.flags & FLAG_FORCE_SORT )
+	    } else {
+			magic = check_magic_container(ObjectID, args.flags);
+			if (magic)
+			{
+				if (magic->objectid && *(magic->objectid))
+					ObjectID = *(magic->objectid);
+				if (magic->objectid_sql)
+					objectid_sql = magic->objectid_sql;
+				if (magic->parentid_sql)
+					parentid_sql = magic->parentid_sql;
+				if (magic->refid_sql)
+					refid_sql = magic->refid_sql;
+				if (magic->where)
+					strncpyt(where, magic->where, sizeof(where));
+				if (magic->max_count > 0)
+				{
+					int limit = MAX(magic->max_count - StartingIndex, 0);
+					ret = get_child_count(ObjectID, magic, args.password);
+					totalMatches = MIN(ret, limit);
+					if (RequestedCount > limit || RequestedCount < 0)
+						RequestedCount = limit;
+				}
+			}
+			if (!where[0]) {
+				if (strcmp(ObjectID, "0") == 0 || strcmp(ObjectID, MUSIC_ID) == 0 || strcmp(ObjectID, BROWSEDIR_ID) == 0 ||
+				    strcmp(ObjectID, VIDEO_ID) == 0 || strcmp(ObjectID, IMAGE_ID) == 0) {
+					createPasswordPrimaryContainer(&args, ObjectID);
+					AddedPasswordContainer=1;
+				}
+
+				sqlite3_snprintf(sizeof(where), where, "PARENT_ID = '%q'", ObjectID);
+			}
+
+			if (!totalMatches) {
+				totalMatches = get_child_count(ObjectID, magic, args.password) + AddedPasswordContainer;
+			}
+
+			ret = 0;
+			if( SortCriteria )
 			{
 				__SORT_LIMIT
-				ret = xasprintf(&orderBy, "order by o.CLASS, d.DISC, d.TRACK, d.TITLE");
-			}
-			else
 				orderBy = parse_sort_criteria(SortCriteria, &ret);
-			if( ret == -1 )
-			{
-				free(orderBy);
-				orderBy = NULL;
-				ret = 0;
 			}
+			else if (!orderBy)
+			{
+				if( strncmp(ObjectID, MUSIC_PLIST_ID, strlen(MUSIC_PLIST_ID)) == 0 )
+				{
+					if( strcmp(ObjectID, MUSIC_PLIST_ID) == 0 )
+						ret = xasprintf(&orderBy, "order by d.TITLE");
+					else
+						ret = xasprintf(&orderBy, "order by length(OBJECT_ID), OBJECT_ID");
+				}
+				else if( args.flags & FLAG_FORCE_SORT )
+				{
+					__SORT_LIMIT
+					ret = xasprintf(&orderBy, "order by o.CLASS, d.DISC, d.TRACK, d.TITLE");
+				}
+				else
+					orderBy = parse_sort_criteria(SortCriteria, &ret);
+				if( ret == -1 )
+				{
+					free(orderBy);
+					orderBy = NULL;
+					ret = 0;
+				}
+			}
+			/* If it's a DLNA client, return an error for bad sort criteria */
+			if( ret < 0 && ((args.flags & FLAG_DLNA) || GETFLAG(DLNA_STRICT_MASK)) )
+			{
+				SoapError(h, 709, "Unsupported or invalid sort criteria");
+				goto browse_error;
+			}
+
+			sql = sqlite3_mprintf("SELECT %s, %s, %s, " COLUMNS
+		              "from OBJECTS o left join DETAILS d on (d.ID = o.DETAIL_ID)"
+				      " where (%s %s) and (o.password is null or o.password = '' or o.password in (%s))  limit %d, %d;",
+				      objectid_sql, parentid_sql, refid_sql,
+				      where, THISORNUL(orderBy), args.password ? args.password : "''", StartingIndex, RequestedCount);
+			DPRINTF(E_DEBUG, L_HTTP, "Browse SQL: %s\n", sql);
+			ret = sqlite3_exec(db, sql, callback, (void *) &args, &zErrMsg);
 		}
-		/* If it's a DLNA client, return an error for bad sort criteria */
-		if( ret < 0 && ((args.flags & FLAG_DLNA) || GETFLAG(DLNA_STRICT_MASK)) )
+	}
+	if (!isPasswd) {
+		if( (ret != SQLITE_OK) && (zErrMsg != NULL) )
 		{
+			DPRINTF(E_WARN, L_HTTP, "SQL error: %s\nBAD SQL: %s\n", zErrMsg, sql);
+			sqlite3_free(zErrMsg);
 			SoapError(h, 709, "Unsupported or invalid sort criteria");
 			goto browse_error;
 		}
-
-		sql = sqlite3_mprintf("SELECT %s, %s, %s, " COLUMNS
-		                      "from OBJECTS o left join DETAILS d on (d.ID = o.DETAIL_ID)"
-				      " where %s %s limit %d, %d;",
-				      objectid_sql, parentid_sql, refid_sql,
-				      where, THISORNUL(orderBy), StartingIndex, RequestedCount);
-		DPRINTF(E_DEBUG, L_HTTP, "Browse SQL: %s\n", sql);
-		ret = sqlite3_exec(db, sql, callback, (void *) &args, &zErrMsg);
-	}
-	if( (ret != SQLITE_OK) && (zErrMsg != NULL) )
-	{
-		DPRINTF(E_WARN, L_HTTP, "SQL error: %s\nBAD SQL: %s\n", zErrMsg, sql);
-		sqlite3_free(zErrMsg);
-		SoapError(h, 709, "Unsupported or invalid sort criteria");
-		goto browse_error;
-	}
-	sqlite3_free(sql);
-	/* Does the object even exist? */
-	if( !totalMatches )
-	{
-		if( !object_exists(ObjectID) )
+		sqlite3_free(sql);
+		/* Does the object even exist? */
+		if( !totalMatches )
 		{
-			SoapError(h, 701, "No such object error");
-			goto browse_error;
+			if( !object_exists(ObjectID) )
+			{
+				SoapError(h, 701, "No such object error");
+				goto browse_error;
+			}
 		}
 	}
 	ret = strcatf(&str, "&lt;/DIDL-Lite&gt;</Result>\n"
@@ -1722,6 +1880,7 @@ SearchContentDirectory(struct upnphttp * h, const char * action)
 	args.requested = RequestedCount;
 	args.client = h->req_client ? h->req_client->type->type : 0;
 	args.flags = h->req_client ? h->req_client->type->flags : 0;
+	args.password = h->req_client ? h->req_client->password : NULL;
 	args.str = &str;
 	DPRINTF(E_DEBUG, L_HTTP, "Searching ContentDirectory:\n"
 	                         " * ObjectID: %s\n"
@@ -1749,11 +1908,11 @@ SearchContentDirectory(struct upnphttp * h, const char * action)
 
 	totalMatches = sql_get_int_field(db, "SELECT (select count(distinct DETAIL_ID)"
 	                                     " from OBJECTS o left join DETAILS d on (o.DETAIL_ID = d.ID)"
-	                                     " where (OBJECT_ID glob '%q%s') and (%s))"
+	                                     " where (OBJECT_ID glob '%q%s') and (%s) and (o.password is null or o.password = '' or o.password in (%s))"
 	                                     " + "
 	                                     "(select count(*) from OBJECTS o left join DETAILS d on (o.DETAIL_ID = d.ID)"
-	                                     " where (OBJECT_ID = '%q') and (%s))",
-	                                     ContainerID, sep, where, ContainerID, where);
+	                                     " where (OBJECT_ID = '%q') and (%s) and (o.password is null or o.password = '' or o.password in (%s))",
+	                                     ContainerID, sep, where, args.password ? args.password : "''", ContainerID, where, args.password ? args.password : "''");
 	if( totalMatches < 0 )
 	{
 		/* Must be invalid SQL, so most likely bad or unhandled search criteria. */
@@ -1781,14 +1940,14 @@ SearchContentDirectory(struct upnphttp * h, const char * action)
 
 	sql = sqlite3_mprintf( SELECT_COLUMNS
 	                      "from OBJECTS o left join DETAILS d on (d.ID = o.DETAIL_ID)"
-	                      " where OBJECT_ID glob '%q%s' and (%s) %s "
+	                      " where OBJECT_ID glob '%q%s' and (%s) and (o.password is null or o.password = '' or o.password in (%s)) %s "
 	                      "%z %s"
 	                      " limit %d, %d",
-	                      ContainerID, sep, where, groupBy,
+	                      ContainerID, sep, where, args.password ? args.password : "''", groupBy,
 	                      (*ContainerID == '*') ? NULL :
 	                      sqlite3_mprintf("UNION ALL " SELECT_COLUMNS
 	                                      "from OBJECTS o left join DETAILS d on (d.ID = o.DETAIL_ID)"
-	                                      " where OBJECT_ID = '%q' and (%s) ", ContainerID, where),
+	                                      " where OBJECT_ID = '%q' and (%s) and (o.password is null or o.password = '' or o.password in (%s)) ", ContainerID, where, args.password ? args.password : "''"),
 	                      orderBy, StartingIndex, RequestedCount);
 	DPRINTF(E_DEBUG, L_HTTP, "Search SQL: %s\n", sql);
 	ret = sqlite3_exec(db, sql, callback, (void *) &args, &zErrMsg);

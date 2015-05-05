@@ -64,7 +64,8 @@ static const struct {
 	{ USER_ACCOUNT, "user" },
 	{ FORCE_SORT_CRITERIA, "force_sort_criteria" },
 	{ MAX_CONNECTIONS, "max_connections" },
-	{ MERGE_MEDIA_DIRS, "merge_media_dirs" }
+	{ MERGE_MEDIA_DIRS, "merge_media_dirs" },
+	{ PASSWORD_LENGTH, "password_length" }
 };
 
 int
