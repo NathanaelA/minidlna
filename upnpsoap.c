@@ -1332,6 +1332,9 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 				__SORT_LIMIT
 				ret = xasprintf(&orderBy, "order by o.CLASS, d.DISC, d.TRACK, d.TITLE");
 			}
+			/* LG TV ordering bug */
+			else if( args.client == ELGDevice )
+				ret = xasprintf(&orderBy, "order by o.CLASS, d.TITLE");
 			else
 				orderBy = parse_sort_criteria(SortCriteria, &ret);
 			if( ret == -1 )
