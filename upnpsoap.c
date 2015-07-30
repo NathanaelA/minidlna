@@ -1298,6 +1298,8 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 				refid_sql = magic->refid_sql;
 			if (magic->where)
 				strncpyt(where, magic->where, sizeof(where));
+			if (magic->orderby && !GETFLAG(DLNA_STRICT_MASK))
+				orderBy = strdup(magic->orderby);
 			if (magic->max_count > 0)
 			{
 				int limit = MAX(magic->max_count - StartingIndex, 0);
@@ -1313,7 +1315,7 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 		if (!totalMatches)
 			totalMatches = get_child_count(ObjectID, magic);
 		ret = 0;
-		if( SortCriteria )
+		if (SortCriteria && !orderBy)
 		{
 			__SORT_LIMIT
 			orderBy = parse_sort_criteria(SortCriteria, &ret);
