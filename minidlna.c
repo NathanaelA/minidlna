@@ -1055,6 +1055,7 @@ main(int argc, char **argv)
 	if (sssdp < 0)
 	{
 		DPRINTF(E_INFO, L_GENERAL, "Failed to open socket for receiving SSDP. Trying to use MiniSSDPd\n");
+		reload_ifaces(0);	/* populate lan_addr[0].str */
 		if (SubmitServicesToMiniSSDPD(lan_addr[0].str, runtime_vars.port) < 0)
 			DPRINTF(E_FATAL, L_GENERAL, "Failed to connect to MiniSSDPd. EXITING");
 	}
