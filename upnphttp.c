@@ -161,7 +161,10 @@ ParseHttpHeaders(struct upnphttp * h)
 				p = colon;
 				while(*p && (*p < '0' || *p > '9'))
 					p++;
-				h->req_contentlen = atoi(p);
+				if(h->req_contentlen < 0) {
+					DPRINTF(E_WARN, L_HTTP, "Invalid Content-Length %d", h->req_contentlen);
+					h->req_contentlen = 0;
+				}
 			}
 			else if(strncasecmp(line, "SOAPAction", 10)==0)
 			{
@@ -408,9 +411,7 @@ ParseHttpHeaders(struct upnphttp * h)
 next_header:
 		line = strstr(line, "\r\n");
 		if (!line)
-		{
 			return;
-		}
 		line += 2;
 	}
 	if( h->reqflags & FLAG_CHUNKED )
