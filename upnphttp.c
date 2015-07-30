@@ -1568,8 +1568,7 @@ SendResp_resizedimg(struct upnphttp * h, char * object)
 	char *key, *val;
 	char *saveptr, *item = NULL;
 	int rotate;
-	/* Not implemented yet *
-	char *pixelshape=NULL; */
+	int pixw = 0, pixh = 0;
 	long long id;
 	int rows=0, chunked, ret;
 	image_s *imsrc = NULL, *imdst = NULL;
@@ -1622,11 +1621,12 @@ SendResp_resizedimg(struct upnphttp * h, char * object)
 			rotate = (rotate + atoi(val)) % 360;
 			sql_exec(db, "UPDATE DETAILS set ROTATION = %d where ID = %lld", rotate, id);
 		}
-		/* Not implemented yet *
 		else if( strcasecmp(key, "pixelshape") == 0 )
 		{
-			pixelshape = val;
-		} */
+			ret = sscanf(val, "%d:%d", &pixw, &pixh);
+			if( ret != 2 )
+				pixw = pixh = 0;
+		}
 	}
 
 #if USE_FORK
@@ -1679,6 +1679,14 @@ SendResp_resizedimg(struct upnphttp * h, char * object)
 	{
 		dsth = height;
 		dstw = (((height<<10)/srch) * srcw>>10);
+	}
+	/* Account for pixel shape */
+	if( pixw && pixh )
+	{
+		if( pixh > pixw )
+			dsth = dsth * pixw / pixh;
+		else if( pixw > pixh )
+			dstw = dstw * pixh / pixw;
 	}
 
 	if( dstw <= 160 && dsth <= 160 )
