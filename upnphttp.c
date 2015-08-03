@@ -827,8 +827,6 @@ ProcessHttpQuery_upnphttp(struct upnphttp * h)
 	for(i = 0; i<15 && *p && *p != '\r'; i++)
 		HttpVer[i] = *(p++);
 	HttpVer[i] = '\0';
-	/*DPRINTF(E_INFO, L_HTTP, "HTTP REQUEST : %s %s (%s)\n",
-	       HttpCommand, HttpUrl, HttpVer);*/
 
 	/* set the interface here initially, in case there is no Host header */
 	for(i = 0; i<n_lan_addr; i++)
@@ -879,7 +877,7 @@ ProcessHttpQuery_upnphttp(struct upnphttp * h)
 		h->state = 100;
 	}
 
-	DPRINTF(E_DEBUG, L_HTTP, "HTTP REQUEST[%d]: %.*s\n", h->state, h->req_buflen, h->req_buf);
+	DPRINTF(E_DEBUG, L_HTTP, "HTTP REQUEST: %.*s\n", h->req_buflen, h->req_buf);
 	if(strcmp("POST", HttpCommand) == 0)
 	{
 		h->req_command = EPost;
