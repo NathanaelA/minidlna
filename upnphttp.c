@@ -161,6 +161,7 @@ ParseHttpHeaders(struct upnphttp * h)
 				p = colon;
 				while(*p && (*p < '0' || *p > '9'))
 					p++;
+				h->req_contentlen = atoi(p);
 				if(h->req_contentlen < 0) {
 					DPRINTF(E_WARN, L_HTTP, "Invalid Content-Length %d", h->req_contentlen);
 					h->req_contentlen = 0;
@@ -878,7 +879,7 @@ ProcessHttpQuery_upnphttp(struct upnphttp * h)
 		h->state = 100;
 	}
 
-	DPRINTF(E_DEBUG, L_HTTP, "HTTP REQUEST: %.*s\n", h->req_buflen, h->req_buf);
+	DPRINTF(E_DEBUG, L_HTTP, "HTTP REQUEST[%d]: %.*s\n", h->state, h->req_buflen, h->req_buf);
 	if(strcmp("POST", HttpCommand) == 0)
 	{
 		h->req_command = EPost;
