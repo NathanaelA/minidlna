@@ -52,6 +52,8 @@ _get_flctags(char *filename, struct song_metadata *psong)
 		switch(block->type)
 		{
 		case FLAC__METADATA_TYPE_STREAMINFO:
+			if (!block->data.stream_info.sample_rate)
+				break; /* Info is crap, avoid div-by-zero. */
 			sec = (unsigned int)(block->data.stream_info.total_samples /
 			                     block->data.stream_info.sample_rate);
 			ms = (unsigned int)(((block->data.stream_info.total_samples %
