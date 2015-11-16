@@ -1021,11 +1021,11 @@ main(int argc, char **argv)
 
 	for (i = 0; i < L_MAX; i++)
 		log_level[i] = E_WARN;
-	init_nls();
 
 	ret = init(argc, argv);
 	if (ret != 0)
 		return 1;
+	init_nls();
 
 	DPRINTF(E_WARN, L_GENERAL, "Starting " SERVER_NAME " version " MINIDLNA_VERSION ".\n");
 	if (sqlite3_libversion_number() < 3005001)
