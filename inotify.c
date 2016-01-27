@@ -25,6 +25,7 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <libgen.h>
+#include <signal.h>
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
