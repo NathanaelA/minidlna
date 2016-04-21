@@ -75,10 +75,6 @@
 #endif
 #define THISORNUL(s) (s ? s : "")
 
-#ifndef PNPX
-#define PNPX 0
-#endif
-
 #define RESOURCE_PROTOCOL_INFO_VALUES \
 	"http-get:*:image/jpeg:DLNA.ORG_PN=JPEG_TN," \
 	"http-get:*:image/jpeg:DLNA.ORG_PN=JPEG_SM," \
@@ -212,10 +208,6 @@ extern char serialnumber[];
 
 #define PRESENTATIONURL_MAX_LEN 64
 extern char presentationurl[];
-
-#if PNPX
-extern char pnpx_hwid[];
-#endif
 
 /* lan addresses */
 extern int n_lan_addr;
