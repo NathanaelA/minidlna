@@ -149,7 +149,7 @@ check_for_captions(const char *path, int64_t detailID)
 
 	if (ret == 0)
 	{
-		sql_exec(db, "INSERT into CAPTIONS"
+		sql_exec(db, "INSERT OR REPLACE into CAPTIONS"
 		             " (ID, PATH) "
 		             "VALUES"
 		             " (%lld, %Q)", detailID, file);
@@ -694,16 +694,16 @@ GetVideoMetadata(const char *path, char *name)
 	//dump_format(ctx, 0, NULL, 0);
 	for( i=0; i<ctx->nb_streams; i++)
 	{
-		if( audio_stream == -1 &&
-		    ctx->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO )
+		if( ctx->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO &&
+		    audio_stream == -1 )
 		{
 			audio_stream = i;
 			ac = ctx->streams[audio_stream]->codec;
 			continue;
 		}
-		else if( video_stream == -1 &&
+		else if( ctx->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO &&
 		         !lav_is_thumbnail_stream(ctx->streams[i], &m.thumb_data, &m.thumb_size) &&
-			 ctx->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO )
+		         video_stream == -1 )
 		{
 			video_stream = i;
 			vc = ctx->streams[video_stream]->codec;

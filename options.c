@@ -65,6 +65,7 @@ static const struct {
 	{ FORCE_SORT_CRITERIA, "force_sort_criteria" },
 	{ MAX_CONNECTIONS, "max_connections" },
 	{ MERGE_MEDIA_DIRS, "merge_media_dirs" },
+	{ WIDE_LINKS, "wide_links" },
 	{ PASSWORD_LENGTH, "password_length" }
 };
 
