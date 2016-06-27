@@ -1,3 +1,30 @@
+1.1.6 - Released 16-June-2016
+--------------------------------
+- Add AllShare and Windows client detection.
+- Update support for LG2012 TV.
+- Fix Samsung bookmarking on magic containers.
+- Fix SQL error when moving captions.
+- Add wide_links config option.
+- Fix external subtitles on Samsung Series J.
+- Add string localization support for magic containers.
+- Rework NLS init to work with non-en_US locales.
+
+1.1.5 - Released 10-Sep-2015
+--------------------------------
+- Re-enable Samsung DCM10, which adds video bookmarks and "BasicView" support.
+- Allow SSDP M-SEARCH from other subnets.
+- Fix some nfo file character escaping.
+- Fix crash with >3 network interfaces.
+- Support rotation of monochrome JPEGs.
+- Handle cover art streams that come after the video stream.
+- Recognize new hard links with inotify.
+- Work around LG TV ordering bug.
+- Implement TiVo image PixelShape support.
+- Support thumbnail rotation.
+- Use "Album Artist" tag from AAC files.
+- Add Korean translations.
+- Fix handling of bad FLAC files.
+
 1.1.4 - Released 26-Aug-2014
 --------------------------------
 - Add magic container infrastructure.

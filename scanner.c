@@ -594,7 +594,8 @@ CreateDatabase(void)
 			ret = sql_exec(db, "INSERT into OBJECTS (OBJECT_ID, PARENT_ID, DETAIL_ID, CLASS, NAME)"
 			                   " values "
 					   "('%s', '%s', %lld, 'container.storageFolder', '%q')",
-					   magic->objectid_match, parent, GetFolderMetadata(magic->name, NULL, NULL, NULL, 0), magic->name);
+					   magic->objectid_match, parent,
+					   GetFolderMetadata(_(magic->name), NULL, NULL, NULL, 0), _(magic->name));
 			free(parent);
 			if( ret != SQLITE_OK )
 				goto sql_failed;
@@ -793,11 +794,13 @@ ScanDirectory(const char *dir, const char *parent, media_types dir_types, const 
 			break;
 		default:
 			n = -1;
+			errno = EINVAL;
 			break;
 	}
 	if( n < 0 )
 	{
-		DPRINTF(E_WARN, L_SCANNER, "Error scanning %s\n", dir);
+		DPRINTF(E_WARN, L_SCANNER, "Error scanning %s [%s]\n",
+			dir, strerror(errno));
 		return;
 	}
 

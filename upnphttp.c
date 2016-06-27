@@ -162,6 +162,10 @@ ParseHttpHeaders(struct upnphttp * h)
 				while(*p && (*p < '0' || *p > '9'))
 					p++;
 				h->req_contentlen = atoi(p);
+				if(h->req_contentlen < 0) {
+					DPRINTF(E_WARN, L_HTTP, "Invalid Content-Length %d", h->req_contentlen);
+					h->req_contentlen = 0;
+				}
 			}
 			else if(strncasecmp(line, "SOAPAction", 10)==0)
 			{
@@ -408,9 +412,7 @@ ParseHttpHeaders(struct upnphttp * h)
 next_header:
 		line = strstr(line, "\r\n");
 		if (!line)
-		{
 			return;
-		}
 		line += 2;
 	}
 	if( h->reqflags & FLAG_CHUNKED )
@@ -471,6 +473,21 @@ Send400(struct upnphttp * h)
 	h->respflags = FLAG_HTML;
 	BuildResp2_upnphttp(h, 400, "Bad Request",
 	                    body400, sizeof(body400) - 1);
+	SendResp_upnphttp(h);
+	CloseSocket_upnphttp(h);
+}
+
+/* very minimalistic 403 error message */
+static void
+Send403(struct upnphttp * h)
+{
+	static const char body403[] =
+		"<HTML><HEAD><TITLE>403 Forbidden</TITLE></HEAD>"
+		"<BODY><H1>Forbidden</H1>You don't have permission to access this resource."
+		"</BODY></HTML>\r\n";
+	h->respflags = FLAG_HTML;
+	BuildResp2_upnphttp(h, 403, "Forbidden",
+	                    body403, sizeof(body403) - 1);
 	SendResp_upnphttp(h);
 	CloseSocket_upnphttp(h);
 }
@@ -825,8 +842,6 @@ ProcessHttpQuery_upnphttp(struct upnphttp * h)
 	for(i = 0; i<15 && *p && *p != '\r'; i++)
 		HttpVer[i] = *(p++);
 	HttpVer[i] = '\0';
-	/*DPRINTF(E_INFO, L_HTTP, "HTTP REQUEST : %s %s (%s)\n",
-	       HttpCommand, HttpUrl, HttpVer);*/
 
 	/* set the interface here initially, in case there is no Host header */
 	for(i = 0; i<n_lan_addr; i++)
@@ -1328,6 +1343,46 @@ start_dlna_header(struct string_s *str, int respcode, const char *tmode, const c
 	             respcode, date, tmode, mime);
 }
 
+static int
+_open_file(const char *orig_path)
+{
+	struct media_dir_s *media_path;
+	char buf[PATH_MAX];
+	const char *path;
+	int fd;
+
+	if (!GETFLAG(WIDE_LINKS_MASK))
+	{
+		path = realpath(orig_path, buf);
+		if (!path)
+		{
+			DPRINTF(E_ERROR, L_HTTP, "Error resolving path %s: %s\n",
+						orig_path, strerror(errno));
+			return -1;
+		}
+
+		for (media_path = media_dirs; media_path; media_path = media_path->next)
+		{
+			if (strncmp(path, media_path->path, strlen(media_path->path)) == 0)
+				break;
+		}
+               if (!media_path && strncmp(path, db_path, strlen(db_path)))
+		{
+			DPRINTF(E_ERROR, L_HTTP, "Rejecting wide link %s -> %s\n",
+						orig_path, path);
+			return -403;
+		}
+	}
+	else
+		path = orig_path;
+
+	fd = open(path, O_RDONLY);
+	if (fd < 0)
+		DPRINTF(E_ERROR, L_HTTP, "Error opening %s\n", path);
+
+	return fd;
+}
+
 static void
 SendResp_icon(struct upnphttp * h, char * icon)
 {
@@ -1413,11 +1468,13 @@ SendResp_albumArt(struct upnphttp * h, char * object)
 	}
 	DPRINTF(E_INFO, L_HTTP, "Serving album art ID: %lld [%s]\n", id, path);
 
-	fd = open(path, O_RDONLY);
+	fd = _open_file(path);
 	if( fd < 0 ) {
-		DPRINTF(E_ERROR, L_HTTP, "Error opening %s\n", path);
 		sqlite3_free(path);
-		Send404(h);
+		if (fd == -403)
+			Send403(h);
+		else
+			Send404(h);
 		return;
 	}
 	sqlite3_free(path);
@@ -1461,11 +1518,13 @@ SendResp_caption(struct upnphttp * h, char * object)
 	}
 	DPRINTF(E_INFO, L_HTTP, "Serving caption ID: %lld [%s]\n", id, path);
 
-	fd = open(path, O_RDONLY);
+	fd = _open_file(path);
 	if( fd < 0 ) {
-		DPRINTF(E_ERROR, L_HTTP, "Error opening %s\n", path);
 		sqlite3_free(path);
-		Send404(h);
+		if (fd == -403)
+			Send403(h);
+		else
+			Send404(h);
 		return;
 	}
 	sqlite3_free(path);
@@ -1568,8 +1627,7 @@ SendResp_resizedimg(struct upnphttp * h, char * object)
 	char *key, *val;
 	char *saveptr, *item = NULL;
 	int rotate;
-	/* Not implemented yet *
-	char *pixelshape=NULL; */
+	int pixw = 0, pixh = 0;
 	long long id;
 	int rows=0, chunked, ret;
 	image_s *imsrc = NULL, *imdst = NULL;
@@ -1622,11 +1680,12 @@ SendResp_resizedimg(struct upnphttp * h, char * object)
 			rotate = (rotate + atoi(val)) % 360;
 			sql_exec(db, "UPDATE DETAILS set ROTATION = %d where ID = %lld", rotate, id);
 		}
-		/* Not implemented yet *
 		else if( strcasecmp(key, "pixelshape") == 0 )
 		{
-			pixelshape = val;
-		} */
+			ret = sscanf(val, "%d:%d", &pixw, &pixh);
+			if( ret != 2 )
+				pixw = pixh = 0;
+		}
 	}
 
 #if USE_FORK
@@ -1679,6 +1738,14 @@ SendResp_resizedimg(struct upnphttp * h, char * object)
 	{
 		dsth = height;
 		dstw = (((height<<10)/srch) * srcw>>10);
+	}
+	/* Account for pixel shape */
+	if( pixw && pixh )
+	{
+		if( pixh > pixw )
+			dsth = dsth * pixw / pixh;
+		else if( pixw > pixh )
+			dstw = dstw * pixh / pixw;
 	}
 
 	if( dstw <= 160 && dsth <= 160 )
@@ -1906,10 +1973,12 @@ SendResp_dlnafile(struct upnphttp *h, char *object)
 	}
 
 	offset = h->req_RangeStart;
-	sendfh = open(last_file.path, O_RDONLY);
+	sendfh = _open_file(last_file.path);
 	if( sendfh < 0 ) {
-		DPRINTF(E_ERROR, L_HTTP, "Error opening %s\n", last_file.path);
-		Send404(h);
+		if (sendfh == -403)
+			Send403(h);
+		else
+			Send404(h);
 		goto error;
 	}
 	size = lseek(sendfh, 0, SEEK_END);

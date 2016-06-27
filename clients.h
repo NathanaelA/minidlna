@@ -39,6 +39,7 @@
 #define FLAG_CAPTION_RES        0x00001000
 /* Response-related flags */
 #define FLAG_HAS_CAPTIONS       0x80000000
+#define RESPONSE_FLAGS          0xF0000000
 
 enum match_types {
 	EMatchNone,
@@ -56,6 +57,7 @@ enum client_types {
 	EDirecTV,
 	EFreeBox,
 	ELGDevice,
+	ELGNetCastDevice,
 	ELifeTab,
 	EMarantzDMP,
 	EMediaRoom,
