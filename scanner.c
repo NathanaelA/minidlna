@@ -728,6 +728,8 @@ readPassword(const char *dir, char *password, int size)
     }
     // Turn it into a Digit if it isn't a digit...
     for (i=0;i<strlen(password);i++) {
+	// A CR or LF will end the password, so we clear anything afterwords.
+	if (password[i] == 10 || password[i] == 13) password[i] = 0;
 	if (password[i] < '0' || password[i] > '9') {
 	    DPRINTF(E_WARN, L_SCANNER, "Password has a non-digit character, replacing with a 0\n");
 	    password[i] = '0';
