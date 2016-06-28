@@ -1923,10 +1923,10 @@ SearchContentDirectory(struct upnphttp * h, const char * action)
 
 	totalMatches = sql_get_int_field(db, "SELECT (select count(distinct DETAIL_ID)"
 	                                     " from OBJECTS o left join DETAILS d on (o.DETAIL_ID = d.ID)"
-	                                     " where (OBJECT_ID glob '%q%s') and (%s) and (o.password is null or o.password = '' or o.password in (%s))"
+	                                     " where (OBJECT_ID glob '%q%s') and (%s) and (o.password is null or o.password = '' or o.password in (%s)))"
 	                                     " + "
 	                                     "(select count(*) from OBJECTS o left join DETAILS d on (o.DETAIL_ID = d.ID)"
-	                                     " where (OBJECT_ID = '%q') and (%s) and (o.password is null or o.password = '' or o.password in (%s))",
+	                                     " where (OBJECT_ID = '%q') and (%s) and (o.password is null or o.password = '' or o.password in (%s)))",
 	                                     ContainerID, sep, where, args.password ? args.password : "''", ContainerID, where, args.password ? args.password : "''");
 	if( totalMatches < 0 )
 	{
