@@ -82,6 +82,29 @@ get_path_from_wd(int wd)
 	return NULL;
 }
 
+static unsigned int
+next_highest(unsigned int num)
+{
+	num |= num >> 1;
+	num |= num >> 2;
+	num |= num >> 4;
+	num |= num >> 8;
+	num |= num >> 16;
+	return ++num;
+}
+
+static void
+raise_watch_limit(unsigned int limit)
+{
+	FILE *max_watches = fopen("/proc/sys/fs/inotify/max_user_watches", "r+");
+	if (!max_watches)
+		return;
+	if (!limit)
+		fscanf(max_watches, "%u", &limit);
+	fprintf(max_watches, "%u", next_highest(limit));
+	fclose(max_watches);
+}
+
 static int
 add_watch(int fd, const char * path)
 {
@@ -89,6 +112,11 @@ add_watch(int fd, const char * path)
 	int wd;
 
 	wd = inotify_add_watch(fd, path, IN_CREATE|IN_CLOSE_WRITE|IN_DELETE|IN_MOVE);
+	if( wd < 0 && errno == ENOSPC)
+	{
+		raise_watch_limit(0);
+		wd = inotify_add_watch(fd, path, IN_CREATE|IN_CLOSE_WRITE|IN_DELETE|IN_MOVE);
+	}
 	if( wd < 0 )
 	{
 		DPRINTF(E_ERROR, L_INOTIFY, "inotify_add_watch(%s) [%s]\n", path, strerror(errno));
@@ -133,17 +161,6 @@ remove_watch(int fd, const char * path)
 	return 1;
 }
 
-static unsigned int
-next_highest(unsigned int num)
-{
-	num |= num >> 1;
-	num |= num >> 2;
-	num |= num >> 4;
-	num |= num >> 8;
-	num |= num >> 16;
-	return(++num);
-}
-
 static int
 inotify_create_watches(int fd)
 {
@@ -176,22 +193,20 @@ inotify_create_watches(int fd)
 		fclose(max_watches);
 		if( (watch_limit < DESIRED_WATCH_LIMIT) || (watch_limit < (num_watches*4/3)) )
 		{
-			max_watches = fopen("/proc/sys/fs/inotify/max_user_watches", "w");
-			if( max_watches )
+			if (access("/proc/sys/fs/inotify/max_user_watches", W_OK) == 0)
 			{
 				if( DESIRED_WATCH_LIMIT >= (num_watches*3/4) )
 				{
-					fprintf(max_watches, "%u", DESIRED_WATCH_LIMIT);
+					raise_watch_limit(8191U);
 				}
 				else if( next_highest(num_watches) >= (num_watches*3/4) )
 				{
-					fprintf(max_watches, "%u", next_highest(num_watches));
+					raise_watch_limit(num_watches);
 				}
 				else
 				{
-					fprintf(max_watches, "%u", next_highest(next_highest(num_watches)));
+					raise_watch_limit(next_highest(num_watches));
 				}
-				fclose(max_watches);
 			}
 			else
 			{
