@@ -67,7 +67,8 @@ static struct watch *watches;
 static struct watch *lastwatch = NULL;
 static time_t next_pl_fill = 0;
 
-char *get_path_from_wd(int wd)
+static char *
+get_path_from_wd(int wd)
 {
 	struct watch *w = watches;
 
@@ -81,7 +82,7 @@ char *get_path_from_wd(int wd)
 	return NULL;
 }
 
-int
+static int
 add_watch(int fd, const char * path)
 {
 	struct watch *nw;
@@ -118,7 +119,7 @@ add_watch(int fd, const char * path)
 	return wd;
 }
 
-int
+static int
 remove_watch(int fd, const char * path)
 {
 	struct watch *w;
@@ -132,7 +133,7 @@ remove_watch(int fd, const char * path)
 	return 1;
 }
 
-unsigned int
+static unsigned int
 next_highest(unsigned int num)
 {
 	num |= num >> 1;
@@ -143,7 +144,7 @@ next_highest(unsigned int num)
 	return(++num);
 }
 
-int
+static int
 inotify_create_watches(int fd)
 {
 	FILE * max_watches;
@@ -209,7 +210,7 @@ inotify_create_watches(int fd)
 	return rows;
 }
 
-int 
+static int
 inotify_remove_watches(int fd)
 {
 	struct watch *w = watches;
@@ -229,57 +230,85 @@ inotify_remove_watches(int fd)
 	return rm_watches;
 }
 
-int add_dir_watch(int fd, char * path, char * filename)
+static int
+inotify_remove_file(const char * path)
 {
-	DIR *ds;
-	struct dirent *e;
-	char *dir;
-	char buf[PATH_MAX];
-	int wd;
-	int i = 0;
+	char sql[128];
+	char art_cache[PATH_MAX];
+	char *id;
+	char *ptr;
+	char **result;
+	int64_t detailID;
+	int rows, playlist;
 
-	if( filename )
+	if( is_caption(path) )
 	{
-		snprintf(buf, sizeof(buf), "%s/%s", path, filename);
-		dir = buf;
+		return sql_exec(db, "DELETE from CAPTIONS where PATH = '%q'", path);
+	}
+	/* Invalidate the scanner cache so we don't insert files into non-existent containers */
+	valid_cache = 0;
+	playlist = is_playlist(path);
+	id = sql_get_text_field(db, "SELECT ID from %s where PATH = '%q'", playlist?"PLAYLISTS":"DETAILS", path);
+	if( !id )
+		return 1;
+	detailID = strtoll(id, NULL, 10);
+	sqlite3_free(id);
+	if( playlist )
+	{
+		sql_exec(db, "DELETE from PLAYLISTS where ID = %lld", detailID);
+		sql_exec(db, "DELETE from DETAILS where ID ="
+		             " (SELECT DETAIL_ID from OBJECTS where OBJECT_ID = '%s$%llX')",
+		         MUSIC_PLIST_ID, detailID);
+		sql_exec(db, "DELETE from OBJECTS where OBJECT_ID = '%s$%llX' or PARENT_ID = '%s$%llX'",
+		         MUSIC_PLIST_ID, detailID, MUSIC_PLIST_ID, detailID);
 	}
 	else
-		dir = path;
-
-	wd = add_watch(fd, dir);
-	if( wd == -1 )
 	{
-		DPRINTF(E_ERROR, L_INOTIFY, "add_watch() [%s]\n", strerror(errno));
-	}
-	else
-	{
-		DPRINTF(E_INFO, L_INOTIFY, "Added watch to %s [%d]\n", dir, wd);
-	}
-
-	ds = opendir(dir);
-	if( ds != NULL )
-	{
-		while( (e = readdir(ds)) )
+		/* Delete the parent containers if we are about to empty them. */
+		snprintf(sql, sizeof(sql), "SELECT PARENT_ID from OBJECTS where DETAIL_ID = %lld"
+		                           " and PARENT_ID not like '64$%%'",
+		                           (long long int)detailID);
+		if( (sql_get_table(db, sql, &result, &rows, NULL) == SQLITE_OK) )
 		{
-			if( strcmp(e->d_name, ".") == 0 ||
-			    strcmp(e->d_name, "..") == 0 )
-				continue;
-			if( (e->d_type == DT_DIR) ||
-			    (e->d_type == DT_UNKNOWN && resolve_unknown_type(dir, NO_MEDIA) == TYPE_DIR) )
-				i += add_dir_watch(fd, dir, e->d_name);
-		}
-	}
-	else
-	{
-		DPRINTF(E_ERROR, L_INOTIFY, "Opendir error! [%s]\n", strerror(errno));
-	}
-	closedir(ds);
-	i++;
+			int i, children;
+			for( i = 1; i <= rows; i++ )
+			{
+				/* If it's a playlist item, adjust the item count of the playlist */
+				if( strncmp(result[i], MUSIC_PLIST_ID, strlen(MUSIC_PLIST_ID)) == 0 )
+				{
+					sql_exec(db, "UPDATE PLAYLISTS set FOUND = (FOUND-1) where ID = %d",
+					         atoi(strrchr(result[i], '$') + 1));
+				}
 
-	return(i);
+				children = sql_get_int_field(db, "SELECT count(*) from OBJECTS where PARENT_ID = '%s'", result[i]);
+				if( children < 0 )
+					continue;
+				if( children < 2 )
+				{
+					sql_exec(db, "DELETE from OBJECTS where OBJECT_ID = '%s'", result[i]);
+
+					ptr = strrchr(result[i], '$');
+					if( ptr )
+						*ptr = '\0';
+					if( sql_get_int_field(db, "SELECT count(*) from OBJECTS where PARENT_ID = '%s'", result[i]) == 0 )
+					{
+						sql_exec(db, "DELETE from OBJECTS where OBJECT_ID = '%s'", result[i]);
+					}
+				}
+			}
+			sqlite3_free_table(result);
+		}
+		/* Now delete the actual objects */
+		sql_exec(db, "DELETE from DETAILS where ID = %lld", detailID);
+		sql_exec(db, "DELETE from OBJECTS where DETAIL_ID = %lld", detailID);
+	}
+	snprintf(art_cache, sizeof(art_cache), "%s/art_cache%s", db_path, path);
+	remove(art_cache);
+
+	return 0;
 }
 
-int
+static int
 inotify_insert_file(char * name, const char * path)
 {
 	int len;
@@ -434,7 +463,7 @@ inotify_insert_file(char * name, const char * path)
 	return depth;
 }
 
-int
+static int
 inotify_insert_directory(int fd, char *name, const char * path)
 {
 	DIR * ds;
@@ -528,85 +557,7 @@ inotify_insert_directory(int fd, char *name, const char * path)
 	return 0;
 }
 
-int
-inotify_remove_file(const char * path)
-{
-	char sql[128];
-	char art_cache[PATH_MAX];
-	char *id;
-	char *ptr;
-	char **result;
-	int64_t detailID;
-	int rows, playlist;
-
-	if( is_caption(path) )
-	{
-		return sql_exec(db, "DELETE from CAPTIONS where PATH = '%q'", path);
-	}
-	/* Invalidate the scanner cache so we don't insert files into non-existent containers */
-	valid_cache = 0;
-	playlist = is_playlist(path);
-	id = sql_get_text_field(db, "SELECT ID from %s where PATH = '%q'", playlist?"PLAYLISTS":"DETAILS", path);
-	if( !id )
-		return 1;
-	detailID = strtoll(id, NULL, 10);
-	sqlite3_free(id);
-	if( playlist )
-	{
-		sql_exec(db, "DELETE from PLAYLISTS where ID = %lld", detailID);
-		sql_exec(db, "DELETE from DETAILS where ID ="
-		             " (SELECT DETAIL_ID from OBJECTS where OBJECT_ID = '%s$%llX')",
-		         MUSIC_PLIST_ID, detailID);
-		sql_exec(db, "DELETE from OBJECTS where OBJECT_ID = '%s$%llX' or PARENT_ID = '%s$%llX'",
-		         MUSIC_PLIST_ID, detailID, MUSIC_PLIST_ID, detailID);
-	}
-	else
-	{
-		/* Delete the parent containers if we are about to empty them. */
-		snprintf(sql, sizeof(sql), "SELECT PARENT_ID from OBJECTS where DETAIL_ID = %lld"
-		                           " and PARENT_ID not like '64$%%'",
-		                           (long long int)detailID);
-		if( (sql_get_table(db, sql, &result, &rows, NULL) == SQLITE_OK) )
-		{
-			int i, children;
-			for( i = 1; i <= rows; i++ )
-			{
-				/* If it's a playlist item, adjust the item count of the playlist */
-				if( strncmp(result[i], MUSIC_PLIST_ID, strlen(MUSIC_PLIST_ID)) == 0 )
-				{
-					sql_exec(db, "UPDATE PLAYLISTS set FOUND = (FOUND-1) where ID = %d",
-					         atoi(strrchr(result[i], '$') + 1));
-				}
-
-				children = sql_get_int_field(db, "SELECT count(*) from OBJECTS where PARENT_ID = '%s'", result[i]);
-				if( children < 0 )
-					continue;
-				if( children < 2 )
-				{
-					sql_exec(db, "DELETE from OBJECTS where OBJECT_ID = '%s'", result[i]);
-
-					ptr = strrchr(result[i], '$');
-					if( ptr )
-						*ptr = '\0';
-					if( sql_get_int_field(db, "SELECT count(*) from OBJECTS where PARENT_ID = '%s'", result[i]) == 0 )
-					{
-						sql_exec(db, "DELETE from OBJECTS where OBJECT_ID = '%s'", result[i]);
-					}
-				}
-			}
-			sqlite3_free_table(result);
-		}
-		/* Now delete the actual objects */
-		sql_exec(db, "DELETE from DETAILS where ID = %lld", detailID);
-		sql_exec(db, "DELETE from OBJECTS where DETAIL_ID = %lld", detailID);
-	}
-	snprintf(art_cache, sizeof(art_cache), "%s/art_cache%s", db_path, path);
-	remove(art_cache);
-
-	return 0;
-}
-
-int
+static int
 inotify_remove_directory(int fd, const char * path)
 {
 	char * sql;
