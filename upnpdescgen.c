@@ -192,24 +192,6 @@ static const struct argument GetProtocolInfoArgs[] =
 	{NULL, 0, 0}
 };
 
-static const struct argument PrepareForConnectionArgs[] =
-{
-	{"RemoteProtocolInfo", 1, 6},
-	{"PeerConnectionManager", 1, 4},
-	{"PeerConnectionID", 1, 7},
-	{"Direction", 1, 5},
-	{"ConnectionID", 2, 7},
-	{"AVTransportID", 2, 8},
-	{"RcsID", 2, 9},
-	{NULL, 0, 0}
-};
-
-static const struct argument ConnectionCompleteArgs[] =
-{
-	{"ConnectionID", 1, 7},
-	{NULL, 0, 0}
-};
-
 static const struct argument GetCurrentConnectionIDsArgs[] =
 {
 	{"ConnectionIDs", 2, 2},
@@ -232,8 +214,6 @@ static const struct argument GetCurrentConnectionInfoArgs[] =
 static const struct action ConnectionManagerActions[] =
 {
 	{"GetProtocolInfo", GetProtocolInfoArgs}, /* R */
-	//OPTIONAL {"PrepareForConnection", PrepareForConnectionArgs}, /* R */
-	//OPTIONAL {"ConnectionComplete", ConnectionCompleteArgs}, /* R */
 	{"GetCurrentConnectionIDs", GetCurrentConnectionIDsArgs}, /* R */
 	{"GetCurrentConnectionInfo", GetCurrentConnectionInfoArgs}, /* R */
 	{0, 0}
