@@ -478,6 +478,14 @@ AC_CHECK_LIB(vorbisfile, vorbis_comment_query,
         AM_CONDITIONAL(NEED_VORBIS, true),
         -logg)
 
+AC_CHECK_LIB(avahi-client, avahi_threaded_poll_new,
+        [AC_CHECK_HEADERS([avahi-common/thread-watch.h],
+         AM_CONDITIONAL(HAVE_AVAHI, true)
+         AC_DEFINE(HAVE_AVAHI,1,[Have avahi]),
+         AM_CONDITIONAL(HAVE_AVAHI, false))],
+         AM_CONDITIONAL(HAVE_AVAHI, false),
+        -lavahi-client -lavahi-common)
+
 ################################################################################################################
 ### Header checks
 

@@ -188,6 +188,11 @@ extern uint32_t runtime_flags;
 #define SYSTEMD_MASK          0x0010
 #define MERGE_MEDIA_DIRS_MASK 0x0020
 #define WIDE_LINKS_MASK       0x0040
+#ifdef HAVE_AVAHI
+#define TIVO_BONJOUR_MASK     0x0080
+#else
+#define TIVO_BONJOUR_MASK     0x0000
+#endif
 
 #define SETFLAG(mask)	runtime_flags |= mask
 #define GETFLAG(mask)	(runtime_flags & mask)

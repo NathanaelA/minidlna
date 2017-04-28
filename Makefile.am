@@ -28,7 +28,7 @@ minidlnad_SOURCES = minidlna.c upnphttp.c upnpdescgen.c upnpsoap.c \
 			sql.c utils.c metadata.c scanner.c inotify.c \
 			tivo_utils.c tivo_beacon.c tivo_commands.c \
 			playlist.c image_utils.c albumart.c log.c \
-			containers.c tagutils/tagutils.c
+			containers.c avahi.c tagutils/tagutils.c
 
 #if NEED_VORBIS
 vorbisflag = -lvorbis
@@ -36,6 +36,10 @@ vorbisflag = -lvorbis
 
 #if NEED_OGG
 flacoggflag = -logg
+#endif
+
+#if HAVE_AVAHI
+avahilibs = -lavahi-client -lavahi-common
 #endif
 
 minidlnad_LDADD = \
@@ -47,7 +51,7 @@ minidlnad_LDADD = \
 	@LIBEXIF_LIBS@ \
 	@LIBINTL@ \
 	@LIBICONV@ \
-	-lFLAC  $(flacoggflag) $(vorbisflag)
+	-lFLAC  $(flacoggflag) $(vorbisflag) $(avahilibs)
 
 minidlnad_LDFLAGS = @STATIC_LDFLAGS@
 
