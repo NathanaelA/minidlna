@@ -1,8 +1,24 @@
-/*
- * Author:  Daniel S. Haischt <me@daniel.stefan.haischt.name>
- * Purpose: Avahi based Zeroconf support
- * Docs:    http://avahi.org/download/doxygen/
+/* MiniDLNA media server
+ * Copyright (C) 2017  NETGEAR
  *
+ * This file is part of MiniDLNA.
+ *
+ * MiniDLNA is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * MiniDLNA is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with MiniDLNA. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/* This file is loosely based on examples from zeroconf_avahi_demos:
+ * http://wiki.ros.org/zeroconf_avahi_demos
+ * with some ideas from Netatalk's Avahi implementation.
  */
 
 #include <config.h>
@@ -24,10 +40,9 @@
 #include "log.h"
 
 static struct context {
-        /* Avahi stuff */
-  AvahiThreadedPoll *threaded_poll;
-  AvahiClient       *client;
-  AvahiEntryGroup   *group;
+	AvahiThreadedPoll *threaded_poll;
+	AvahiClient       *client;
+	AvahiEntryGroup   *group;
 } ctx;
 
 /*****************************************************************
@@ -38,95 +53,59 @@ static void publish_reply(AvahiEntryGroup *g,
                           AvahiEntryGroupState state,
                           void *userdata);
 
-/*
- * This function tries to register the AFP DNS
- * SRV service type.
- */
-static void register_stuff(void) {
-    char name[128+1];
+static int
+_add_svc(const char *cat, const char *srv, const char *id, const char *platform)
+{
+	char name[128+1];
+	char path[64];
+	int ret;
 
-    assert(ctx.client);
+	snprintf(name, sizeof(name), "%s on %s", cat, friendly_name);
+	snprintf(path, sizeof(path),
+		"path=/TiVoConnect?Command=QueryContainer&Container=%s", id);
 
-    if (!ctx.group) {
-        if (!(ctx.group = avahi_entry_group_new(ctx.client, publish_reply, NULL))) {
-            DPRINTF(E_ERROR, L_SSDP, "Failed to create entry group: %s\n",
-                avahi_strerror(avahi_client_errno(ctx.client)));
-            goto fail;
-        }
-    }
+	DPRINTF(E_INFO, L_SSDP, "Registering '%s' with Avahi\n", name);
+	ret = avahi_entry_group_add_service(ctx.group, AVAHI_IF_UNSPEC, AVAHI_PROTO_UNSPEC,
+					    0, name, srv, NULL, NULL, runtime_vars.port,
+					    "protocol=http", path, platform, NULL);
+	if (ret < 0)
+		DPRINTF(E_ERROR, L_SSDP, "Failed to add %s: %s\n",
+			srv, avahi_strerror(avahi_client_errno(ctx.client)));
+	return ret;
+}
 
-    if (avahi_entry_group_is_empty(ctx.group)) {
-        /* Register our service */
+/* Try to register the TiVo DNS SRV service type. */
+static void
+register_stuff(void)
+{
+	assert(ctx.client);
 
-        DPRINTF(E_INFO, L_SSDP, "Registering '%s' with Avahi\n", friendly_name);
+	if (!ctx.group)
+	{
+		ctx.group = avahi_entry_group_new(ctx.client, publish_reply, NULL);
+		if (!ctx.group)
+		{
+			DPRINTF(E_ERROR, L_SSDP, "Failed to create entry group: %s\n",
+				avahi_strerror(avahi_client_errno(ctx.client)));
+			return;
+		}
+	}
 
-	snprintf(name, sizeof(name), "Music on %s", friendly_name);
-        if (avahi_entry_group_add_service(ctx.group,
-                                          AVAHI_IF_UNSPEC,
-                                          AVAHI_PROTO_UNSPEC,
-                                          0,
-                                          name,
-                                          "_tivo-music._tcp",
-                                          NULL,
-                                          NULL,
-                                          runtime_vars.port,
-                                          "protocol=http",
-                                          "path=/TiVoConnect?Command=QueryContainer&Container=1",
-                                          NULL) < 0) {
-            DPRINTF(E_ERROR, L_SSDP, "Failed to add service: %s\n",
-                avahi_strerror(avahi_client_errno(ctx.client)));
-            goto fail;
-        }
-
-	snprintf(name, sizeof(name), "Photos on %s", friendly_name);
-        if (avahi_entry_group_add_service(ctx.group,
-                                          AVAHI_IF_UNSPEC,
-                                          AVAHI_PROTO_UNSPEC,
-                                          0,
-                                          name,
-                                          "_tivo-photos._tcp",
-                                          NULL,
-                                          NULL,
-                                          runtime_vars.port,
-                                          "protocol=http",
-                                          "path=/TiVoConnect?Command=QueryContainer&Container=3",
-                                          NULL) < 0) {
-            DPRINTF(E_ERROR, L_SSDP, "Failed to add service: %s\n",
-                avahi_strerror(avahi_client_errno(ctx.client)));
-            goto fail;
-        }
-
-	snprintf(name, sizeof(name), "Videos on %s", friendly_name);
-        if (avahi_entry_group_add_service(ctx.group,
-                                          AVAHI_IF_UNSPEC,
-                                          AVAHI_PROTO_UNSPEC,
-                                          0,
-                                          name,
-                                          "_tivo-videos._tcp",
-                                          NULL,
-                                          NULL,
-                                          runtime_vars.port,
-                                          "platform=pc/readydlna",
-                                          "protocol=http",
-                                          "path=/TiVoConnect?Command=QueryContainer&Container=2",
-                                          NULL) < 0) {
-            DPRINTF(E_ERROR, L_SSDP, "Failed to add service: %s\n",
-                avahi_strerror(avahi_client_errno(ctx.client)));
-            goto fail;
-        }
-
-        if (avahi_entry_group_commit(ctx.group) < 0) {
-            DPRINTF(E_ERROR, L_SSDP, "Failed to commit entry group: %s\n",
-                avahi_strerror(avahi_client_errno(ctx.client)));
-            goto fail;
-        }
-
-    }	/* if avahi_entry_group_is_empty*/
-
-    return;
-
-fail:
-    time(NULL);
+	if (avahi_entry_group_is_empty(ctx.group))
+	{
+		if (_add_svc("Music", "_tivo-music._tcp", "1", NULL) < 0)
+			return;
+		if (_add_svc("Photos", "_tivo-photos._tcp", "3", NULL) < 0)
+			return;
+		if (_add_svc("Videos", "_tivo-videos._tcp", "2", "platform=pc/readydlna") < 0)
+			return;
+		if (avahi_entry_group_commit(ctx.group) < 0)
+		{
+			DPRINTF(E_ERROR, L_SSDP, "Failed to commit entry group: %s\n",
+				avahi_strerror(avahi_client_errno(ctx.client)));
+			return;
+		}
+	}
 }
 
 /* Called when publishing of service data completes */
@@ -137,7 +116,7 @@ static void publish_reply(AvahiEntryGroup *g,
 	assert(ctx.group == NULL || g == ctx.group);
 
 	switch (state) {
-	case AVAHI_ENTRY_GROUP_ESTABLISHED :
+	case AVAHI_ENTRY_GROUP_ESTABLISHED:
 		/* The entry group has been established successfully */
 		DPRINTF(E_MAXDEBUG, L_SSDP, "publish_reply: AVAHI_ENTRY_GROUP_ESTABLISHED\n");
 		break;
@@ -153,8 +132,8 @@ static void publish_reply(AvahiEntryGroup *g,
 		avahi_threaded_poll_quit(ctx.threaded_poll);
 		break;
 	case AVAHI_ENTRY_GROUP_UNCOMMITED:
-		break;
 	case AVAHI_ENTRY_GROUP_REGISTERING:
+	default:
 		break;
 	}
 }
@@ -163,55 +142,52 @@ static void client_callback(AvahiClient *client,
                             AvahiClientState state,
                             void *userdata)
 {
-    ctx.client = client;
+	ctx.client = client;
 
-    switch (state) {
-    case AVAHI_CLIENT_S_RUNNING:
-        /* The server has startup successfully and registered its host
-         * name on the network, so it's time to create our services */
-        if (!ctx.group)
-            register_stuff();
-        break;
+	switch (state) {
+	case AVAHI_CLIENT_S_RUNNING:
+		/* The server has started up successfully and registered its host
+		* name on the network, so it's time to create our services */
+		register_stuff();
+		break;
+	case AVAHI_CLIENT_S_COLLISION:
+	case AVAHI_CLIENT_S_REGISTERING:
+		if (ctx.group)
+			avahi_entry_group_reset(ctx.group);
+		break;
+	case AVAHI_CLIENT_FAILURE:
+		if (avahi_client_errno(client) == AVAHI_ERR_DISCONNECTED)
+		{
+			int error;
 
-    case AVAHI_CLIENT_S_COLLISION:
-        if (ctx.group)
-            avahi_entry_group_reset(ctx.group);
-        break;
+			avahi_client_free(ctx.client);
+			ctx.client = NULL;
+			ctx.group = NULL;
 
-    case AVAHI_CLIENT_FAILURE: {
-        if (avahi_client_errno(client) == AVAHI_ERR_DISCONNECTED) {
-            int error;
-
-            avahi_client_free(ctx.client);
-            ctx.client = NULL;
-            ctx.group = NULL;
-
-            /* Reconnect to the server */
-            if (!(ctx.client = avahi_client_new(avahi_threaded_poll_get(ctx.threaded_poll),
-                                                 AVAHI_CLIENT_NO_FAIL,
-                                                 client_callback,
-                                                 &ctx,
-                                                 &error))) {
-
-                DPRINTF(E_ERROR, L_SSDP, "Failed to contact server: %s\n",
-                    avahi_strerror(error));
-
-                avahi_threaded_poll_quit(ctx.threaded_poll);
-            }
-
-        } else {
-            DPRINTF(E_ERROR, L_SSDP, "Client failure: %s\n",
-                avahi_strerror(avahi_client_errno(client)));
-            avahi_threaded_poll_quit(ctx.threaded_poll);
-        }
-        break;
-    }
-
-    case AVAHI_CLIENT_S_REGISTERING:
-        break;
-    case AVAHI_CLIENT_CONNECTING:
-        break;
-    }
+			/* Reconnect to the server */
+			ctx.client = avahi_client_new(
+					avahi_threaded_poll_get(ctx.threaded_poll),
+					AVAHI_CLIENT_NO_FAIL, client_callback,
+					&ctx, &error);
+			if (!ctx.client)
+			{
+				DPRINTF(E_ERROR, L_SSDP,
+					"Failed to contact server: %s\n",
+					avahi_strerror(error));
+				avahi_threaded_poll_quit(ctx.threaded_poll);
+			}
+		}
+		else
+		{
+			DPRINTF(E_ERROR, L_SSDP, "Client failure: %s\n",
+				avahi_strerror(avahi_client_errno(client)));
+			avahi_threaded_poll_quit(ctx.threaded_poll);
+		}
+		break;
+	case AVAHI_CLIENT_CONNECTING:
+	default:
+		break;
+	}
 }
 
 /************************************************************************
@@ -265,7 +241,6 @@ void tivo_bonjour_register(void)
 		tivo_bonjour_unregister();
 	}
 	else
-		DPRINTF(E_INFO, L_SSDP, "Successfully started avahi loop.\n");
+		DPRINTF(E_INFO, L_SSDP, "Successfully started avahi loop\n");
 }
-
 #endif /* HAVE_AVAHI */
