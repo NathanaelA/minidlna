@@ -30,17 +30,19 @@ minidlnad_SOURCES = minidlna.c upnphttp.c upnpdescgen.c upnpsoap.c \
 			playlist.c image_utils.c albumart.c log.c \
 			containers.c avahi.c tagutils/tagutils.c
 
-#if NEED_VORBIS
-vorbisflag = -lvorbis
-#endif
+if HAVE_VORBISFILE
+vorbislibs = -lvorbis -logg
+else
+if NEED_OGG
+flacogglibs = -logg
+endif
+endif
 
-#if NEED_OGG
-flacoggflag = -logg
-#endif
-
-#if HAVE_AVAHI
+if TIVO_SUPPORT
+if HAVE_AVAHI
 avahilibs = -lavahi-client -lavahi-common
-#endif
+endif
+endif
 
 minidlnad_LDADD = \
 	@LIBJPEG_LIBS@ \
@@ -51,7 +53,7 @@ minidlnad_LDADD = \
 	@LIBEXIF_LIBS@ \
 	@LIBINTL@ \
 	@LIBICONV@ \
-	-lFLAC  $(flacoggflag) $(vorbisflag) $(avahilibs)
+	-lFLAC $(flacogglibs) $(vorbislibs) $(avahilibs)
 
 minidlnad_LDFLAGS = @STATIC_LDFLAGS@
 
@@ -63,7 +65,7 @@ testupnpdescgen_LDADD = \
 	@LIBAVFORMAT_LIBS@ \
 	@LIBAVUTIL_LIBS@ \
 	@LIBEXIF_LIBS@ \
-	-lFLAC  $(flacoggflag) $(vorbisflag)
+	-lFLAC $(flacogglibs) $(vorbislibs) $(avahilibs)
 
 SUFFIXES = .tmpl .
 
