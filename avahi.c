@@ -64,7 +64,7 @@ _add_svc(const char *cat, const char *srv, const char *id, const char *platform)
 	snprintf(path, sizeof(path),
 		"path=/TiVoConnect?Command=QueryContainer&Container=%s", id);
 
-	DPRINTF(E_INFO, L_SSDP, "Registering '%s' with Avahi\n", name);
+	DPRINTF(E_INFO, L_SSDP, "Registering '%s'\n", name);
 	ret = avahi_entry_group_add_service(ctx.group, AVAHI_IF_UNSPEC, AVAHI_PROTO_UNSPEC,
 					    0, name, srv, NULL, NULL, runtime_vars.port,
 					    "protocol=http", path, platform, NULL);
