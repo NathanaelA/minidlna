@@ -905,6 +905,9 @@ callback(void *args, int argc, char **argv, char **azColName)
 		else
 			dlna_flags |= DLNA_FLAG_TM_I;
 
+		if( passed_args->flags & FLAG_SKIP_DLNA_PN )
+		        dlna_pn = NULL;
+
 		if( dlna_pn )
 			snprintf(dlna_buf, sizeof(dlna_buf), "DLNA.ORG_PN=%s;"
 			                                     "DLNA.ORG_OP=01;"

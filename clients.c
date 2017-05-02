@@ -63,6 +63,13 @@ struct client_type_s client_types[] =
 	  EUserAgent
 	},
 
+	{ ESamsungBDJ5500,
+	  FLAG_SAMSUNG | FLAG_DLNA | FLAG_NO_RESIZE | FLAG_CAPTION_RES | FLAG_SKIP_DLNA_PN,
+	  "Samsung BD J5500",
+	  "[BD]J5500",
+	  EUserAgent
+	},
+
 	/* Samsung Series [CDE] BDPs and TVs must be separated, or some of our
 	 * advertised extra features trigger a folder browsing bug on BDPs. */
 	/* User-Agent: DLNADOC/1.50 SEC_HHP_BD-D5100/1.0 */
@@ -324,4 +331,3 @@ AddClientCache(struct in_addr addr, int type)
 
 	return NULL;
 }
-

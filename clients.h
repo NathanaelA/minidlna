@@ -37,6 +37,7 @@
 #define FLAG_AUDIO_ONLY         0x00000400
 #define FLAG_FORCE_SORT         0x00000800
 #define FLAG_CAPTION_RES        0x00001000
+#define FLAG_SKIP_DLNA_PN       0x00002000 /* during browsing */
 /* Response-related flags */
 #define FLAG_HAS_CAPTIONS       0x80000000
 #define RESPONSE_FLAGS          0xF0000000
@@ -69,6 +70,7 @@ enum client_types {
 	ESamsungSeriesB,
 	ESamsungSeriesCDEBDP,
 	ESamsungSeriesCDE,
+	ESamsungBDJ5500,
 	ESonyBDP,
 	ESonyBravia,
 	ESonyInternetTV,
