@@ -1273,8 +1273,8 @@ GetVideoMetadata(const char *path, char *name)
 								off += sprintf(m.dlna_pn+off, "3GPP_SP_L0B_AMR");
 								break;
 							default:
-								DPRINTF(E_DEBUG, L_METADATA, "No DLNA profile found for MPEG4-P2 3GP/0x%X file %s\n",
-								        lav_codec_id(astream), basepath);
+								DPRINTF(E_DEBUG, L_METADATA, "No DLNA profile found for MPEG4-P2 3GP/%d file %s\n",
+								        audio_profile, basepath);
 								free(m.dlna_pn);
 								m.dlna_pn = NULL;
 								break;
