@@ -205,6 +205,13 @@ struct client_type_s client_types[] =
 	  EUserAgent
 	},
 
+	{ EHyundaiTV,
+	  FLAG_DLNA,
+	  "Hyundai TV",
+	  "HYUNDAITV",
+	  EFriendlyName
+	},
+
 	{ ERokuSoundBridge,
 	  FLAG_MS_PFS | FLAG_AUDIO_ONLY | FLAG_MIME_WAV_WAV | FLAG_FORCE_SORT,
 	  "Roku SoundBridge",

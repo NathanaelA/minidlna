@@ -883,6 +883,16 @@ callback(void *args, int argc, char **argv, char **azColName)
 				if( strlen(title) > 23 )
 					title[23] = '\0';
 			}
+			/* Hyundai hack: Only titles with a media extension get recognized. */
+			else if( passed_args->client == EHyundaiTV )
+			{
+				ext = mime_to_ext(mime);
+				ret = asprintf(&alt_title, "%s.%s", title, ext);
+				if( ret > 0 )
+					title = alt_title;
+				else
+					alt_title = NULL;
+			}
 		}
 		else if( *mime == 'a' )
 		{

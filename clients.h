@@ -75,6 +75,7 @@ enum client_types {
 	ESonyBravia,
 	ESonyInternetTV,
 	EToshibaTV,
+	EHyundaiTV,
 	EAsusOPlay,
 	EBubbleUPnP,
 	ENetFrontLivingConnect,
