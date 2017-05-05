@@ -25,7 +25,7 @@ minidlnad_SOURCES = minidlna.c upnphttp.c upnpdescgen.c upnpsoap.c \
 			upnpreplyparse.c minixml.c clients.c \
 			getifaddr.c process.c upnpglobalvars.c \
 			options.c minissdp.c uuid.c upnpevents.c \
-			sql.c utils.c metadata.c scanner.c inotify.c \
+			sql.c utils.c metadata.c scanner.c monitor.c \
 			tivo_utils.c tivo_beacon.c tivo_commands.c \
 			playlist.c image_utils.c albumart.c log.c \
 			containers.c avahi.c tagutils/tagutils.c

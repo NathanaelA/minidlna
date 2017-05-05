@@ -90,7 +90,7 @@
 #include "process.h"
 #include "upnpevents.h"
 #include "scanner.h"
-#include "inotify.h"
+#include "monitor.h"
 #include "log.h"
 #include "tivo_beacon.h"
 #include "tivo_utils.h"
@@ -328,12 +328,13 @@ check_db(sqlite3 *db, int new_db, pid_t *scanner_pid)
 	if (ret != 0)
 	{
 rescan:
+		rescan_db = 0;
 		if (ret < 0)
 			DPRINTF(E_WARN, L_GENERAL, "Creating new database at %s/files.db\n", db_path);
 		else if (ret == 1)
-			DPRINTF(E_WARN, L_GENERAL, "New media_dir detected; rescanning...\n");
+			DPRINTF(E_WARN, L_GENERAL, "New media_dir detected; rebuilding...\n");
 		else if (ret == 2)
-			DPRINTF(E_WARN, L_GENERAL, "Removed media_dir detected; rescanning...\n");
+			DPRINTF(E_WARN, L_GENERAL, "Removed media_dir detected; rebuilding...\n");
 		else
 			DPRINTF(E_WARN, L_GENERAL, "Database version mismatch (%d=>%d); need to recreate...\n",
 				ret, DB_VERSION);
@@ -346,6 +347,9 @@ rescan:
 		open_db(&db);
 		if (CreateDatabase() != 0)
 			DPRINTF(E_FATAL, L_GENERAL, "ERROR: Failed to create sqlite database!  Exiting...\n");
+	}
+	if (ret || rescan_db)
+	{
 #if USE_FORK
 		scanning = 1;
 		sqlite3_close(db);
@@ -834,6 +838,9 @@ init(int argc, char **argv)
 		case 'h':
 			runtime_vars.port = -1; // triggers help display
 			break;
+		case 'r':
+			rescan_db = 1;
+			break;
 		case 'R':
 			snprintf(buf, sizeof(buf), "rm -rf %s/files.db %s/art_cache", db_path, db_path);
 			if (system(buf) != 0)
@@ -880,9 +887,9 @@ init(int argc, char **argv)
 			"\t\t[-t notify_interval] [-P pid_filename]\n"
 			"\t\t[-s serial] [-m model_number]\n"
 #ifdef __linux__
-			"\t\t[-w url] [-R] [-L] [-S] [-V] [-h]\n"
+			"\t\t[-w url] [-r] [-R] [-L] [-S] [-V] [-h]\n"
 #else
-			"\t\t[-w url] [-R] [-L] [-V] [-h]\n"
+			"\t\t[-w url] [-r] [-R] [-L] [-V] [-h]\n"
 #endif
 			"\nNotes:\n\tNotify interval is in seconds. Default is 895 seconds.\n"
 			"\tDefault pid file is %s.\n"
@@ -890,7 +897,8 @@ init(int argc, char **argv)
 			"\t-w sets the presentation url. Default is http address on port 80\n"
 			"\t-v enables verbose output\n"
 			"\t-h displays this text\n"
-			"\t-R forces a full rescan\n"
+			"\t-r forces a rescan\n"
+			"\t-R forces a rebuild\n"
 			"\t-L do not create playlists\n"
 #ifdef __linux__
 			"\t-S changes behaviour for systemd\n"
