@@ -1,5 +1,5 @@
 /* MiniDLNA media server
- * Copyright (C) 2008-2009  Justin Maggard
+ * Copyright (C) 2008-2017  Justin Maggard
  *
  * This file is part of MiniDLNA.
  *
@@ -354,7 +354,7 @@ GetAudioMetadata(const char *path, char *name)
 	if( readtags((char *)path, &song, &file, lang, type) != 0 )
 	{
 		DPRINTF(E_WARN, L_METADATA, "Cannot extract tags from %s!\n", path);
-        	freetags(&song);
+		freetags(&song);
 		free_metadata(&m, free_flags);
 		return 0;
 	}
@@ -363,11 +363,7 @@ GetAudioMetadata(const char *path, char *name)
 		m.dlna_pn = strdup(song.dlna_pn);
 	if( song.year )
 		xasprintf(&m.date, "%04d-01-01", song.year);
-	xasprintf(&m.duration, "%d:%02d:%02d.%03d",
-	                      (song.song_length/3600000),
-	                      (song.song_length/60000%60),
-	                      (song.song_length/1000%60),
-	                      (song.song_length%1000));
+	m.duration = duration_str(song.song_length);
 	if( song.title && *song.title )
 	{
 		m.title = trim(song.title);
@@ -409,7 +405,7 @@ GetAudioMetadata(const char *path, char *name)
 			if( song.contributor[i] && *song.contributor[i] )
 				break;
 		}
-	        if( i <= ROLE_BAND )
+		if( i <= ROLE_BAND )
 		{
 			m.artist = trim(song.contributor[i]);
 			if( strlen(m.artist) > 48 )
@@ -471,7 +467,7 @@ GetAudioMetadata(const char *path, char *name)
 	{
 		ret = sqlite3_last_insert_rowid(db);
 	}
-        freetags(&song);
+	freetags(&song);
 	free_metadata(&m, free_flags);
 
 	return ret;
@@ -586,7 +582,7 @@ GetImageMetadata(const char *path, char *name)
 			imsrc = image_new_from_jpeg(NULL, 0, ed->data, ed->size, 1, ROTATE_NONE);
 			if( imsrc )
 			{
- 				if( (imsrc->width <= 160) && (imsrc->height <= 160) )
+				if( (imsrc->width <= 160) && (imsrc->height <= 160) )
 					thumb = 1;
 				image_free(imsrc);
 			}
@@ -806,20 +802,13 @@ GetVideoMetadata(const char *path, char *name)
 	if( vstream )
 	{
 		int off;
-		int duration, hours, min, sec, ms;
 		ts_timestamp_t ts_timestamp = NONE;
 		DPRINTF(E_DEBUG, L_METADATA, "Container: '%s' [%s]\n", ctx->iformat->name, basepath);
 		xasprintf(&m.resolution, "%dx%d", lav_width(vstream), lav_height(vstream));
 		if( ctx->bit_rate > 8 )
 			m.bitrate = ctx->bit_rate / 8;
-		if( ctx->duration > 0 ) {
-			duration = (int)(ctx->duration / AV_TIME_BASE);
-			hours = (int)(duration / 3600);
-			min = (int)(duration / 60 % 60);
-			sec = (int)(duration % 60);
-			ms = (int)(ctx->duration / (AV_TIME_BASE/1000) % 1000);
-			xasprintf(&m.duration, "%d:%02d:%02d.%03d", hours, min, sec, ms);
-		}
+		if( ctx->duration > 0 )
+			m.duration = duration_str(ctx->duration / (AV_TIME_BASE/1000));
 
 		/* NOTE: The DLNA spec only provides for ASF (WMV), TS, PS, and MP4 containers.
 		 * Skip DLNA parsing for everything else. */
@@ -1548,8 +1537,8 @@ video_no_dlna:
 	                   " (%Q, %lld, %lld, %Q, %Q, %u, %u, %u, %Q, '%q', %Q, %Q, %Q, %Q, %Q, '%q', %lld);",
 	                   path, (long long)file.st_size, (long long)file.st_mtime, m.duration,
 	                   m.date, m.channels, m.bitrate, m.frequency, m.resolution,
-			   m.title, m.creator, m.artist, m.genre, m.comment, m.dlna_pn,
-                           m.mime, album_art);
+	                   m.title, m.creator, m.artist, m.genre, m.comment, m.dlna_pn,
+	                   m.mime, album_art);
 	if( ret != SQLITE_OK )
 	{
 		DPRINTF(E_ERROR, L_METADATA, "Error inserting details for '%s'!\n", path);
