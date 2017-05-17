@@ -336,7 +336,7 @@ rescan:
 		else if (ret == 2)
 			DPRINTF(E_WARN, L_GENERAL, "Removed media_dir detected; rebuilding...\n");
 		else
-			DPRINTF(E_WARN, L_GENERAL, "Database version mismatch (%d=>%d); need to recreate...\n",
+			DPRINTF(E_WARN, L_GENERAL, "Database version mismatch (%d => %d); need to recreate...\n",
 				ret, DB_VERSION);
 		sqlite3_close(db);
 

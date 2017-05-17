@@ -3,7 +3,7 @@
  * http://sourceforge.net/projects/minidlna/
  *
  * MiniDLNA media server
- * Copyright (C) 2008-2009  Justin Maggard
+ * Copyright (C) 2008-2017  Justin Maggard
  *
  * This file is part of MiniDLNA.
  *
@@ -66,7 +66,7 @@
 #endif
 
 #define USE_FORK 1
-#define DB_VERSION 9
+#define DB_VERSION 10
 
 #ifdef ENABLE_NLS
 #define _(string) gettext(string)

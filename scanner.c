@@ -1,5 +1,5 @@
 /* MiniDLNA media server
- * Copyright (C) 2008-2009  Justin Maggard
+ * Copyright (C) 2008-2017  Justin Maggard
  *
  * This file is part of MiniDLNA.
  *
@@ -95,12 +95,12 @@ insert_container(const char *item, const char *rootParent, const char *refID, co
 	int ret = 0;
 
 	result = sql_get_text_field(db, "SELECT OBJECT_ID from OBJECTS o "
-	                                "left join DETAILS d on (o.DETAIL_ID = d.ID)"
-	                                " where o.PARENT_ID = '%s'"
-			                " and o.NAME like '%q'"
-			                " and d.ARTIST %s %Q"
-	                                " and o.CLASS = 'container.%s' limit 1",
-	                                rootParent, item, artist?"like":"is", artist, class);
+					"left join DETAILS d on (o.DETAIL_ID = d.ID)"
+					" where o.PARENT_ID = '%s'"
+					" and o.NAME like '%q'"
+					" and d.ARTIST %s %Q"
+					" and o.CLASS = 'container.%s' limit 1",
+					rootParent, item, artist?"like":"is", artist, class);
 	if( result )
 	{
 		base = strrchr(result, '$');
@@ -398,7 +398,7 @@ insert_directory(const char *name, const char *path, const char *base, const cha
 		char id_buf[64], parent_buf[64], refID[64];
 		char *dir_buf, *dir;
 
- 		dir_buf = strdup(path);
+		dir_buf = strdup(path);
 		dir = dirname(dir_buf);
 		snprintf(refID, sizeof(refID), "%s%s$%X", BROWSEDIR_ID, parentID, objectID);
 		snprintf(id_buf, sizeof(id_buf), "%s%s$%X", base, parentID, objectID);
@@ -467,7 +467,7 @@ insert_file(char *name, const char *path, const char *parentID, int object, medi
 	}
 	else if( (types & TYPE_VIDEO) && is_video(name) )
 	{
- 		orig_name = strdup(name);
+		orig_name = strdup(name);
 		strcpy(base, VIDEO_DIR_ID);
 		strcpy(class, "item.videoItem");
 		detailID = GetVideoMetadata(path, name);
