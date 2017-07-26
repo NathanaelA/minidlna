@@ -275,6 +275,13 @@ struct client_type_s client_types[] =
 	  EUserAgent
 	},
 
+	{ 0,
+	  0,
+	  "TiVo",
+	  "TvHttpClient",
+	  EUserAgent
+	},
+
 	{ EStandardDLNA150,
 	  FLAG_DLNA | FLAG_MIME_AVI_AVI,
 	  "Generic DLNA 1.5",
