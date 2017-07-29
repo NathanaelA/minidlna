@@ -174,7 +174,7 @@ parse_nfo(const char *path, metadata_t *m)
 	}
 	DPRINTF(E_DEBUG, L_METADATA, "Parsing .nfo file: %s\n", path);
 	buf = calloc(1, file.st_size + 1);
-	if (buf)
+	if (!buf)
 		return;
 	nfo = fopen(path, "r");
 	if (!nfo)
@@ -182,7 +182,7 @@ parse_nfo(const char *path, metadata_t *m)
 		free(buf);
 		return;
 	}
-	nread = fread(&buf, 1, sizeof(buf), nfo);
+	nread = fread(buf, 1, file.st_size, nfo);
 	fclose(nfo);
 	
 	ParseNameValue(buf, nread, &xml, 0);
