@@ -447,7 +447,7 @@ insert_directory(const char *name, const char *path, const char *base, const cha
 }
 
 int
-insert_file(char *name, const char *path, const char *parentID, int object, media_types types)
+insert_file(const char *name, const char *path, const char *parentID, int object, media_types types)
 {
 	char class[32];
 	char objectID[64];
@@ -455,7 +455,7 @@ insert_file(char *name, const char *path, const char *parentID, int object, medi
 	char base[8];
 	char *typedir_parentID;
 	char *baseid;
-	char *orig_name = NULL;
+	char *objname;
 
 	if( (types & TYPE_IMAGES) && is_image(name) )
 	{
@@ -467,12 +467,9 @@ insert_file(char *name, const char *path, const char *parentID, int object, medi
 	}
 	else if( (types & TYPE_VIDEO) && is_video(name) )
 	{
-		orig_name = strdup(name);
 		strcpy(base, VIDEO_DIR_ID);
 		strcpy(class, "item.videoItem");
 		detailID = GetVideoMetadata(path, name);
-		if( !detailID )
-			strcpy(name, orig_name);
 	}
 	else if( is_playlist(name) )
 	{
@@ -485,7 +482,6 @@ insert_file(char *name, const char *path, const char *parentID, int object, medi
 		strcpy(class, "item.audioItem.musicTrack");
 		detailID = GetAudioMetadata(path, name);
 	}
-	free(orig_name);
 	if( !detailID )
 	{
 		DPRINTF(E_WARN, L_SCANNER, "Unsuccessful getting details for %s!\n", path);
@@ -493,12 +489,14 @@ insert_file(char *name, const char *path, const char *parentID, int object, medi
 	}
 
 	sprintf(objectID, "%s%s$%X", BROWSEDIR_ID, parentID, object);
+	objname = strdup(name);
+	strip_ext(objname);
 
 	sql_exec(db, "INSERT into OBJECTS"
 	             " (OBJECT_ID, PARENT_ID, CLASS, DETAIL_ID, NAME) "
 	             "VALUES"
 	             " ('%s', '%s%s', '%s', %lld, '%q')",
-	             objectID, BROWSEDIR_ID, parentID, class, detailID, name);
+	             objectID, BROWSEDIR_ID, parentID, class, detailID, objname);
 
 	if( *parentID )
 	{
@@ -510,16 +508,18 @@ insert_file(char *name, const char *path, const char *parentID, int object, medi
 			typedir_objectID = strtol(baseid+1, NULL, 16);
 			*baseid = '\0';
 		}
-		insert_directory(name, path, base, typedir_parentID, typedir_objectID);
+		insert_directory(objname, path, base, typedir_parentID, typedir_objectID);
 		free(typedir_parentID);
 	}
 	sql_exec(db, "INSERT into OBJECTS"
 	             " (OBJECT_ID, PARENT_ID, REF_ID, CLASS, DETAIL_ID, NAME) "
 	             "VALUES"
 	             " ('%s%s$%X', '%s%s', '%s', '%s', %lld, '%q')",
-	             base, parentID, object, base, parentID, objectID, class, detailID, name);
+	             base, parentID, object, base, parentID, objectID, class, detailID, objname);
 
-	insert_containers(name, path, objectID, class, detailID);
+	insert_containers(objname, path, objectID, class, detailID);
+	free(objname);
+
 	return 0;
 }
 

@@ -89,6 +89,8 @@ int is_audio(const char * file);
 int is_image(const char * file);
 int is_playlist(const char * file);
 int is_caption(const char * file);
+#define is_nfo(file) ends_with(file, ".nfo")
+
 int is_album_art(const char * name);
 int resolve_unknown_type(const char * path, media_types dir_type);
 const char *mime_to_ext(const char * mime);

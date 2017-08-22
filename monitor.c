@@ -327,16 +327,29 @@ monitor_remove_file(const char * path)
 	return 0;
 }
 
-int
-monitor_insert_file(char * name, const char * path)
+static char *
+check_nfo(const char *path)
+{
+	char file[PATH_MAX];
+
+	strncpyt(file, path, sizeof(file));
+	strip_ext(file);
+
+	return sql_get_text_field(db, "SELECT PATH from DETAILS where (PATH > '%q.' and PATH <= '%q.z')"
+				      " and MIME glob 'video/*' limit 1", file, file);
+}
+
+static int
+monitor_insert_file(const char *name, const char *path)
 {
 	int len;
-	char * last_dir;
-	char * path_buf;
-	char * base_name;
-	char * base_copy;
-	char * parent_buf = NULL;
-	char * id = NULL;
+	char *last_dir;
+	char *path_buf;
+	char *base_name;
+	char *base_copy;
+	char *parent_buf = NULL;
+	char *id = NULL;
+	char video[PATH_MAX];
 	int depth = 1;
 	int ts;
 	media_types types = ALL_MEDIA;
@@ -348,6 +361,21 @@ monitor_insert_file(char * name, const char * path)
 		update_if_album_art(path);
 	else if( is_caption(path) )
 		check_for_captions(path, 0);
+	else if( is_nfo(path) )
+	{
+		char *vpath = check_nfo(path);
+		if (!vpath)
+			return -1;
+		strncpyt(video, vpath, sizeof(video));
+		sqlite3_free(vpath);
+		DPRINTF(E_DEBUG, L_INOTIFY, "Found modified nfo %s\n", video);
+		monitor_remove_file(video);
+		path = video;
+		name = strrchr(video, '/');
+		if (!name)
+			return -1;
+		name++;
+	}
 
 	/* Check if we're supposed to be scanning for this file type in this directory */
 	while( media_path )

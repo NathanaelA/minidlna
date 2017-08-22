@@ -37,11 +37,12 @@
 #include "log.h"
 
 int
-insert_playlist(const char * path, char * name)
+insert_playlist(const char *path, const char *name)
 {
 	struct song_metadata plist;
 	struct stat file;
 	int items = 0, matches, ret;
+	char *objname;
 	char type[4];
 
 	strncpyt(type, strrchr(name, '.')+1, 4);
@@ -61,27 +62,29 @@ insert_playlist(const char * path, char * name)
 		DPRINTF(E_WARN, L_SCANNER, "Bad playlist [%s]\n", path);
 		return -1;
 	}
-	strip_ext(name);
+	objname = strdup(name);
+	strip_ext(objname);
 
-	DPRINTF(E_DEBUG, L_SCANNER, "Playlist %s contains %d items\n", name, items);
+	DPRINTF(E_DEBUG, L_SCANNER, "Playlist %s contains %d items\n", objname, items);
 	
-	matches = sql_get_int_field(db, "SELECT count(*) from PLAYLISTS where NAME = '%q'", name);
+	matches = sql_get_int_field(db, "SELECT count(*) from PLAYLISTS where NAME = '%q'", objname);
 	if( matches > 0 )
 	{
 		sql_exec(db, "INSERT into PLAYLISTS"
 		             " (NAME, PATH, ITEMS) "
-	        	     "VALUES"
+		            "VALUES"
 		             " ('%q(%d)', '%q', %d)",
-		             name, matches, path, items);
+		             objname, matches, path, items);
 	}
 	else
 	{
 		sql_exec(db, "INSERT into PLAYLISTS"
 		             " (NAME, PATH, ITEMS) "
-	        	     "VALUES"
+		             "VALUES"
 		             " ('%q', '%q', %d)",
-		             name, path, items);
+		             objname, path, items);
 	}
+	free(objname);
 	return 0;
 }
 
