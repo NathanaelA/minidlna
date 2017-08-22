@@ -2081,6 +2081,12 @@ SamsungGetFeatureList(struct upnphttp * h, const char * action)
 			image = runtime_vars.root_container;
 		}
 	}
+	else if (h->req_client && (h->req_client->type->flags & FLAG_SAMSUNG_DCM10))
+	{
+		audio = "A";
+		video = "V";
+		image = "I";
+	}
 
 	len = snprintf(body, sizeof(body), resp, audio, video, image);
 
