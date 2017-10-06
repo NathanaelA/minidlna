@@ -571,12 +571,12 @@ monitor_remove_directory(int fd, const char * path)
 
 	/* Invalidate the scanner cache so we don't insert files into non-existent containers */
 	valid_cache = 0;
+	#ifdef HAVE_INOTIFY
 	if( fd > 0 )
 	{
-		#ifdef HAVE_INOTIFY
 		remove_watch(fd, path);
-		#endif
 	}
+	#endif
 	sql = sqlite3_mprintf("SELECT ID from DETAILS where (PATH > '%q/' and PATH <= '%q/%c')"
 	                      " or PATH = '%q'", path, path, 0xFF, path);
 	if( (sql_get_table(db, sql, &result, &rows, NULL) == SQLITE_OK) )
