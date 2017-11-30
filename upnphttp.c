@@ -268,7 +268,7 @@ ParseHttpHeaders(struct upnphttp * h)
 				p = colon + 1;
 				while(isspace(*p))
 					p++;
-				for(n = 0; n < n_lan_addr+1; n++)
+				for(n = 0; n < n_lan_addr; n++)
 				{
 					for(i = 0; lan_addr[n].str[i]; i++)
 					{
