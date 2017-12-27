@@ -61,6 +61,7 @@
 #include <netdb.h>
 #include <ctype.h>
 
+#include "event.h"
 #include "upnpglobalvars.h"
 #include "utils.h"
 #include "upnphttp.h"
