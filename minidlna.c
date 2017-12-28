@@ -555,6 +555,7 @@ init(int argc, char **argv)
 	media_types types;
 	uid_t uid = 0;
 	gid_t gid = 0;
+	int error;
 
 	/* first check if "-f" option is used */
 	for (i=2; i<argc; i++)
@@ -1086,7 +1087,9 @@ init(int argc, char **argv)
 		return 1;
 	}
 
-	event_module.init();
+	if ((error = event_module.init()) != 0)
+		DPRINTF(E_FATAL, L_GENERAL, "Failed to init event module. "
+		    "[%s] EXITING.\n", strerror(error));
 
 	return 0;
 }
