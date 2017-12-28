@@ -365,14 +365,14 @@ static void upnp_event_send(struct upnp_event_notify * obj)
 		if(i<0) {
 			DPRINTF(E_WARN, L_HTTP, "%s: send(): %s\n", "upnp_event_send", strerror(errno));
 			obj->state = EError;
-			event_module.del(&obj->ev);
+			event_module.del(&obj->ev, 0);
 			return;
 		}
 		obj->sent += i;
 	}
 	if(obj->sent == obj->tosend) {
 		obj->state = EWaitingForResponse;
-		event_module.del(&obj->ev);
+		event_module.del(&obj->ev, 0);
 		obj->ev.rdwr = EVENT_READ;
 		event_module.add(&obj->ev);
 	}
@@ -385,13 +385,13 @@ static void upnp_event_recv(struct upnp_event_notify * obj)
 	if(n<0) {
 		DPRINTF(E_ERROR, L_HTTP, "%s: recv(): %s\n", "upnp_event_recv", strerror(errno));
 		obj->state = EError;
-		event_module.del(&obj->ev);
+		event_module.del(&obj->ev, 0);
 		return;
 	}
 	DPRINTF(E_DEBUG, L_HTTP, "%s: (%dbytes) %.*s\n", "upnp_event_recv",
 	       n, n, obj->buffer);
 	obj->state = EFinished;
-	event_module.del(&obj->ev);
+	event_module.del(&obj->ev, 0);
 	if(obj->sub)
 	{
 		obj->sub->seq++;

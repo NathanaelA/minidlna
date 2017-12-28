@@ -17,7 +17,7 @@
 static event_module_init_t select_init;
 static event_module_fini_t select_fini;
 static event_module_add_t select_add;
-static event_module_add_t select_del;
+static event_module_del_t select_del;
 static event_module_process_t select_process;
 
 static fd_set master_read_fd_set;
@@ -32,8 +32,6 @@ static int max_fd;
 struct event_module event_module = {
 	.add =		select_add,
 	.del =		select_del,
-	.enable =	select_add,
-	.disable =	select_del,
 	.process =	select_process,
 	.init = 	select_init,
 	.fini =		select_fini,
@@ -68,17 +66,13 @@ static int
 select_add(struct event *ev)
 {
 
-	assert(ev->fd <= FD_SETSIZE);
+	assert(ev->fd < FD_SETSIZE);
 
 	switch (ev->rdwr) {
 	case EVENT_READ:
 		FD_SET(ev->fd, &master_read_fd_set);
 		break;
 	case EVENT_WRITE:
-		FD_SET(ev->fd, &master_write_fd_set);
-		break;
-	case EVENT_RDWR:
-		FD_SET(ev->fd, &master_read_fd_set);
 		FD_SET(ev->fd, &master_write_fd_set);
 		break;
 	}
@@ -89,24 +83,22 @@ select_add(struct event *ev)
 	events[nevents] = ev;
 	ev->index = nevents++;
 
+	assert(nevents < FD_SETSIZE);
+
 	return (0);
 }
 
 static int
-select_del(struct event *ev)
+select_del(struct event *ev, int flags)
 {
 
-	assert(ev->fd <= FD_SETSIZE);
+	assert(ev->fd < FD_SETSIZE);
 
 	switch (ev->rdwr) {
 	case EVENT_READ:
 		FD_CLR(ev->fd, &master_read_fd_set);
 		break;
 	case EVENT_WRITE:
-		FD_CLR(ev->fd, &master_write_fd_set);
-		break;
-	case EVENT_RDWR:
-		FD_CLR(ev->fd, &master_read_fd_set);
 		FD_CLR(ev->fd, &master_write_fd_set);
 		break;
 	}
@@ -152,8 +144,7 @@ select_process(u_long msec)
 	if (ready == -1) {
 		if (errno == EINTR)
 			return (errno);
-		DPRINTF(E_ERROR, L_GENERAL, "select(all): %s\n", strerror(errno));
-		DPRINTF(E_FATAL, L_GENERAL, "Failed to select open sockets. EXITING\n");
+		DPRINTF(E_FATAL, L_GENERAL, "select(): %s. EXITING\n", strerror(errno));
 	}
 
 	if (ready == 0)
@@ -169,11 +160,6 @@ select_process(u_long msec)
 			break;
 		case EVENT_WRITE:
 			if (FD_ISSET(ev->fd, &work_write_fd_set))
-				ev->process(ev);
-			break;
-		case EVENT_RDWR:
-			if (FD_ISSET(ev->fd, &work_read_fd_set) ||
-			    FD_ISSET(ev->fd, &work_write_fd_set))
 				ev->process(ev);
 			break;
 		}

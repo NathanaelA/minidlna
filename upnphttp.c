@@ -123,7 +123,7 @@ void
 CloseSocket_upnphttp(struct upnphttp * h)
 {
 
-	event_module.del(&h->ev);
+	event_module.del(&h->ev, EV_FLAG_CLOSING);
 	if(close(h->ev.fd) < 0)
 	{
 		DPRINTF(E_ERROR, L_HTTP, "CloseSocket_upnphttp: close(%d): %s\n", h->ev.fd, strerror(errno));

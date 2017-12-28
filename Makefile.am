@@ -28,8 +28,13 @@ minidlnad_SOURCES = minidlna.c upnphttp.c upnpdescgen.c upnpsoap.c \
 			sql.c utils.c metadata.c scanner.c monitor.c \
 			tivo_utils.c tivo_beacon.c tivo_commands.c \
 			playlist.c image_utils.c albumart.c log.c \
-			containers.c avahi.c tagutils/tagutils.c \
-			select.c
+			containers.c avahi.c tagutils/tagutils.c
+
+if HAVE_KQUEUE
+minidlnad_SOURCES += kqueue.c
+else
+minidlnad_SOURCES += select.c
+endif
 
 if HAVE_VORBISFILE
 vorbislibs = -lvorbis -logg
