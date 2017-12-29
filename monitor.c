@@ -108,7 +108,7 @@ raise_watch_limit(unsigned int limit)
 	fclose(max_watches);
 }
 
-static int
+int
 add_watch(int fd, const char * path)
 {
 	struct watch *nw;
@@ -123,14 +123,14 @@ add_watch(int fd, const char * path)
 	if( wd < 0 )
 	{
 		DPRINTF(E_ERROR, L_INOTIFY, "inotify_add_watch(%s) [%s]\n", path, strerror(errno));
-		return -1;
+		return (errno);
 	}
 
 	nw = malloc(sizeof(struct watch));
 	if( nw == NULL )
 	{
 		DPRINTF(E_ERROR, L_INOTIFY, "malloc() error\n");
-		return -1;
+		return (ENOMEM);
 	}
 	nw->wd = wd;
 	nw->next = NULL;
@@ -147,7 +147,8 @@ add_watch(int fd, const char * path)
 	}
 	lastwatch = nw;
 
-	return wd;
+	DPRINTF(E_INFO, L_INOTIFY, "Added watch to %s [%d]\n", path, wd);
+	return (0);
 }
 
 static int
@@ -339,7 +340,7 @@ check_nfo(const char *path)
 				      " and MIME glob 'video/*' limit 1", file, file);
 }
 
-static int
+int
 monitor_insert_file(const char *name, const char *path)
 {
 	int len;
@@ -504,20 +505,10 @@ monitor_insert_directory(int fd, char *name, const char * path)
 		free(parent_buf);
 	}
 
+#ifdef HAVE_WATCH
 	if( fd > 0 )
-	{
-		#ifdef HAVE_INOTIFY
-		int wd = add_watch(fd, path);
-		if( wd == -1 )
-		{
-			DPRINTF(E_ERROR, L_INOTIFY, "add_watch() failed\n");
-		}
-		else
-		{
-			DPRINTF(E_INFO, L_INOTIFY, "Added watch to %s [%d]\n", path, wd);
-		}
-		#endif
-	}
+		add_watch(fd, path);
+#endif
 
 	dir_types = valid_media_types(path);
 

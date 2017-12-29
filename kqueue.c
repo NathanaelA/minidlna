@@ -16,7 +16,7 @@
 #include "event.h"
 #include "log.h"
 
-static int kqueue_set(struct event *ev, short filter, u_short flags);
+static int kqueue_set(struct event *, short, u_short, u_int);
 
 static event_module_init_t kqueue_init;
 static event_module_fini_t kqueue_fini;
@@ -75,9 +75,19 @@ kqueue_fini()
 static int
 kqueue_add(struct event *ev)
 {
+	u_int fflags;
+	u_short flags;
+
+	if (ev->rdwr == EVFILT_VNODE) {
+		flags = EV_ADD | EV_ENABLE | EV_CLEAR;
+		fflags = NOTE_DELETE | NOTE_WRITE | NOTE_EXTEND;
+	} else {
+		flags = EV_ADD | EV_ENABLE;
+		fflags = 0;
+	}
 
 	DPRINTF(E_DEBUG, L_GENERAL, "kqueue_add %d\n", ev->fd);
-	return (kqueue_set(ev, ev->rdwr, EV_ADD | EV_ENABLE));
+	return (kqueue_set(ev, ev->rdwr, flags, fflags));
 }
 
 static int
@@ -110,11 +120,11 @@ kqueue_del(struct event *ev, int flags)
 		return (0);
 
 	DPRINTF(E_DEBUG, L_GENERAL, "kqueue_del %d\n", ev->fd);
-	return (kqueue_set(ev, ev->rdwr, EV_DELETE));
+	return (kqueue_set(ev, ev->rdwr, EV_DELETE, 0));
 }
 
 static int
-kqueue_set(struct event *ev, short filter, u_short flags)
+kqueue_set(struct event *ev, short filter, u_short flags, u_int fflags)
 {
 	struct kevent *kev;
 	struct timespec ts;
@@ -137,7 +147,7 @@ kqueue_set(struct event *ev, short filter, u_short flags)
 	kev->filter = filter;
 	kev->flags = flags;
 	kev->udata = ev;
-	kev->fflags = 0;
+	kev->fflags = fflags;
 	kev->data = 0;
 
 	ev->index = nchanges++;
@@ -174,13 +184,6 @@ kqueue_process(u_long timer)
 		DPRINTF(E_FATAL, L_GENERAL, "kevent(): %s. EXITING\n", strerror(errno));
 	}
 
-	/* XXXGL */
-	for (int i = 0; i < n; i++) {
-		struct event *ev;
-
-		ev = (struct event *)change_list[i].udata;
-	}
-
 	DPRINTF(E_DEBUG, L_GENERAL, "kevent events: %d\n", events);
 
 	if (events == 0) {
@@ -204,6 +207,9 @@ kqueue_process(u_long timer)
 		case EVFILT_READ:
 		case EVFILT_WRITE:
 			ev->process(ev);
+			break;
+		case EVFILT_VNODE:
+			ev->process_vnode(ev, event_list[i].fflags);
 			break;
 		default:
 			DPRINTF(E_ERROR, L_GENERAL,

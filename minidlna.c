@@ -408,7 +408,6 @@ rescan:
 	if (ret || GETFLAG(RESCAN_MASK))
 	{
 #if USE_FORK
-		SETFLAG(SCANNING_MASK);
 		sqlite3_close(db);
 		*scanner_pid = fork();
 		open_db(&db);
@@ -425,6 +424,8 @@ rescan:
 		{
 			start_scanner();
 		}
+		else
+			SETFLAG(SCANNING_MASK);
 #else
 		start_scanner();
 #endif
@@ -1153,7 +1154,13 @@ main(int argc, char **argv)
 		else if (pthread_create(&inotify_thread, NULL, start_inotify, NULL) != 0)
 			DPRINTF(E_FATAL, L_GENERAL, "ERROR: pthread_create() failed for start_inotify. EXITING\n");
 	}
-#endif
+#endif /* HAVE_INOTIFY */
+
+#ifdef HAVE_KQUEUE
+	if (!GETFLAG(SCANNING_MASK))
+		kqueue_monitor_start();
+#endif /* HAVE_KQUEUE */
+
 	smonitor = OpenAndConfMonitorSocket();
 	if (smonitor > 0)
 	{
@@ -1270,14 +1277,13 @@ main(int argc, char **argv)
 		}
 #endif
 
-		if (GETFLAG(SCANNING_MASK))
-		{
-			if (!scanner_pid || kill(scanner_pid, 0) != 0)
-			{
-				CLEARFLAG(SCANNING_MASK);
-				if (_get_dbtime() != lastdbtime)
-					updateID++;
-			}
+		if (GETFLAG(SCANNING_MASK) && kill(scanner_pid, 0) != 0) {
+			CLEARFLAG(SCANNING_MASK);
+			if (_get_dbtime() != lastdbtime)
+				updateID++;
+#ifdef HAVE_KQUEUE
+			kqueue_monitor_start();
+#endif /* HAVE_KQUEUE */
 		}
 
 		event_module.process(timeout);

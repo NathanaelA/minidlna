@@ -31,7 +31,7 @@ minidlnad_SOURCES = minidlna.c upnphttp.c upnpdescgen.c upnpsoap.c \
 			containers.c avahi.c tagutils/tagutils.c
 
 if HAVE_KQUEUE
-minidlnad_SOURCES += kqueue.c
+minidlnad_SOURCES += kqueue.c monitor_kqueue.c
 else
 minidlnad_SOURCES += select.c
 endif

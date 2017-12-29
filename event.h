@@ -11,6 +11,7 @@ typedef enum {
 #ifdef HAVE_KQUEUE
 	EVENT_READ =	EVFILT_READ,
 	EVENT_WRITE =	EVFILT_WRITE,
+	EVENT_VNODE =	EVFILT_VNODE,
 #else
 	EVENT_READ,
 	EVENT_WRITE,
@@ -20,12 +21,20 @@ typedef enum {
 #define	EV_FLAG_CLOSING	0x00000001
 
 typedef	void	event_process_t(struct event *);
+#ifdef HAVE_KQUEUE
+typedef	void	event_vnode_process_t(struct event *, u_int);
+#endif
 
 struct event {
 	int		 fd;
 	int		 index;
 	event_t		 rdwr;
-	event_process_t	*process;
+	union {
+		event_process_t		*process;
+#ifdef HAVE_KQUEUE
+		event_vnode_process_t	*process_vnode;
+#endif
+	};
 	void		*data;
 };
 
