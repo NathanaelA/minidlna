@@ -17,9 +17,16 @@
 #include "sql.h"
 #include "utils.h"
 
+struct watch {
+	struct event	ev;
+	const char	*path;
+	bool		isdir;
+};
+
 static void
-vnode_process(struct event *ev, u_int fflags)
+dir_vnode_process(struct event *ev, u_int fflags)
 {
+	struct watch *wt;
 	const char *path;
 	char *sql, **result, tmp_path[PATH_MAX], *esc_name;
 	int rows, result_path_len;
@@ -27,12 +34,13 @@ vnode_process(struct event *ev, u_int fflags)
 	struct dirent *entry;
 	bool found_flag;
 
-	path = (const char *)ev->data;
+	wt = (struct watch *)ev->data;
+	path = wt->path;
 
 	if (fflags & NOTE_DELETE) {
 		DPRINTF(E_DEBUG, L_INOTIFY, "Path [%s] deleted.\n", path);
 		close(ev->fd);
-		free(ev);
+		free(wt);
 		monitor_remove_directory(0, path);
 		return;
 	} else if ((fflags & (NOTE_WRITE | NOTE_LINK)) ==
@@ -181,6 +189,7 @@ err1:
 int
 add_watch(int fd __unused, const char *path)
 {
+	struct watch *wt;
 	struct event *ev;
 	int wd;
 
@@ -191,20 +200,23 @@ add_watch(int fd __unused, const char *path)
 		return (errno);
 	}
 
-	if ((ev = malloc(sizeof(struct event))) == NULL) {
+	if ((wt = malloc(sizeof(struct watch))) == NULL) {
 		DPRINTF(E_ERROR, L_INOTIFY, "malloc() error\n");
 		close(wd);
 		return (ENOMEM);
 	}
-	if ((ev->data = strdup(path)) == NULL) {
+	if ((wt->path = strdup(path)) == NULL) {
 		DPRINTF(E_ERROR, L_INOTIFY, "strdup() error\n");
 		close(wd);
-		free(ev);
+		free(wt);
 		return (ENOMEM);
 	}
+	wt->isdir = true;
+	ev = &wt->ev;
+	ev->data = wt;
 	ev->fd = wd;
 	ev->rdwr = EVENT_VNODE;
-	ev->process_vnode = vnode_process;
+	ev->process_vnode = dir_vnode_process;
 
 	DPRINTF(E_DEBUG, L_INOTIFY, "kqueue add_watch [%s]\n", path);
 	event_module.add(ev);
