@@ -1285,6 +1285,7 @@ main(int argc, char **argv)
 			if (_get_dbtime() != lastdbtime)
 				updateID++;
 #ifdef HAVE_KQUEUE
+			av_register_all();
 			kqueue_monitor_start();
 #endif /* HAVE_KQUEUE */
 		}
