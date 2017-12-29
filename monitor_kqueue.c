@@ -49,7 +49,7 @@ dir_vnode_process(struct event *ev, u_int fflags)
 		DPRINTF(E_DEBUG, L_INOTIFY, "Directory [%s] content updated\n",
 		    path);
 		sql = sqlite3_mprintf("SELECT PATH from DETAILS where "
-		    "(PATH > '%q/' and PATH <= '%q/%c') and SIZE = ''",
+		    "(PATH > '%q/' and PATH <= '%q/%c') and SIZE IS NULL",
 		    path, path, 0xFF);
 		DPRINTF(E_DEBUG, L_INOTIFY, "SQL: %s\n", sql);
 		if ((sql_get_table(db, sql, &result, &rows, NULL) !=
@@ -112,7 +112,7 @@ dir_vnode_process(struct event *ev, u_int fflags)
 		DPRINTF(E_DEBUG, L_INOTIFY, "File [%s] content updated\n",
 		    path);
 		sql = sqlite3_mprintf("SELECT PATH from DETAILS where "
-		    "(PATH > '%q/' and PATH <= '%q/%c') and SIZE <> ''",
+		    "(PATH > '%q/' and PATH <= '%q/%c') and SIZE IS NOT NULL",
 		    path, path, 0xFF);
 		if (sql_get_table(db, sql, &result, &rows, NULL) != SQLITE_OK) {
 			DPRINTF(E_WARN, L_INOTIFY,
