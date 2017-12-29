@@ -540,7 +540,7 @@ monitor_insert_directory(int fd, char *name, const char * path)
 		}
 		else if( type == TYPE_FILE )
 		{
-			if( (stat(path_buf, &st) == 0) && (st.st_blocks<<9 >= st.st_size) )
+			if( (stat(path_buf, &st) == 0) )
 			{
 				monitor_insert_file(esc_name, path_buf);
 			}
