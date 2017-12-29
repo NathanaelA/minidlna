@@ -93,6 +93,7 @@
 #include "upnpevents.h"
 #include "scanner.h"
 #include "monitor.h"
+#include "libav.h"
 #include "log.h"
 #include "tivo_beacon.h"
 #include "tivo_utils.h"
@@ -1157,8 +1158,10 @@ main(int argc, char **argv)
 #endif /* HAVE_INOTIFY */
 
 #ifdef HAVE_KQUEUE
-	if (!GETFLAG(SCANNING_MASK))
+	if (!GETFLAG(SCANNING_MASK)) {
+		av_register_all();
 		kqueue_monitor_start();
+	}
 #endif /* HAVE_KQUEUE */
 
 	smonitor = OpenAndConfMonitorSocket();
