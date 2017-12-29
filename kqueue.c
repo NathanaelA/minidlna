@@ -130,7 +130,7 @@ kqueue_set(struct event *ev, short filter, u_short flags, u_int fflags)
 	struct timespec ts;
 
 	if (nchanges >= MAXCHANGES) {
-		DPRINTF(E_WARN, L_GENERAL, "kqueue change list is filled up\n");
+		DPRINTF(E_INFO, L_GENERAL, "kqueue change list is filled up\n");
 
 		ts.tv_sec = 0;
 		ts.tv_nsec = 0;
