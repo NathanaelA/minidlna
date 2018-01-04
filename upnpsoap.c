@@ -398,6 +398,7 @@ GetCurrentConnectionInfo(struct upnphttp * h, const char * action)
 /* Vendor-specific filter flags */
 #define FILTER_SEC_CAPTION_INFO_EX		0x04000000
 #define FILTER_SEC_DCM_INFO			0x08000000
+#define FILTER_SEC				0x0C000000
 #define FILTER_PV_SUBTITLE_FILE_TYPE		0x10000000
 #define FILTER_PV_SUBTITLE_FILE_URI		0x20000000
 #define FILTER_PV_SUBTITLE			0x30000000
@@ -1299,6 +1300,8 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 		ret = strcatf(&str, DLNA_NAMESPACE);
 	if( args.filter & FILTER_PV_SUBTITLE )
 		ret = strcatf(&str, PV_NAMESPACE);
+	if( args.filter & FILTER_SEC )
+		ret = strcatf(&str, SEC_NAMESPACE);
 	strcatf(&str, "&gt;\n");
 
 	args.returned = 0;
