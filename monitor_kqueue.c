@@ -1,7 +1,6 @@
 /*
  * Copyright (c) 2017 Gleb Smirnoff <glebius@FreeBSD.org>
- * Copyright (c) 2013-2017 William Grzybowski <wg@FreeBSD.org>
- * Copyright (c) 2013-2017 Stefan Esser <se@FreeBSD.org>
+ * Copyright (c) 2013 Bernard Spil <brnrd@FreeBSD.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
