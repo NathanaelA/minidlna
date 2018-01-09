@@ -204,9 +204,10 @@ static const char * const known_service_types[] =
 };
 
 static void
-_usleep(long usecs)
+_usleep(long min, long max)
 {
 	struct timespec sleep_time;
+	long usecs = min + rand() / (RAND_MAX / (max - min + 1) + 1);
 
 	sleep_time.tv_sec = 0;
 	sleep_time.tv_nsec = usecs * 1000;
@@ -278,7 +279,7 @@ SendSSDPNotifies(int s, const char *host, unsigned short port,
 	for (dup = 0; dup < 2; dup++)
 	{
 		if (dup)
-			_usleep(200000);
+			_usleep(150000, 250000);
 		i = 0;
 		while (known_service_types[i])
 		{
@@ -722,7 +723,7 @@ ProcessSSDPRequest(int s, unsigned short port)
 					if (l != st_len)
 						break;
 				}
-				_usleep(random()>>20);
+				_usleep(13000, 20000);
 				SendSSDPResponse(s, sendername, i,
 						 host, port, len_r);
 				return;
@@ -731,6 +732,7 @@ ProcessSSDPRequest(int s, unsigned short port)
 			/* strlen("ssdp:all") == 8 */
 			if ((st_len == 8) && (memcmp(st, "ssdp:all", 8) == 0))
 			{
+				_usleep(13000, 30000);
 				for (i=0; known_service_types[i]; i++)
 				{
 					l = strlen(known_service_types[i]);
