@@ -756,6 +756,10 @@ init(int argc, char **argv)
 			if (strcasecmp(ary_options[i].value, "beacon") == 0)
 				CLEARFLAG(TIVO_BONJOUR_MASK);
 			break;
+		case ENABLE_SUBTITLES:
+			if (!strtobool(ary_options[i].value))
+				CLEARFLAG(SUBTITLES_MASK);
+			break;
 		default:
 			DPRINTF(E_ERROR, L_GENERAL, "Unknown option in file %s\n",
 				optionsfile);

@@ -839,6 +839,10 @@ callback(void *args, int argc, char **argv, char **azColName)
 		if( *mime == 'v' )
 		{
 			dlna_flags |= DLNA_FLAG_TM_S;
+			if (GETFLAG(SUBTITLES_MASK) &&
+			    (passed_args->client >= EStandardDLNA150 || !passed_args->client))
+				passed_args->flags |= FLAG_CAPTION_RES;
+
 			if( passed_args->flags & FLAG_MIME_AVI_DIVX )
 			{
 				if( strcmp(mime, "video/x-msvideo") == 0 )
