@@ -261,6 +261,7 @@ GetSortCapabilities(struct upnphttp * h, const char * action)
 		  "dc:date,"
 		  "upnp:class,"
 		  "upnp:album,"
+		  "upnp:episodeNumber,"
 		  "upnp:originalTrackNumber"
 		"</SortCaps>"
 		"</u:%sResponse>";
@@ -388,23 +389,25 @@ GetCurrentConnectionInfo(struct upnphttp * h, const char * action)
 #define FILTER_UPNP_ALBUMARTURI			0x00010000
 #define FILTER_UPNP_ALBUMARTURI_DLNA_PROFILEID	0x00020000
 #define FILTER_UPNP_ARTIST			0x00040000
-#define FILTER_UPNP_GENRE			0x00080000
-#define FILTER_UPNP_ORIGINALTRACKNUMBER		0x00100000
-#define FILTER_UPNP_SEARCHCLASS			0x00200000
-#define FILTER_UPNP_STORAGEUSED			0x00400000
+#define FILTER_UPNP_EPISODENUMBER		0x00080000
+#define FILTER_UPNP_EPISODESEASON		0x00100000
+#define FILTER_UPNP_GENRE			0x00200000
+#define FILTER_UPNP_ORIGINALTRACKNUMBER		0x00400000
+#define FILTER_UPNP_SEARCHCLASS			0x00800000
+#define FILTER_UPNP_STORAGEUSED			0x01000000
 /* Not normally used, so leave out of the default filter */
-#define FILTER_UPNP_PLAYBACKCOUNT		0x01000000
-#define FILTER_UPNP_LASTPLAYBACKPOSITION	0x02000000
+#define FILTER_UPNP_PLAYBACKCOUNT		0x02000000
+#define FILTER_UPNP_LASTPLAYBACKPOSITION	0x04000000
 /* Vendor-specific filter flags */
-#define FILTER_SEC_CAPTION_INFO_EX		0x04000000
-#define FILTER_SEC_DCM_INFO			0x08000000
-#define FILTER_SEC				0x0C000000
-#define FILTER_PV_SUBTITLE_FILE_TYPE		0x10000000
-#define FILTER_PV_SUBTITLE_FILE_URI		0x20000000
-#define FILTER_PV_SUBTITLE			0x30000000
-#define FILTER_AV_MEDIA_CLASS			0x40000000
+#define FILTER_SEC_CAPTION_INFO_EX		0x08000000
+#define FILTER_SEC_DCM_INFO			0x10000000
+#define FILTER_SEC				0x18000000
+#define FILTER_PV_SUBTITLE_FILE_TYPE		0x20000000
+#define FILTER_PV_SUBTITLE_FILE_URI		0x40000000
+#define FILTER_PV_SUBTITLE			0x60000000
+#define FILTER_AV_MEDIA_CLASS			0x80000000
 /* Masks */
-#define STANDARD_FILTER_MASK			0x00FFFFFF
+#define STANDARD_FILTER_MASK			0x01FFFFFF
 #define FILTER_BOOKMARK_MASK			(FILTER_UPNP_PLAYBACKCOUNT | \
 						 FILTER_UPNP_LASTPLAYBACKPOSITION | \
 						 FILTER_SEC_DCM_INFO)
@@ -575,6 +578,14 @@ set_filter_flags(char *filter, struct upnphttp *h)
 		{
 			flags |= FILTER_AV_MEDIA_CLASS;
 		}
+		else if( strcmp(item, "upnp:episodeNumber") == 0 )
+		{
+			flags |= FILTER_UPNP_EPISODENUMBER;
+		}
+		else if( strcmp(item, "upnp:episodeSeason") == 0 )
+		{
+			flags |= FILTER_UPNP_EPISODESEASON;
+		}
 		item = strtok_r(NULL, ",", &saveptr);
 	}
 
@@ -635,9 +646,10 @@ parse_sort_criteria(char *sortCriteria, int *error)
 		{
 			strcatf(&str, "d.DATE");
 		}
-		else if( strcasecmp(item, "upnp:originalTrackNumber") == 0 )
+		else if( strcasecmp(item, "upnp:originalTrackNumber") == 0 ||
+			 strcasecmp(item, "upnp:episodeNumber") == 0 )
 		{
-			strcatf(&str, "d.DISC, d.TRACK");
+			strcatf(&str, "d.DISC%s, d.TRACK", reverse ? " DESC" : "");
 		}
 		else if( strcasecmp(item, "upnp:album") == 0 )
 		{
@@ -794,7 +806,7 @@ callback(void *args, int argc, char **argv, char **azColName)
 	char *id = argv[0], *parent = argv[1], *refID = argv[2], *detailID = argv[3], *class = argv[4], *size = argv[5], *title = argv[6],
 	     *duration = argv[7], *bitrate = argv[8], *sampleFrequency = argv[9], *artist = argv[10], *album = argv[11],
 	     *genre = argv[12], *comment = argv[13], *nrAudioChannels = argv[14], *track = argv[15], *date = argv[16], *resolution = argv[17],
-	     *tn = argv[18], *creator = argv[19], *dlna_pn = argv[20], *mime = argv[21], *album_art = argv[22], *rotate = argv[23];
+	     *tn = argv[18], *creator = argv[19], *dlna_pn = argv[20], *mime = argv[21], *album_art = argv[22], *rotate = argv[23], *disc = argv[24];
 	char dlna_buf[128];
 	const char *ext;
 	struct string_s *str = passed_args->str;
@@ -1006,8 +1018,15 @@ callback(void *args, int argc, char **argv, char **azColName)
 		if( strncmp(id, MUSIC_PLIST_ID, strlen(MUSIC_PLIST_ID)) == 0 ) {
 			track = strrchr(id, '$')+1;
 		}
-		if( NON_ZERO(track) && (passed_args->filter & FILTER_UPNP_ORIGINALTRACKNUMBER) ) {
-			ret = strcatf(str, "&lt;upnp:originalTrackNumber&gt;%s&lt;/upnp:originalTrackNumber&gt;", track);
+		if( NON_ZERO(track) ) {
+			if( *mime == 'a' && (passed_args->filter & FILTER_UPNP_ORIGINALTRACKNUMBER) ) {
+				ret = strcatf(str, "&lt;upnp:originalTrackNumber&gt;%s&lt;/upnp:originalTrackNumber&gt;", track);
+			} else if( *mime == 'v' ) {
+				if( passed_args->filter & FILTER_UPNP_EPISODESEASON )
+					ret = strcatf(str, "&lt;upnp:episodeSeason&gt;%s&lt;/upnp:episodeSeason&gt;", disc);
+				if( passed_args->filter & FILTER_UPNP_EPISODENUMBER )
+					ret = strcatf(str, "&lt;upnp:episodeNumber&gt;%s&lt;/upnp:episodeNumber&gt;", track);
+			}
 		}
 		if( passed_args->filter & FILTER_RES ) {
 			ext = mime_to_ext(mime);
