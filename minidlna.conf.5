@@ -161,6 +161,10 @@ The possible values are:
 .IP "\fBforce_sort_criteria\fP"
 Always force SortCriteria to this value, regardless of the SortCriteria passed by the client.
 .nf
+You may prepend the sort criteria with "!" to alter the titles of the objects so that they
+will be alphanumerically sorted in the order you specify here, to work around clients that do
+their own alphanumeric sorting.
+.nf
 
 Example
 force_sort_criteria=+upnp:class,+upnp:originalTrackNumber,+dc:title

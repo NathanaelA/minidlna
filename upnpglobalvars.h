@@ -196,6 +196,7 @@ extern uint32_t runtime_flags;
 #define SCANNING_MASK         0x0100
 #define RESCAN_MASK           0x0200
 #define SUBTITLES_MASK        0x0400
+#define FORCE_ALPHASORT_MASK  0x0800
 
 #define SETFLAG(mask)	runtime_flags |= mask
 #define GETFLAG(mask)	(runtime_flags & mask)

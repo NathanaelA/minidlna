@@ -740,6 +740,11 @@ init(int argc, char **argv)
 			break;
 		case FORCE_SORT_CRITERIA:
 			force_sort_criteria = ary_options[i].value;
+			if (force_sort_criteria[0] == '!')
+			{
+				SETFLAG(FORCE_ALPHASORT_MASK);
+				force_sort_criteria++;
+			}
 			break;
 		case MAX_CONNECTIONS:
 			runtime_vars.max_connections = atoi(ary_options[i].value);

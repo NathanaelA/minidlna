@@ -77,6 +77,8 @@
 #else
 # define __SORT_LIMIT
 #endif
+#define NON_ZERO(x) (x && atoi(x))
+#define IS_ZERO(x) (!x || !atoi(x))
 
 /* Standard Errors:
  *
@@ -691,6 +693,35 @@ parse_sort_criteria(char *sortCriteria, int *error)
 	return order;
 }
 
+static void
+_alphasort_alt_title(char **title, char **alt_title, int requested, int returned, const char *disc, const char *track)
+{
+	char *old_title = *alt_title ?: NULL;
+	char buf[8];
+	int pad;
+	int ret;
+
+	snprintf(buf, sizeof(buf), "%d", requested);
+	pad = strlen(buf);
+
+	if (NON_ZERO(track) && !strstr(*title, track)) {
+		if (NON_ZERO(disc))
+			ret = asprintf(alt_title, "%0*d %s.%s %s",
+					pad, returned, disc, track, *title);
+		else
+			ret = asprintf(alt_title, "%0*d %s %s",
+					pad, returned, track, *title);
+	}
+	else
+		ret = asprintf(alt_title, "%0*d %s", pad, returned, *title);
+
+	if (ret > 0)
+		*title = *alt_title;
+	else
+		*alt_title = NULL;
+	free(old_title);
+}
+
 inline static void
 add_resized_res(int srcw, int srch, int reqw, int reqh, char *dlna_pn,
                 char *detailID, struct Response *args)
@@ -795,9 +826,6 @@ object_exists(const char *object)
                 " d.ALBUM, d.GENRE, d.COMMENT, d.CHANNELS, d.TRACK, d.DATE, d.RESOLUTION," \
                 " d.THUMBNAIL, d.CREATOR, d.DLNA_PN, d.MIME, d.ALBUM_ART, d.ROTATION, d.DISC "
 #define SELECT_COLUMNS "SELECT o.OBJECT_ID, o.PARENT_ID, o.REF_ID, " COLUMNS
-
-#define NON_ZERO(x) (x && atoi(x))
-#define IS_ZERO(x) (!x || !atoi(x))
 
 static int
 callback(void *args, int argc, char **argv, char **azColName)
@@ -947,6 +975,9 @@ callback(void *args, int argc, char **argv, char **azColName)
 		}
 		else
 			dlna_flags |= DLNA_FLAG_TM_I;
+		/* Force an alphabetical sort, for clients that like to do their own sorting */
+		if( GETFLAG(FORCE_ALPHASORT_MASK) )
+			_alphasort_alt_title(&title, &alt_title, passed_args->requested, passed_args->returned, disc, track);
 
 		if( passed_args->flags & FLAG_SKIP_DLNA_PN )
 			dlna_pn = NULL;
@@ -1022,7 +1053,7 @@ callback(void *args, int argc, char **argv, char **azColName)
 			if( *mime == 'a' && (passed_args->filter & FILTER_UPNP_ORIGINALTRACKNUMBER) ) {
 				ret = strcatf(str, "&lt;upnp:originalTrackNumber&gt;%s&lt;/upnp:originalTrackNumber&gt;", track);
 			} else if( *mime == 'v' ) {
-				if( passed_args->filter & FILTER_UPNP_EPISODESEASON )
+				if( NON_ZERO(disc) && (passed_args->filter & FILTER_UPNP_EPISODESEASON) )
 					ret = strcatf(str, "&lt;upnp:episodeSeason&gt;%s&lt;/upnp:episodeSeason&gt;", disc);
 				if( passed_args->filter & FILTER_UPNP_EPISODENUMBER )
 					ret = strcatf(str, "&lt;upnp:episodeNumber&gt;%s&lt;/upnp:episodeNumber&gt;", track);
