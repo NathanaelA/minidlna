@@ -56,7 +56,7 @@ dir_vnode_process(struct event *ev, u_int fflags)
 	struct watch *wt;
 	const char *path;
 	char *sql, **result, tmp_path[PATH_MAX], *esc_name;
-	int rows, result_path_len;
+	int rows, result_path_len, i;
 	DIR* d;
 	struct dirent *entry;
 	bool found_flag;
@@ -86,7 +86,7 @@ dir_vnode_process(struct event *ev, u_int fflags)
 			goto err1;
 		}
 
-		for (int i = 1; i <= rows; i++) {
+		for (i = 1; i <= rows; i++) {
 			DPRINTF(E_DEBUG, L_INOTIFY,
 			    "Indexed content: %s\n", result[i]);
 			if (access(result[i], R_OK) == -1)
@@ -116,7 +116,7 @@ dir_vnode_process(struct event *ev, u_int fflags)
 
 			DPRINTF(E_DEBUG, L_INOTIFY, "Walking %s\n", tmp_path);
 			found_flag = false;
-			for (int i = 1; i <= rows; i++) {
+			for (i = 1; i <= rows; i++) {
 				if (strcmp(result[i], tmp_path) == 0) {
 					found_flag = true;
 					break;
@@ -147,7 +147,7 @@ dir_vnode_process(struct event *ev, u_int fflags)
 			goto err1;
 		}
 
-		for (int i = 1; i <= rows; i++) {
+		for (i = 1; i <= rows; i++) {
 			DPRINTF(E_DEBUG, L_INOTIFY,
 			    "Indexed content: %s\n", result[i]);
 			if (access(result[i], R_OK) == -1)
@@ -175,7 +175,7 @@ dir_vnode_process(struct event *ev, u_int fflags)
 			}
 			DPRINTF(E_DEBUG, L_INOTIFY, "Walking %s\n", tmp_path);
 			found_flag = false;
-			for (int i = 1; i <= rows; i++)
+			for (i = 1; i <= rows; i++)
 				if (strcmp(result[i], tmp_path) == 0) {
 					found_flag = true;
 					break;
@@ -262,14 +262,14 @@ kqueue_monitor_start()
 {
 	struct media_dir_s *media_path;
 	char **result;
-	int rows;
+	int rows, i;
 
 	DPRINTF(E_DEBUG, L_INOTIFY, "kqueue monitoring starting\n");
 	for (media_path = media_dirs; media_path != NULL;
 	    media_path = media_path->next)
 		add_watch(0, media_path->path);
 	sql_get_table(db, "SELECT PATH from DETAILS where MIME is NULL and PATH is not NULL", &result, &rows, NULL);
-	for (int i = 1; i <= rows; i++ )
+	for (i = 1; i <= rows; i++ )
 		add_watch(0, result[i]);
 	sqlite3_free_table(result);
 }

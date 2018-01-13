@@ -146,11 +146,11 @@ select_process(u_long msec)
 {
 	struct timeval tv, *tp;
 	struct event *ev;
-	int ready;
+	int ready, i;
 
 	/* Need to rescan for max_fd. */
 	if (max_fd == -1)
-		for (int i = 0; i < nevents; i++) {
+		for (i = 0; i < nevents; i++) {
 			if (max_fd < events[i]->fd)
 				max_fd = events[i]->fd;
 		}
@@ -173,7 +173,7 @@ select_process(u_long msec)
 	if (ready == 0)
 		return (0);
 
-	for (int i = 0; i < nevents; i++) {
+	for (i = 0; i < nevents; i++) {
 		ev = events[i];
 
 		switch (ev->rdwr) {

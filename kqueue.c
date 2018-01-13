@@ -181,7 +181,7 @@ static int
 kqueue_process(u_long timer)
 {
 	struct event *ev;
-	int events, n;
+	int events, n, i;
 	struct timespec ts, *tp;
 
 	n = (int) nchanges;
@@ -214,7 +214,7 @@ kqueue_process(u_long timer)
 		DPRINTF(E_FATAL, L_GENERAL, "kevent() returned no events. EXITING\n");
 	}
 
-	for (int i = 0; i < events; i++) {
+	for (i = 0; i < events; i++) {
 		if (event_list[i].flags & EV_ERROR) {
 			DPRINTF(E_ERROR, L_GENERAL,
 			    "kevent() error %d on %d filter:%d flags:0x%x\n",
