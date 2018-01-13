@@ -19,6 +19,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <unistd.h>
@@ -471,6 +472,30 @@ monitor_insert_file(const char *name, const char *path)
 	return depth;
 }
 
+static bool
+check_notsparse(const char *path)
+#if HAVE_DECL_SEEK_HOLE
+{
+	int fd;
+	bool rv;
+
+	if ((fd = open(path, O_RDONLY)) == -1)
+		return (false);
+	if (lseek(fd, 0, SEEK_HOLE) == lseek(fd, 0, SEEK_END))
+		rv = true;
+	else
+		rv = false;
+	close(fd);
+	return (rv);
+}
+#else
+{
+	struct stat st;
+
+	return (stat(path, &st) == 0 && (st.st_blocks << 9 >= st.st_size));
+}
+#endif
+
 int
 monitor_insert_directory(int fd, char *name, const char * path)
 {
@@ -480,7 +505,6 @@ monitor_insert_directory(int fd, char *name, const char * path)
 	char path_buf[PATH_MAX];
 	enum file_types type = TYPE_UNKNOWN;
 	media_types dir_types;
-	struct stat st;
 
 	if( access(path, R_OK|X_OK) != 0 )
 	{
@@ -538,12 +562,8 @@ monitor_insert_directory(int fd, char *name, const char * path)
 		{
 			monitor_insert_directory(fd, esc_name, path_buf);
 		}
-		else if( type == TYPE_FILE )
-		{
-			if( (stat(path_buf, &st) == 0) )
-			{
-				monitor_insert_file(esc_name, path_buf);
-			}
+		else if( type == TYPE_FILE && check_notsparse(path_buf)) {
+			monitor_insert_file(esc_name, path_buf);
 		}
 		free(esc_name);
 	}

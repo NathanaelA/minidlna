@@ -68,6 +68,7 @@ AC_C_BIGENDIAN
 AC_FUNC_FORK
 AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
 AC_CHECK_FUNCS([gethostname getifaddrs gettimeofday inet_ntoa memmove memset mkdir realpath select sendfile setlocale socket strcasecmp strchr strdup strerror strncasecmp strpbrk strrchr strstr strtol strtoul])
+AC_CHECK_DECLS([SEEK_HOLE])
 
 #
 # Check for struct ip_mreqn
