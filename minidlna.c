@@ -1212,7 +1212,7 @@ main(int argc, char **argv)
 			if(sbeacon < 0)
 				DPRINTF(E_FATAL, L_GENERAL, "Failed to open sockets for sending Tivo beacon notify "
 					"messages. EXITING\n");
-			beaconev = { .fd = sbeacon, .rdwr = EVENT_READ, .process = ProcessTiVoBeacon };
+			beaconev = (struct event ){ .fd = sbeacon, .rdwr = EVENT_READ, .process = ProcessTiVoBeacon };
 			event_module.add(&beaconev);
 			tivo_bcast.sin_family = AF_INET;
 			tivo_bcast.sin_addr.s_addr = htonl(getBcastAddress());
