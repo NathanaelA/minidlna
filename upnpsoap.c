@@ -1980,6 +1980,31 @@ QueryStateVariable(struct upnphttp * h, const char * action)
 	ClearNameValueList(&data);
 }
 
+static int _set_watch_count(long long id, const char *old, const char *new)
+{
+	int64_t rowid = sqlite3_last_insert_rowid(db);
+	int ret;
+
+	ret = sql_exec(db, "INSERT or IGNORE into BOOKMARKS (ID, WATCH_COUNT)"
+			   " VALUES (%lld, %Q)", id, new ?: "1");
+	if (sqlite3_last_insert_rowid(db) != rowid)
+		return 0;
+
+	if (!new) /* Increment */
+		ret = sql_exec(db, "UPDATE BOOKMARKS set WATCH_COUNT ="
+				   " ifnull(WATCH_COUNT,'0') + 1"
+				   " where ID = %lld", id);
+	else if (old && old[0])
+		ret = sql_exec(db, "UPDATE BOOKMARKS set WATCH_COUNT = %Q"
+				   " where WATCH_COUNT = %Q and ID = %lld",
+				   new, old, id);
+	else
+		ret = sql_exec(db, "UPDATE BOOKMARKS set WATCH_COUNT = %Q"
+				   " where ID = %lld",
+				   new, id);
+	return ret;
+}
+
 /* For some reason, Kodi does URI encoding and appends a trailing slash */
 static void _kodi_decode(char *str)
 {
@@ -2068,16 +2093,7 @@ static void UpdateObject(struct upnphttp * h, const char * action)
 		/* Kodi uses incorrect tag "upnp:playCount" instead of "upnp:playbackCount" */
 		if (strcmp(tag, "upnp:playbackCount") == 0 || strcmp(tag, "upnp:playCount") == 0)
 		{
-			//ret = sql_exec(db, "INSERT OR IGNORE into BOOKMARKS (ID, WATCH_COUNT)"
-			ret = sql_exec(db, "INSERT into BOOKMARKS (ID, WATCH_COUNT)"
-					   " VALUES (%lld, %Q)", (long long)detailID, new);
-			if (atoi(new))
-				ret = sql_exec(db, "UPDATE BOOKMARKS set WATCH_COUNT = %Q"
-						   " where WATCH_COUNT = %Q and ID = %lld",
-						   new, current, (long long)detailID);
-			else
-				ret = sql_exec(db, "UPDATE BOOKMARKS set WATCH_COUNT = 0"
-						   " where ID = %lld", (long long)detailID);
+			ret = _set_watch_count(detailID, current, new);
 		}
 		else if (strcmp(tag, "upnp:lastPlaybackPosition") == 0)
 		{
