@@ -671,6 +671,11 @@ ProcessSSDPRequest(struct event *ev)
 				pi = (struct in_pktinfo *)CMSG_DATA(cmsg);
 				addr = pi->ipi_spec_dst;
 				inet_ntop(AF_INET, &addr, host, sizeof(host));
+				for (i = 0; i < n_lan_addr; i++)
+				{
+					if (pi->ipi_ifindex == lan_addr[i].ifindex)
+						break;
+				}
 			}
 #else
 			const char *host;
@@ -685,14 +690,14 @@ ProcessSSDPRequest(struct event *ev)
 					break;
 				}
 			}
+			host = lan_addr[iface].str;
+#endif
 			if (n_lan_addr == i)
 			{
 				DPRINTF(E_DEBUG, L_SSDP, "Ignoring SSDP M-SEARCH on other interface [%s]\n",
 					inet_ntoa(sendername.sin_addr));
 				return;
 			}
-			host = lan_addr[iface].str;
-#endif
 			DPRINTF(E_DEBUG, L_SSDP, "SSDP M-SEARCH from %s:%d ST: %.*s, MX: %.*s, MAN: %.*s\n",
 				inet_ntoa(sendername.sin_addr),
 				ntohs(sendername.sin_port),
