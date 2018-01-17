@@ -99,8 +99,9 @@
  * 800-899 	TBD 			Action-specific errors for non-standard actions.
  * 							Defined by UPnP vendor.
 */
+#define SoapError(x,y,z) _SoapError(x,y,z,__func__)
 static void
-SoapError(struct upnphttp * h, int errCode, const char * errDesc)
+_SoapError(struct upnphttp * h, int errCode, const char * errDesc, const char *func)
 {
 	static const char resp[] =
 		"<s:Envelope "
@@ -123,7 +124,7 @@ SoapError(struct upnphttp * h, int errCode, const char * errDesc)
 	char body[2048];
 	int bodylen;
 
-	DPRINTF(E_WARN, L_HTTP, "Returning UPnPError %d: %s\n", errCode, errDesc);
+	DPRINTF(E_WARN, L_HTTP, "%s Returning UPnPError %d: %s\n", func, errCode, errDesc);
 	bodylen = snprintf(body, sizeof(body), resp, errCode, errDesc);
 	BuildResp2_upnphttp(h, 500, "Internal Server Error", body, bodylen);
 	SendResp_upnphttp(h);
@@ -1017,17 +1018,18 @@ callback(void *args, int argc, char **argv, char **azColName)
 		if( (passed_args->filter & FILTER_BOOKMARK_MASK) ) {
 			/* Get bookmark */
 			int sec = sql_get_int_field(db, "SELECT SEC from BOOKMARKS where ID = '%s'", detailID);
-			if( sec > 0 && (passed_args->filter & FILTER_UPNP_LASTPLAYBACKPOSITION) ) {
+			if( sec > 0 ) {
 				/* This format is wrong according to the UPnP/AV spec.  It should be in duration format,
 				** so HH:MM:SS. But Kodi seems to be the only user of this tag, and it only works with a
 				** raw seconds value.
 				** If Kodi gets fixed, we can use duration_str(sec * 1000) here */
-				ret = strcatf(str, "&lt;upnp:lastPlaybackPosition&gt;%d&lt;/upnp:lastPlaybackPosition&gt;",
-				              sec);
+				if( passed_args->filter & FILTER_UPNP_LASTPLAYBACKPOSITION )
+					ret = strcatf(str, "&lt;upnp:lastPlaybackPosition&gt;%d&lt;/upnp:lastPlaybackPosition&gt;",
+					              sec);
+				if( passed_args->filter & FILTER_SEC_DCM_INFO )
+					ret = strcatf(str, "&lt;sec:dcmInfo&gt;CREATIONDATE=0,FOLDER=%s,BM=%d&lt;/sec:dcmInfo&gt;",
+					              title, sec);
 			}
-			if( passed_args->filter & FILTER_SEC_DCM_INFO )
-				ret = strcatf(str, "&lt;sec:dcmInfo&gt;CREATIONDATE=0,FOLDER=%s,BM=%d&lt;/sec:dcmInfo&gt;",
-				              title, sec);
 			if( passed_args->filter & FILTER_UPNP_PLAYBACKCOUNT ) {
 				ret = strcatf(str, "&lt;upnp:playbackCount&gt;%d&lt;/upnp:playbackCount&gt;",
 				              sql_get_int_field(db, "SELECT WATCH_COUNT from BOOKMARKS where ID = '%s'", detailID));
