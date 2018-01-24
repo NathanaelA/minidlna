@@ -1369,6 +1369,8 @@ shutdown:
 	process_reap_children();
 	free(children);
 
+	event_module.fini();
+
 	sql_exec(db, "UPDATE SETTINGS set VALUE = '%u' where KEY = 'UPDATE_ID'", updateID);
 	sqlite3_close(db);
 
