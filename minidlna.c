@@ -215,9 +215,10 @@ static void
 sighup(int sig)
 {
 	signal(sig, sighup);
-	DPRINTF(E_WARN, L_GENERAL, "received signal %d, re-read\n", sig);
+	DPRINTF(E_WARN, L_GENERAL, "received signal %d, reloading\n", sig);
 
 	reload_ifaces(1);
+	log_reopen();
 }
 
 /* record the startup time */
@@ -290,8 +291,7 @@ getfriendlyname(char *buf, int len)
 #ifndef STATIC // Disable for static linking
 	if (!logname)
 	{
-		struct passwd * pwent;
-		pwent = getpwuid(getuid());
+		struct passwd *pwent = getpwuid(geteuid());
 		if (pwent)
 			logname = pwent->pw_name;
 	}
@@ -710,16 +710,15 @@ init(int argc, char **argv)
 			make_dir(path, S_ISVTX|S_IRWXU|S_IRWXG|S_IRWXO);
 			if (access(path, F_OK) != 0)
 				DPRINTF(E_FATAL, L_GENERAL, "Database path not accessible! [%s]\n", path);
-			strncpyt(db_path, path, PATH_MAX);
+			strncpyt(db_path, path, sizeof(db_path));
 			break;
 		case UPNPLOGDIR:
 			path = realpath(ary_options[i].value, buf);
 			if (!path)
-				path = (ary_options[i].value);
-			make_dir(path, S_ISVTX|S_IRWXU|S_IRWXG|S_IRWXO);
-			if (access(path, F_OK) != 0)
-				DPRINTF(E_FATAL, L_GENERAL, "Log path not accessible! [%s]\n", path);
-			strncpyt(log_path, path, PATH_MAX);
+				path = ary_options[i].value;
+			if (snprintf(log_path, sizeof(log_path), "%s", path) > sizeof(log_path))
+				DPRINTF(E_FATAL, L_GENERAL, "Log path too long! [%s]\n", path);
+			make_dir(log_path, S_ISVTX|S_IRWXU|S_IRWXG|S_IRWXO);
 			break;
 		case UPNPLOGLEVEL:
 			log_level = ary_options[i].value;
@@ -816,15 +815,10 @@ init(int argc, char **argv)
 				optionsfile);
 		}
 	}
-	if (log_path[0] == '\0')
-	{
-		if (db_path[0] == '\0')
-			strncpyt(log_path, DEFAULT_LOG_PATH, PATH_MAX);
-		else
-			strncpyt(log_path, db_path, PATH_MAX);
-	}
-	if (db_path[0] == '\0')
-		strncpyt(db_path, DEFAULT_DB_PATH, PATH_MAX);
+	if (!log_path[0])
+		strncpyt(log_path, DEFAULT_LOG_PATH, sizeof(log_path));
+	if (!db_path[0])
+		strncpyt(db_path, DEFAULT_DB_PATH, sizeof(db_path));
 
 	/* command line arguments processing */
 	for (i=1; i<argc; i++)
@@ -1006,38 +1000,31 @@ init(int argc, char **argv)
 	else if (!log_level)
 		log_level = log_str;
 
-	/* Set the default log file path to NULL (stdout) */
-	path = NULL;
+	/* Set the default log to stdout */
 	if (debug_flag)
 	{
 		pid = getpid();
 		strcpy(log_str+65, "maxdebug");
 		log_level = log_str;
+		log_path[0] = '\0';
 	}
 	else if (GETFLAG(SYSTEMD_MASK))
 	{
 		pid = getpid();
+		log_path[0] = '\0';
 	}
 	else
 	{
 		pid = process_daemonize();
-		#ifdef READYNAS
-		unlink("/ramfs/.upnp-av_scan");
-		path = "/var/log/upnp-av.log";
-		#else
 		if (access(db_path, F_OK) != 0)
 			make_dir(db_path, S_ISVTX|S_IRWXU|S_IRWXG|S_IRWXO);
-		snprintf(buf, sizeof(buf), "%s/minidlna.log", log_path);
-		path = buf;
-		#endif
 	}
-	log_init(path, log_level);
+	if (log_init(log_level) < 0)
+		DPRINTF(E_FATAL, L_GENERAL, "Failed to open log file '%s/" LOGFILE_NAME "': %s\n",
+			log_path, strerror(errno));
 
 	if (process_check_if_running(pidfilename) < 0)
-	{
-		DPRINTF(E_ERROR, L_GENERAL, SERVER_NAME " is already running. EXITING.\n");
-		return 1;
-	}	
+		DPRINTF(E_FATAL, L_GENERAL, SERVER_NAME " is already running. EXITING.\n");
 
 	set_startup_time();
 
@@ -1058,6 +1045,8 @@ init(int argc, char **argv)
 		DPRINTF(E_FATAL, L_GENERAL, "Failed to set %s handler. EXITING.\n", "SIGPIPE");
 	if (signal(SIGHUP, &sighup) == SIG_ERR)
 		DPRINTF(E_FATAL, L_GENERAL, "Failed to set %s handler. EXITING.\n", "SIGHUP");
+	if (signal(SIGUSR2, SIG_IGN) == SIG_ERR)
+		DPRINTF(E_FATAL, L_GENERAL, "Failed to set %s handler. EXITING.\n", "SIGUSR2");
 	signal(SIGUSR1, &sigusr1);
 	sa.sa_handler = process_handle_child_termination;
 	if (sigaction(SIGCHLD, &sa, NULL))
