@@ -951,7 +951,7 @@ init(int argc, char **argv)
 			else
 				DPRINTF(E_FATAL, L_GENERAL, "Option -%c takes one argument.\n", argv[i][1]);
 			break;
-#ifdef __linux__
+#if defined(__linux__) || defined(__APPLE__)
 		case 'S':
 			SETFLAG(SYSTEMD_MASK);
 			break;
@@ -987,8 +987,8 @@ init(int argc, char **argv)
 			"\t-r forces a rescan\n"
 			"\t-R forces a rebuild\n"
 			"\t-L do not create playlists\n"
-#ifdef __linux__
-			"\t-S changes behaviour for systemd\n"
+#if defined(__linux__) || defined(__APPLE__)
+			"\t-S changes behaviour for systemd/launchd\n"
 #endif
 			"\t-V print the version number\n",
 			argv[0], pidfilename);
