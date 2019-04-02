@@ -105,8 +105,9 @@ raise_watch_limit(unsigned int limit)
 		return;
 	if (!limit)
 	{
-		if (fscanf(max_watches, "%u", &limit) < 1)
+		if (fscanf(max_watches, "%10u", &limit) < 1)
 			limit = 8192;
+		rewind(max_watches);
 	}
 	fprintf(max_watches, "%u", next_highest(limit));
 	fclose(max_watches);
