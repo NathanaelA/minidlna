@@ -103,8 +103,11 @@ raise_watch_limit(unsigned int limit)
 	FILE *max_watches = fopen("/proc/sys/fs/inotify/max_user_watches", "r+");
 	if (!max_watches)
 		return;
-	if (!limit)
+	if (!limit) {
 		fscanf(max_watches, "%u", &limit);
+		rewind(max_watches);
+	}
+
 	fprintf(max_watches, "%u", next_highest(limit));
 	fclose(max_watches);
 }
