@@ -526,7 +526,9 @@ monitor_insert_directory(int fd, char *name, const char * path)
 					    " WHERE d.PATH = '%q' and REF_ID is NULL", dirname(parent_buf));
 		if( !id )
 			id = sqlite3_mprintf("%s", BROWSEDIR_ID);
-		insert_directory(name, path, BROWSEDIR_ID, id+2, get_next_available_id("OBJECTS", id));
+
+	    // Since we are adding a new directory, the password would be blank...
+		insert_directory(name, path, BROWSEDIR_ID, id+2, get_next_available_id("OBJECTS", id), "");
 		sqlite3_free(id);
 		free(parent_buf);
 	}
