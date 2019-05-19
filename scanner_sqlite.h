@@ -29,8 +29,8 @@ char create_objectTable_sqlite[] = "CREATE TABLE OBJECTS ("
 					"REF_ID TEXT DEFAULT NULL, "
 					"CLASS TEXT NOT NULL, "
 					"DETAIL_ID INTEGER DEFAULT NULL, "
-					"NAME TEXT DEFAULT NULL"
-					");";
+                                        "NAME TEXT DEFAULT NULL, "
+					"PASSWORD CHAR(10) DEFAULT '');";
 
 char create_detailTable_sqlite[] = "CREATE TABLE DETAILS ("
 					"ID INTEGER PRIMARY KEY AUTOINCREMENT, "

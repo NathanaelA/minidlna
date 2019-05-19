@@ -99,6 +99,7 @@ struct client_cache_s {
 	struct client_type_s *type;
 	time_t age;
 	int connections;
+	char *password;
 };
 
 extern struct client_type_s client_types[];

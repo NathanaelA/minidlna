@@ -72,10 +72,10 @@ int64_t
 get_next_available_id(const char *table, const char *parentID);
 
 int64_t
-insert_directory(const char *name, const char *path, const char *base, const char *parentID, int objectID);
+insert_directory(const char *name, const char *path, const char *base, const char *parentID, int objectID, const char *password);
 
 int
-insert_file(const char *name, const char *path, const char *parentID, int object, media_types dir_types);
+insert_file(const char *name, const char *path, const char *parentID, int object, media_types dir_types, const char *password);
 
 int
 CreateDatabase(void);

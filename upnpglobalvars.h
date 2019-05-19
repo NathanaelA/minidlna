@@ -66,7 +66,7 @@
 #endif
 
 #define USE_FORK 1
-#define DB_VERSION 11
+#define DB_VERSION 12
 
 #ifdef READYNAS
 # define LOGFILE_NAME "upnp-av.log"

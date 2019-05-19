@@ -324,6 +324,9 @@ SearchClientCache(struct in_addr addr, int quiet)
 				}
 				else
 				{
+					if (clients[i].password != NULL) {
+					    free(clients[i].password);
+					}
 					memset(&clients[i], 0, sizeof(struct client_cache_s));
 					return NULL;
 				}
@@ -351,6 +354,7 @@ AddClientCache(struct in_addr addr, int type)
 		clients[i].addr = addr;
 		clients[i].type = &client_types[type];
 		clients[i].age = time(NULL);
+		clients[i].password = NULL;
 		DPRINTF(E_DEBUG, L_HTTP, "Added client [%s/%s/%02X:%02X:%02X:%02X:%02X:%02X] to cache slot %d.\n",
 					client_types[type].name, inet_ntoa(clients[i].addr),
 					clients[i].mac[0], clients[i].mac[1], clients[i].mac[2],

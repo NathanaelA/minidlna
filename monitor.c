@@ -353,6 +353,7 @@ monitor_insert_file(const char *name, const char *path)
 	char *id = NULL;
 	char video[PATH_MAX];
 	const char *tbl = "DETAILS";
+	char * password = NULL;
 	int depth = 1;
 	int ts;
 	media_types dir_types;
@@ -432,11 +433,12 @@ monitor_insert_file(const char *name, const char *path)
 			{
 				if( !depth )
 					break;
+				password = sql_get_text_field(db, "select PASSWORD from OBJECTS where OBJECT_ID='%s'", id);
 				DPRINTF(E_DEBUG, L_INOTIFY, "Found first known parentID: %s [%s]\n", id, parent_buf);
 				/* Insert newly-found directory */
 				strcpy(base_name, last_dir);
 				base_copy = basename(base_name);
-				insert_directory(base_copy, last_dir, BROWSEDIR_ID, id+2, get_next_available_id("OBJECTS", id));
+				insert_directory(base_copy, last_dir, BROWSEDIR_ID, id+2, get_next_available_id("OBJECTS", id), password);
 				sqlite3_free(id);
 				break;
 			}
@@ -461,7 +463,7 @@ monitor_insert_file(const char *name, const char *path)
 	if( !depth )
 	{
 		//DEBUG DPRINTF(E_DEBUG, L_INOTIFY, "Inserting %s\n", name);
-		int ret = insert_file(name, path, id+2, get_next_available_id("OBJECTS", id), dir_types);
+		int ret = insert_file(name, path, id+2, get_next_available_id("OBJECTS", id), dir_types, password);
 		if (ret == 1 && (mtype & TYPE_PLAYLIST))
 		{
 			next_pl_fill = time(NULL) + 120; // Schedule a playlist scan for 2 minutes from now.
