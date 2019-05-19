@@ -289,12 +289,6 @@ db_upgrade(sqlite3 *db)
 		if (ret != SQLITE_OK)
 			return 10;
 	}
-
-	if (db_vers < 12) {
-	    ret = sql_exec(db, "ALTER TABLE OBJECTS ADD COLUMN PASSWORD CHAR(10) DEFAULT NULL");
-	    if (ret != SQLITE_OK) return -1;
-	}
-
 	sql_exec(db, "PRAGMA user_version = %d", DB_VERSION);
 
 	return 0;

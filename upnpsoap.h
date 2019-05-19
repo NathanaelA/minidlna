@@ -45,7 +45,6 @@ struct Response
 	uint32_t filter;
 	uint32_t flags;
 	enum client_types client;
-	char *password;
 };
 
 /* ExecuteSoapAction():

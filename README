@@ -1,22 +1,7 @@
 MiniDLNA project
 (c) 2009 Justin Maggard
 Portions (c) 2006-2007 Thomas Bernard
-Portions (c) 2015-2019, Nathanael Anderson
-Main webpage: http://sourceforge.net/projects/minidlna/
-
-===================
-
-Additional Patches & Password version webpage: http://github.com/nathanaela/minidlna
-
-===================
-
-The password ability of this version of minidlna was developed by Nathanael Anderson
-and discussed about on http://fluentreports.com/blog/?p=58
-
-Read the README.PASSWORD for how to use.
-Read the INSTALL for how to install
-
-===================
+webpage: http://sourceforge.net/projects/minidlna/
 
 This directory contains the MiniDLNA daemon software.
 This software is subject to the conditions detailed in

@@ -130,8 +130,6 @@ in_magic_container(const char *id, int flags, const char **real_id)
 	size_t len;
 	int i;
 
-        if (check_password_container(id)) return NULL;
-
 	for (i = 0; magic_containers[i].objectid_match; i++)
 	{
 		if (magic_containers[i].required_flags && !(flags & magic_containers[i].required_flags))
@@ -161,8 +159,6 @@ check_magic_container(const char *id, int flags)
 {
 	int i;
 
-        if (check_password_container(id)) return NULL;
-
 	for (i = 0; magic_containers[i].objectid_match; i++)
 	{
 		if (magic_containers[i].required_flags && !(flags & magic_containers[i].required_flags))
@@ -178,18 +174,4 @@ check_magic_container(const char *id, int flags)
 	}
 
 	return NULL;
-}
-
-int check_password_container(const char *id) 
-{
-  int i, len, match=1;
-  len = strlen(PASSWORD_CONTAINER);
-  if (strlen(id) < len) return 0;
-
-  for (i=0;i<len && match;i++) {
-    if (PASSWORD_CONTAINER[i] != id[i]) match = 0;
-  }
-  if (match && (id[len] == 0 || id[len] == '$')) return 1;
-
-  return 0;
 }

@@ -68,7 +68,6 @@ static const struct {
 	{ WIDE_LINKS, "wide_links" },
 	{ TIVO_DISCOVERY, "tivo_discovery" },
 	{ ENABLE_SUBTITLES, "enable_subtitles" },
-	{ PASSWORD_LENGTH, "password_length" }
 };
 
 int

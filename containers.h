@@ -16,8 +16,6 @@
  * along with MiniDLNA. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define PASSWORD_CONTAINER "32"
-
 struct magic_container_s {
 	const char *name;
 	const char *objectid_match;
@@ -36,6 +34,3 @@ extern struct magic_container_s magic_containers[];
 
 struct magic_container_s *in_magic_container(const char *id, int flags, const char **real_id);
 struct magic_container_s *check_magic_container(const char *id, int flags);
-
-int check_password_container(const char *id);
-
