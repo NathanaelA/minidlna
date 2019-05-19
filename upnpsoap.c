@@ -72,6 +72,7 @@
 #include "scanner.h"
 #include "sql.h"
 #include "log.h"
+#include "upnpevents.h"
 
 #ifdef __sparc__ /* Sorting takes too long on slow processors with very large containers */
 # define __SORT_LIMIT if( totalMatches < 10000 )
@@ -1369,7 +1370,7 @@ static void createPasswordContainer(struct Response *passed_args, const char *id
 				pin[j] = id[i];
 			}
 			pin[j] = 0;
-			//DPRINTF(E_DEBUG, L_HTTP, "Generating Password Pin: %s\n", pin);
+			//DPRINTF(E_DEBUG, L_PASSWORD, "Generating Password Pin: %s\n", pin);
 
 			if (passed_args->password == NULL) {
 				cnt = runtime_vars.password_length+3;
@@ -1384,18 +1385,25 @@ static void createPasswordContainer(struct Response *passed_args, const char *id
 				strcat(passed_args->password, pin);
 				strcat(passed_args->password, "'");
 			}
-			DPRINTF(E_DEBUG, L_HTTP, "Generating Password Stored: %s\n", passed_args->password);
+			DPRINTF(E_DEBUG, L_PASSWORD, "Generating Password Stored: %s\n", passed_args->password);
 
 			// Check for all Zero's (0) to clear the password
 			for (i=0;i<strlen(pin);i++) {
 			    if (pin[i] != '0') break;
 			}
 			if (i == strlen(pin)) {
+			    DPRINTF(E_DEBUG, L_PASSWORD, "Clearing password\n");
 			    free(passed_args->password);
 			    passed_args->password = NULL;
 			}
 
-			//DPRINTF(E_DEBUG, L_HTTP, "Generating Password Stored: %s\n", passed_args->password);
+            DPRINTF(E_DEBUG, L_PASSWORD, "Sending Notify\n");
+			// Send Notification
+            updateID++;
+            upnp_event_var_change_notify(EContentDirectory);
+
+
+			//DPRINTF(E_DEBUG, L_PASSWORD, "Generating Password Stored: %s\n", passed_args->password);
 
 		}
 		cnt = 0;
@@ -1521,7 +1529,7 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 		const char *id = ObjectID;
 		args.requested = 1;
         if (isPasswd) {
-		    DPRINTF(E_INFO, L_HTTP, "Is Password MetaData %s", ObjectID);
+		    DPRINTF(E_INFO, L_PASSWORD, "Is Password MetaData %s", ObjectID);
 		    totalMatches = 1;
 		    createPasswordContainer(&args, ObjectID, 1);
         } else {
@@ -1546,11 +1554,11 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 	else
 	{
 	  if (isPasswd) {
-			DPRINTF(E_INFO, L_HTTP, "Is Password %s", ObjectID);
+			DPRINTF(E_INFO, L_PASSWORD, "Is Password %s\n", ObjectID);
 			createPasswordContainer(&args, ObjectID, 0);
 			totalMatches = args.returned;
-		    if (h->req_client && args.password) {
-				DPRINTF(E_INFO, L_HTTP, "Passwords %s", args.password);
+		    if (h->req_client) {
+				DPRINTF(E_INFO, L_PASSWORD, "Passwords %s\n", args.password);
 				h->req_client->password = args.password;
 			}
 	  } else {
@@ -1633,7 +1641,7 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 
 			sql = sqlite3_mprintf("SELECT %s, %s, %s, " COLUMNS
 		              "from OBJECTS o left join DETAILS d on (d.ID = o.DETAIL_ID)"
-				      " where (%s and (o.password is null or o.password = '' or o.password in (%s)) %s) limit %d, %d;",
+				      " where (%s and (o.password is null or o.password = '' or o.password in (%s))) %s limit %d, %d;",
 				      objectid_sql, parentid_sql, refid_sql,
  				      where, args.password ? args.password : "''", THISORNUL(orderBy), StartingIndex, RequestedCount);
 			DPRINTF(E_DEBUG, L_HTTP, "Browse SQL: %s\n", sql);

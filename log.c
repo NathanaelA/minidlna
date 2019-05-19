@@ -42,6 +42,7 @@ const char *facility_name[] = {
 	"http",
 	"ssdp",
 	"tivo",
+	"password",
 	0
 };
 

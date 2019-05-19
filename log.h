@@ -40,6 +40,7 @@ enum _log_facility
   L_HTTP,
   L_SSDP,
   L_TIVO,
+  L_PASSWORD,
   L_MAX
 };
 

@@ -734,8 +734,8 @@ readPassword(const char *dir, char *password, int size)
     for (i=0;i<strlen(password);i++) {
    // A CR or LF will end the password, so we clear anything afterwords.
 	if (password[i] == 10 || password[i] == 13) password[i] = 0;
-	if (password[i] < '0' || password[i] > '9') {
-       DPRINTF(E_WARN, L_SCANNER, "Password has a non-digit character, replacing with a 0\n");
+	else if (password[i] < '0' || password[i] > '9') {
+       DPRINTF(E_WARN, L_PASSWORD, "Password has a non-digit character %d, replacing with a 0 in %s\n", password[i], dir);
 	    password[i] = '0';
 	}
     }
@@ -748,7 +748,7 @@ readPassword(const char *dir, char *password, int size)
     // alone and log a warning if they don't match the proper size
 
     if (strlen(password) != runtime_vars.password_length) {
-		DPRINTF(E_WARN, L_SCANNER, "Password size %d does not match configuration password_length of %d\n", (int)strlen(password), runtime_vars.password_length);
+		DPRINTF(E_WARN, L_PASSWORD, "Password size %d does not match configuration password_length of %d in %s\n", (int)strlen(password), runtime_vars.password_length, dir);
     }
 
     // Check for Magic 0 password
@@ -756,7 +756,7 @@ readPassword(const char *dir, char *password, int size)
 	    if (password[i] != '0') break;
     }
     if (i == strlen(password)) {
-    	DPRINTF(E_WARN, L_SCANNER, "Password is all ZERO's -- disabling.\n");
+    	DPRINTF(E_WARN, L_PASSWORD, "Password is all ZERO's -- disabling in %s.\n", dir);
    	    password[0] = 0;
     }
 

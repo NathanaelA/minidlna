@@ -57,7 +57,7 @@
 
 #include <sqlite3.h>
 
-#define MINIDLNA_VERSION "1.2.1"
+#define MINIDLNA_VERSION "1.2.1P"
 
 #ifdef NETGEAR
 # define SERVER_NAME "ReadyDLNA"
