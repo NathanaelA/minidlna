@@ -694,9 +694,15 @@ ProcessSSDPRequest(struct event *ev)
 #endif
 			if (n_lan_addr == i)
 			{
-				DPRINTF(E_DEBUG, L_SSDP, "Ignoring SSDP M-SEARCH on other interface [%s]\n",
-					inet_ntoa(sendername.sin_addr));
-				return;
+				if (runtime_vars.nonlocal_iface >= 0) {
+					i = runtime_vars.nonlocal_iface;
+				}
+				else
+				{
+					DPRINTF(E_DEBUG, L_SSDP, "Ignoring SSDP M-SEARCH on other interface [%s]\n",
+						inet_ntoa(sendername.sin_addr));
+					return;
+				}
 			}
 			DPRINTF(E_DEBUG, L_SSDP, "SSDP M-SEARCH from %s:%d ST: %.*s, MX: %.*s, MAN: %.*s\n",
 				inet_ntoa(sendername.sin_addr),
