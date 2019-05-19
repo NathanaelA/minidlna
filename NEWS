@@ -3,6 +3,11 @@
 - Implemented Password system
 - Fixed order by bug w/ password
 - Fixed 0000 clearing password issue
+- Added Password changes to notify client of changes
+- Patched Non-Local Query support -I
+- Patched Apple Support -S
+- Fixed LG TV Flac Support
+- Patched max user watches
 
 1.2.1 - Released 24-Aug-2017
 --------------------------------

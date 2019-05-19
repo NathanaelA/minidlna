@@ -3,18 +3,18 @@ MiniDLNA project
 Portions (c) 2006-2007 Thomas Bernard
 Portions (c) 2015-2019, Nathanael Anderson
 Main webpage: http://sourceforge.net/projects/minidlna/
+Please note the MAIN MiniDLNA site does NOT have any of these changes, that is the reason for this version.
 
 ===================
 
-Additional Patches & Password version webpage: http://github.com/nathanaela/minidlna
+Additional Patches & Password version repo: [http://github.com/nathanaela/minidlna](http://github.com/nathanaela/minidlna)
 
-===================
+See [NEWS](NEWS) for changes
+See [README.PASSWORD](README.PASSWORD) for Password documentation
+See [INSTALL.MD](INSTALL.MD) for Install Instructions
 
 The password ability of this version of minidlna was developed by Nathanael Anderson
 and discussed about on http://fluentreports.com/blog/?p=58
-
-Read the README.PASSWORD for how to use.
-Read the INSTALL for how to install
 
 ===================
 
