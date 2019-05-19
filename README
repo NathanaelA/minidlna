@@ -7,11 +7,11 @@ Please note the MAIN MiniDLNA site does NOT have any of these changes, that is t
 
 ===================
 
-Additional Patches & Password version repo: [http://github.com/nathanaela/minidlna](http://github.com/nathanaela/minidlna)
+Additional Patches & Password version repo: http://github.com/nathanaela/minidlna
 
-See [NEWS](NEWS) for changes
-See [README.PASSWORD](README.PASSWORD) for Password documentation
-See [INSTALL.MD](INSTALL.MD) for Install Instructions
+See http://github.com/nathanaela/minidlna/blog/master/NEWS for changes
+See http://github.com/nathanaela/minidlna/blog/master/README.PASSWORD for Password documentation
+See http://github.com/nathanaela/minidlna/blog/master/INSTALL.MD for Install Instructions
 
 The password ability of this version of minidlna was developed by Nathanael Anderson
 and discussed about on http://fluentreports.com/blog/?p=58
