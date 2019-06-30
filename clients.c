@@ -82,6 +82,15 @@ struct client_type_s client_types[] =
 	  EUserAgent
 	},
 
+	/* Samsung Series [Q] TVs work wit milliseconds for bookmarks */
+	/* User-Agent: DLNADOC/1.50 SEC_HHP_[TV] Samsung Q7 Series (49)/1.0 */
+	{ ESamsungSeriesQ,
+	  FLAG_SAMSUNG | FLAG_DLNA | FLAG_NO_RESIZE | FLAG_SAMSUNG_DCM10 | FLAG_CAPTION_RES | FLAG_CONVERT_MS,
+	  "Samsung Series [Q]",
+	  "SEC_HHP_[TV] Samsung Q",
+	  EUserAgent
+	},
+
 	/* User-Agent: DLNADOC/1.50 SEC_HHP_[TV]UE40D7000/1.0 */
 	/* User-Agent: DLNADOC/1.50 SEC_HHP_ Family TV/1.0 */
 	/* USER-AGENT: DLNADOC/1.50 SEC_HHP_[TV] UE65JU7000/1.0 UPnP/1.0 */
