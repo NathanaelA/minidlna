@@ -1023,6 +1023,9 @@ callback(void *args, int argc, char **argv, char **azColName)
 				** so HH:MM:SS. But Kodi seems to be the only user of this tag, and it only works with a
 				** raw seconds value.
 				** If Kodi gets fixed, we can use duration_str(sec * 1000) here */
+				if( passed_args->flags & FLAG_CONVERT_MS ) {
+					sec *= 1000;
+				}
 				if( passed_args->filter & FILTER_UPNP_LASTPLAYBACKPOSITION )
 					ret = strcatf(str, "&lt;upnp:lastPlaybackPosition&gt;%d&lt;/upnp:lastPlaybackPosition&gt;",
 					              sec);
@@ -2119,7 +2122,11 @@ static void UpdateObject(struct upnphttp * h, const char * action)
 		}
 		else if (strcmp(tag, "upnp:lastPlaybackPosition") == 0)
 		{
+
 			int sec = duration_sec(new);
+			if( h->req_client && (h->req_client->type->flags & FLAG_CONVERT_MS) ) {
+				sec /= 1000;
+			}
 			if (sec < 30)
 				sec = 0;
 			else
@@ -2216,6 +2223,9 @@ SamsungSetBookmark(struct upnphttp * h, const char * action)
 		in_magic_container(ObjectID, 0, &rid);
 		detailID = sql_get_int64_field(db, "SELECT DETAIL_ID from OBJECTS where OBJECT_ID = '%q'", rid);
 
+		if( h->req_client && (h->req_client->type->flags & FLAG_CONVERT_MS) ) {
+			sec /= 1000;
+		}
 		if ( sec < 30 )
 			sec = 0;
 		ret = sql_exec(db, "INSERT OR IGNORE into BOOKMARKS (ID, SEC)"
