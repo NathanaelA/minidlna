@@ -858,15 +858,17 @@ callback(void *args, int argc, char **argv, char **azColName)
 			}
 			else
 			{
-				DPRINTF(E_ERROR, L_HTTP, "UPnP SOAP response was too big, and realloc failed!\n");
-				return -1;
+				DPRINTF(E_ERROR, L_HTTP, "UPnP SOAP response truncated, realloc failed\n");
+				passed_args->flags |= RESPONSE_TRUNCATED;
+				return 1;
 			}
 #if MAX_RESPONSE_SIZE > 0
 		}
 		else
 		{
-			DPRINTF(E_ERROR, L_HTTP, "UPnP SOAP response cut short, to not exceed the max response size [%lld]!\n", (long long int)MAX_RESPONSE_SIZE);
-			return -1;
+			DPRINTF(E_ERROR, L_HTTP, "UPnP SOAP response would exceed the max response size [%lld], truncating\n", (long long int)MAX_RESPONSE_SIZE);
+			passed_args->flags |= RESPONSE_TRUNCATED;
+			return 1;
 		}
 #endif
 	}
@@ -1478,12 +1480,19 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 		DPRINTF(E_DEBUG, L_HTTP, "Browse SQL: %s\n", sql);
 		ret = sqlite3_exec(db, sql, callback, (void *) &args, &zErrMsg);
 	}
-	if( (ret != SQLITE_OK) && (zErrMsg != NULL) )
+	if( ret != SQLITE_OK )
 	{
-		DPRINTF(E_WARN, L_HTTP, "SQL error: %s\nBAD SQL: %s\n", zErrMsg, sql);
-		sqlite3_free(zErrMsg);
-		SoapError(h, 709, "Unsupported or invalid sort criteria");
-		goto browse_error;
+		if( args.flags & RESPONSE_TRUNCATED )
+		{
+			sqlite3_free(zErrMsg);
+		}
+		else
+		{
+			DPRINTF(E_WARN, L_HTTP, "SQL error: %s\nBAD SQL: %s\n", zErrMsg, sql);
+			sqlite3_free(zErrMsg);
+			SoapError(h, 709, "Unsupported or invalid sort criteria");
+			goto browse_error;
+		}
 	}
 	sqlite3_free(sql);
 	/* Does the object even exist? */
@@ -1936,9 +1945,10 @@ SearchContentDirectory(struct upnphttp * h, const char * action)
 	                      orderBy, StartingIndex, RequestedCount);
 	DPRINTF(E_DEBUG, L_HTTP, "Search SQL: %s\n", sql);
 	ret = sqlite3_exec(db, sql, callback, (void *) &args, &zErrMsg);
-	if( (ret != SQLITE_OK) && (zErrMsg != NULL) )
+	if( ret != SQLITE_OK )
 	{
-		DPRINTF(E_WARN, L_HTTP, "SQL error: %s\nBAD SQL: %s\n", zErrMsg, sql);
+		if( !(args.flags & RESPONSE_TRUNCATED) )
+			DPRINTF(E_WARN, L_HTTP, "SQL error: %s\nBAD SQL: %s\n", zErrMsg, sql);
 		sqlite3_free(zErrMsg);
 	}
 	sqlite3_free(sql);
