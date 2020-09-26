@@ -211,6 +211,7 @@ extern uint32_t runtime_flags;
 
 extern const char *pidfilename;
 
+#define UUIDVALUE_MAX_LEN 42
 extern char uuidvalue[];
 
 #define MODELNAME_MAX_LEN 64
