@@ -287,15 +287,19 @@ getfriendlyname(char *buf, int len)
 	fclose(info);
 #else
 	char * logname;
-	logname = getenv("LOGNAME");
-#ifndef STATIC // Disable for static linking
+	logname = getenv("USER");
 	if (!logname)
-	{
-		struct passwd *pwent = getpwuid(geteuid());
-		if (pwent)
-			logname = pwent->pw_name;
-	}
+        {
+		logname = getenv("LOGNAME");
+#ifndef STATIC // Disable for static linking
+		if (!logname)
+		{
+			struct passwd *pwent = getpwuid(geteuid());
+			if (pwent)
+				logname = pwent->pw_name;
+		}
 #endif
+	}
 	snprintf(buf+off, len-off, "%s", logname?logname:"Unknown");
 #endif
 }
