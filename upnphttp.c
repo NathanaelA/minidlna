@@ -1641,7 +1641,7 @@ SendResp_resizedimg(struct upnphttp * h, char * object)
 	char *resolution = NULL;
 	char *key, *val;
 	char *saveptr, *item = NULL;
-	int rotate;
+	int rotate = 0;
 	int pixw = 0, pixh = 0;
 	long long id;
 	int rows=0, chunked, ret;
@@ -1661,7 +1661,8 @@ SendResp_resizedimg(struct upnphttp * h, char * object)
 	{
 		file_path = result[3];
 		resolution = result[4];
-		rotate = result[5] ? atoi(result[5]) : 0;
+                if (result[5])
+			rotate = atoi(result[5]);
 	}
 	if( !file_path || !resolution || (access(file_path, F_OK) != 0) )
 	{

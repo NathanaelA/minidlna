@@ -69,6 +69,7 @@ AC_FUNC_FORK
 AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
 AC_CHECK_FUNCS([gethostname getifaddrs gettimeofday inet_ntoa memmove memset mkdir realpath select sendfile setlocale socket strcasecmp strchr strdup strerror strncasecmp strpbrk strrchr strstr strtol strtoul])
 AC_CHECK_DECLS([SEEK_HOLE])
+AC_SEARCH_LIBS([clock_gettime], [rt], [AC_DEFINE([HAVE_CLOCK_GETTIME], [1], [use clock_gettime])],)
 
 #
 # Check for struct ip_mreqn
@@ -144,7 +145,6 @@ AC_COMPILE_IFELSE(
     ],
     [
         AC_MSG_RESULT([no])
-        AC_SEARCH_LIBS([clock_gettime], [rt], [AC_DEFINE([HAVE_CLOCK_GETTIME], [1], [use clock_gettime])],)
     ])
 
 AC_CHECK_HEADER(linux/netlink.h,
@@ -411,10 +411,10 @@ for dir in "" /usr/local $SEARCH_DIR; do
     if test -n "$dir"; then
         LDFLAGS="$LDFLAGS -L$dir/lib"
     fi
-    AC_CHECK_LIB([id3tag], [id3_file_open], [LIBID3TAG_LIBS="-lid3tag"], [unset ac_cv_lib_id3tag_id3_file_open; LDFLAGS="$LDFLAGS_SAVE"; continue])
+    AC_CHECK_LIB([id3tag -lz], [id3_file_open], [LIBID3TAG_LIBS="-lid3tag -lz"], [unset ac_cv_lib_id3tag_id3_file_open; LDFLAGS="$LDFLAGS_SAVE"; continue])
     break
 done
-test x"$ac_cv_lib_id3tag_id3_file_open" = x"yes" || AC_MSG_ERROR([Could not find libid3tag])
+test x"$ac_cv_lib_id3tag__lz___id3_file_open" = x"yes" || AC_MSG_ERROR([Could not find libid3tag])
 AC_SUBST(LIBID3TAG_LIBS)
 
 LDFLAGS_SAVE="$LDFLAGS"
@@ -435,19 +435,16 @@ for dir in "" /usr/local $SEARCH_DIR; do
     if test -n "$dir"; then
         LDFLAGS="$LDFLAGS -L$dir/lib"
     fi
-    AC_CHECK_LIB([avformat], [av_open_input_file], [LIBAVFORMAT_LIBS="-lavformat"],
-		 [AC_CHECK_LIB([avformat], [avformat_open_input], [LIBAVFORMAT_LIBS="-lavformat"],
+    AC_CHECK_LIB([avformat -lavcodec -lavutil -lz], [avformat_open_input], [LIBAVFORMAT_LIBS="-lavformat -lavcodec -lavutil -lz"],
+		 [AC_CHECK_LIB([avformat -lavcodec -lavutil -lz], [av_open_input_file], [LIBAVFORMAT_LIBS="-lavformat -lavcodec -lavutil -lz"],
 		  [unset ac_cv_lib_avformat_av_open_input_file; unset ac_cv_lib_avformat_avformat_open_input; LDFLAGS="$LDFLAGS_SAVE"; continue])])
     break
 done
-if test x"$ac_cv_lib_avformat_av_open_input_file" != x"yes" &&
-   test x"$ac_cv_lib_avformat_avformat_open_input" != x"yes"; then
+if test x"$ac_cv_lib_avformat__lavcodec__lavutil__lz___av_open_input_file" != x"yes" &&
+   test x"$ac_cv_lib_avformat__lavcodec__lavutil__lz___avformat_open_input" != x"yes"; then
    AC_MSG_ERROR([Could not find libavformat - part of ffmpeg])
 fi
 AC_SUBST(LIBAVFORMAT_LIBS)
-
-AC_CHECK_LIB(avutil ,[av_rescale_q], [LIBAVUTIL_LIBS="-lavutil"], [AC_MSG_ERROR([Could not find libavutil - part of ffmpeg])])
-AC_SUBST(LIBAVUTIL_LIBS)
 
 AC_CHECK_LIB(pthread, pthread_create)
 
@@ -609,10 +606,22 @@ AC_MSG_CHECKING([whether to build a static binary executable])
 AC_ARG_ENABLE(static,
 	[  --enable-static         build a static binary executable],[
 	if test "$enableval" = "yes"; then
-		STATIC_CFLAGS="-DSTATIC"
-		AC_SUBST(STATIC_CFLAGS)
-		STATIC_LDFLAGS="-Wl,-Bstatic"
-		AC_SUBST(STATIC_LDFLAGS)
+		CFLAGS="$CFLAGS -DSTATIC"
+		LDFLAGS="$LDFLAGS -static"
+                AC_MSG_RESULT([yes])
+        else
+                AC_MSG_RESULT([no])
+        fi
+        ],[
+                AC_MSG_RESULT([no])
+        ]
+)
+
+AC_MSG_CHECKING([whether to enable LTO])
+AC_ARG_ENABLE(lto,
+	[  --enable-lto            enable link-time optimization],[
+	if test "$enableval" = "yes"; then
+		CFLAGS="$CFLAGS -flto"
                 AC_MSG_RESULT([yes])
         else
                 AC_MSG_RESULT([no])
