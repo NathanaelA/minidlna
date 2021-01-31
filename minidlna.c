@@ -215,8 +215,6 @@ sighup(int sig)
 {
 	signal(sig, sighup);
 	DPRINTF(E_WARN, L_GENERAL, "received signal %d, reloading\n", sig);
-
-	reload_ifaces(1);
 	log_reopen();
 }
 
