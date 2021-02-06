@@ -1349,7 +1349,10 @@ static void createPasswordContainer(struct Response *passed_args, const char *id
 		}
 	}
 
-	if (depth == runtime_vars.password_length-1) cnt = 0;
+	if (depth == runtime_vars.password_length-1) {
+		cnt = 0;
+		if (passed_args->client == ESamsungSeriesCDE) cnt = 1;
+	}
 
 	/* DPRINTF(E_DEBUG, L_HTTP, "Generating Password Set:\n"
 	                         " * ObjectID: %s\n"
