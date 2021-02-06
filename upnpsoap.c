@@ -1364,7 +1364,7 @@ static void createPasswordContainer(struct Response *passed_args, const char *id
 
 
 	if (depth == runtime_vars.password_length) {
-		if (!isMeta) {
+		if (!isMeta || passed_args->client == ESamsungSeriesCDE) {
 			// Find the First Parent after the Primary Parent
 			for (i=0; id[i] != '$' && i < strlen(id);i++);
 
@@ -1535,6 +1535,10 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 		    DPRINTF(E_INFO, L_PASSWORD, "Is Password MetaData %s", ObjectID);
 		    totalMatches = 1;
 		    createPasswordContainer(&args, ObjectID, 1);
+			if ( h->req_client && args.client == ESamsungSeriesCDE ) {
+				DPRINTF(E_INFO, L_HTTP, "Passwords %s\n", args.password);
+				h->req_client->password = args.password;
+			}
         } else {
 			magic = in_magic_container(ObjectID, args.flags, &id);
 			if (magic)
