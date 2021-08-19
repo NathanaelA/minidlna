@@ -718,7 +718,7 @@ filter_avp(scan_filter *d)
 		);
 }
 
-static void
+void
 readPassword(const char *dir, char *password, int size)
 {
     FILE *pFile = NULL;

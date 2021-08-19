@@ -81,6 +81,9 @@ int
 CreateDatabase(void);
 
 void
+readPassword(const char *dir, char *password, int size);
+
+void
 start_scanner();
 
 #endif
