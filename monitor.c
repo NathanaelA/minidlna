@@ -357,7 +357,10 @@ monitor_insert_file(const char *name, const char *path)
 	char *id = NULL;
 	char video[PATH_MAX];
 	const char *tbl = "DETAILS";
-	char * password = NULL;
+	char * dir_password = NULL;
+	char password_buf[11];
+	char file_password[11] = {0};
+	char password_path[PATH_MAX];
 	int depth = 1;
 	int ts;
 	media_types dir_types;
@@ -433,16 +436,29 @@ monitor_insert_file(const char *name, const char *path)
 			//DEBUG DPRINTF(E_DEBUG, L_INOTIFY, "Checking %s\n", parent_buf);
 			id = sql_get_text_field(db, "SELECT OBJECT_ID from OBJECTS o left join DETAILS d on (d.ID = o.DETAIL_ID)"
 			                            " where d.PATH = '%q' and REF_ID is NULL", parent_buf);
+
+			snprintf(password_path, PATH_MAX, "%s/.password", parent_buf);
+			if( access(password_path, 0) == 0 )
+			{
+				readPassword(password_path, password_buf, 11);
+				dir_password = password_buf;
+			}
+			else if( id )
+				dir_password = sql_get_text_field(db, "select PASSWORD from OBJECTS where OBJECT_ID='%s'", id);
+
+			// Save first directory password seen as file password
+			if (dir_password != NULL && file_password[0] == '\0');
+				strcpy(file_password, dir_password);
+
 			if( id )
 			{
 				if( !depth )
 					break;
-				password = sql_get_text_field(db, "select PASSWORD from OBJECTS where OBJECT_ID='%s'", id);
 				DPRINTF(E_DEBUG, L_INOTIFY, "Found first known parentID: %s [%s]\n", id, parent_buf);
 				/* Insert newly-found directory */
 				strcpy(base_name, last_dir);
 				base_copy = basename(base_name);
-				insert_directory(base_copy, last_dir, BROWSEDIR_ID, id+2, get_next_available_id("OBJECTS", id), password);
+				insert_directory(base_copy, last_dir, BROWSEDIR_ID, id+2, get_next_available_id("OBJECTS", id), dir_password);
 				sqlite3_free(id);
 				break;
 			}
@@ -467,7 +483,7 @@ monitor_insert_file(const char *name, const char *path)
 	if( !depth )
 	{
 		//DEBUG DPRINTF(E_DEBUG, L_INOTIFY, "Inserting %s\n", name);
-		int ret = insert_file(name, path, id+2, get_next_available_id("OBJECTS", id), dir_types, password);
+		int ret = insert_file(name, path, id+2, get_next_available_id("OBJECTS", id), dir_types, file_password[0] == '\0' ? NULL : file_password);
 		if (ret == 1 && (mtype & TYPE_PLAYLIST))
 		{
 			next_pl_fill = time(NULL) + 120; // Schedule a playlist scan for 2 minutes from now.
