@@ -39,7 +39,8 @@
 #define FLAG_CAPTION_RES        0x00001000
 #define FLAG_SKIP_DLNA_PN       0x00002000 /* during browsing */
 /* Response-related flags */
-#define FLAG_HAS_CAPTIONS       0x80000000
+#define FLAG_HAS_CAPTIONS       0x10000000
+#define RESPONSE_TRUNCATED      0x80000000
 #define RESPONSE_FLAGS          0xF0000000
 
 enum match_types {

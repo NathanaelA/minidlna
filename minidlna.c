@@ -232,7 +232,7 @@ static void
 getfriendlyname(char *buf, int len)
 {
 	char *p = NULL;
-	char hn[256];
+	char hn[63];
 	int off;
 
 	if (gethostname(hn, sizeof(hn)) == 0)
@@ -287,15 +287,19 @@ getfriendlyname(char *buf, int len)
 	fclose(info);
 #else
 	char * logname;
-	logname = getenv("LOGNAME");
-#ifndef STATIC // Disable for static linking
+	logname = getenv("USER");
 	if (!logname)
-	{
-		struct passwd *pwent = getpwuid(geteuid());
-		if (pwent)
-			logname = pwent->pw_name;
-	}
+        {
+		logname = getenv("LOGNAME");
+#ifndef STATIC // Disable for static linking
+		if (!logname)
+		{
+			struct passwd *pwent = getpwuid(geteuid());
+			if (pwent)
+				logname = pwent->pw_name;
+		}
 #endif
+	}
 	snprintf(buf+off, len-off, "%s", logname?logname:"Unknown");
 #endif
 }
@@ -576,8 +580,7 @@ init(int argc, char **argv)
 		DPRINTF(E_OFF, L_GENERAL, "No MAC address found.  Falling back to generic UUID.\n");
 		strcpy(mac_str, "554e4b4e4f57");
 	}
-	strcpy(uuidvalue+5, "4d696e69-444c-164e-9d41-");
-	strncat(uuidvalue, mac_str, 12);
+	snprintf(uuidvalue+5, UUIDVALUE_MAX_LEN-5, "4d696e69-444c-164e-9d41-%s", mac_str);
 
 	getfriendlyname(friendly_name, FRIENDLYNAME_MAX_LEN);
 	
@@ -1159,7 +1162,7 @@ main(int argc, char **argv)
 
 #ifdef HAVE_KQUEUE
 	if (!GETFLAG(SCANNING_MASK)) {
-		av_register_all();
+		lav_register_all();
 		kqueue_monitor_start();
 	}
 #endif /* HAVE_KQUEUE */
@@ -1285,7 +1288,7 @@ main(int argc, char **argv)
 			if (_get_dbtime() != lastdbtime)
 				updateID++;
 #ifdef HAVE_KQUEUE
-			av_register_all();
+			lav_register_all();
 			kqueue_monitor_start();
 #endif /* HAVE_KQUEUE */
 		}

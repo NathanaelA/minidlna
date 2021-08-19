@@ -660,6 +660,10 @@ parse_sort_criteria(char *sortCriteria, int *error)
 		{
 			strcatf(&str, "d.ALBUM");
 		}
+		else if( strcasecmp(item, "path") == 0 )
+		{
+			strcatf(&str, "d.PATH");
+		}
 		else
 		{
 			DPRINTF(E_ERROR, L_HTTP, "Unhandled SortCriteria [%s]\n", item);
@@ -865,15 +869,17 @@ callback(void *args, int argc, char **argv, char **azColName)
 			}
 			else
 			{
-				DPRINTF(E_ERROR, L_HTTP, "UPnP SOAP response was too big, and realloc failed!\n");
-				return -1;
+				DPRINTF(E_ERROR, L_HTTP, "UPnP SOAP response truncated, realloc failed\n");
+				passed_args->flags |= RESPONSE_TRUNCATED;
+				return 1;
 			}
 #if MAX_RESPONSE_SIZE > 0
 		}
 		else
 		{
-			DPRINTF(E_ERROR, L_HTTP, "UPnP SOAP response cut short, to not exceed the max response size [%lld]!\n", (long long int)MAX_RESPONSE_SIZE);
-			return -1;
+			DPRINTF(E_ERROR, L_HTTP, "UPnP SOAP response would exceed the max response size [%lld], truncating\n", (long long int)MAX_RESPONSE_SIZE);
+			passed_args->flags |= RESPONSE_TRUNCATED;
+			return 1;
 		}
 #endif
 	}
@@ -1664,16 +1670,39 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 			goto browse_error;
 		}
 
+		sql = sqlite3_mprintf("SELECT %s, %s, %s, " COLUMNS
+				      "from OBJECTS o left join DETAILS d on (d.ID = o.DETAIL_ID)"
+				      " where %s %s limit %d, %d;",
+				      objectid_sql, parentid_sql, refid_sql,
+				      where, THISORNUL(orderBy), StartingIndex, RequestedCount);
+			DPRINTF(E_DEBUG, L_HTTP, "Browse SQL: %s\n", sql);
+			ret = sqlite3_exec(db, sql, callback, (void *) &args, &zErrMsg);
+		}
+		if( ret != SQLITE_OK )
+		{
+			if( args.flags & RESPONSE_TRUNCATED )
+			{
+				sqlite3_free(zErrMsg);
+			}
+			else
+			{
+				DPRINTF(E_WARN, L_HTTP, "SQL error: %s\nBAD SQL: %s\n", zErrMsg, sql);
+				sqlite3_free(zErrMsg);
+				SoapError(h, 709, "Unsupported or invalid sort criteria");
+				goto browse_error;
+			}
+		}
 		sqlite3_free(sql);
-        /* Does the object even exist? */
-        if( !totalMatches )
-        {
-        		if( !object_exists(ObjectID) )
-        		{
-        			SoapError(h, 701, "No such object error");
-        			goto browse_error;
-        		}
-        }
+		/* Does the object even exist? */
+		if( !totalMatches )
+		{
+			if( !object_exists(ObjectID) )
+			{
+				SoapError(h, 701, "No such object error");
+				goto browse_error;
+			}
+		}
+
 	}
 
 	ret = strcatf(&str, "&lt;/DIDL-Lite&gt;</Result>\n"
@@ -2118,9 +2147,10 @@ SearchContentDirectory(struct upnphttp * h, const char * action)
 	                      orderBy, StartingIndex, RequestedCount);
 	DPRINTF(E_DEBUG, L_HTTP, "Search SQL: %s\n", sql);
 	ret = sqlite3_exec(db, sql, callback, (void *) &args, &zErrMsg);
-	if( (ret != SQLITE_OK) && (zErrMsg != NULL) )
+	if( ret != SQLITE_OK )
 	{
-		DPRINTF(E_WARN, L_HTTP, "SQL error: %s\nBAD SQL: %s\n", zErrMsg, sql);
+		if( !(args.flags & RESPONSE_TRUNCATED) )
+			DPRINTF(E_WARN, L_HTTP, "SQL error: %s\nBAD SQL: %s\n", zErrMsg, sql);
 		sqlite3_free(zErrMsg);
 	}
 	sqlite3_free(sql);

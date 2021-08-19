@@ -103,11 +103,12 @@ raise_watch_limit(unsigned int limit)
 	FILE *max_watches = fopen("/proc/sys/fs/inotify/max_user_watches", "r+");
 	if (!max_watches)
 		return;
-	if (!limit) {
-		fscanf(max_watches, "%u", &limit);
+	if (!limit)
+	{
+		if (fscanf(max_watches, "%10u", &limit) < 1)
+			limit = 8192;
 		rewind(max_watches);
 	}
-
 	fprintf(max_watches, "%u", next_highest(limit));
 	fclose(max_watches);
 }
@@ -650,7 +651,7 @@ start_inotify(void)
 	if (setpriority(PRIO_PROCESS, 0, 19) == -1)
 		DPRINTF(E_WARN, L_INOTIFY,  "Failed to reduce inotify thread priority\n");
 	sqlite3_release_memory(1<<31);
-	av_register_all();
+	lav_register_all();
 
 	while( !quitting )
 	{
