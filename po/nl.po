@@ -70,7 +70,7 @@ msgstr "Afspeellijst"
 
 #: scanner.c:598
 msgid "Recently Added"
-msgstr "Nyligen tillagd"
+msgstr "Recent toegevoegd"
 
 #: scanner.c:536
 msgid "Video"
