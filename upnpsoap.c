@@ -2213,20 +2213,20 @@ static int _set_watch_count(long long id, const char *old, const char *new)
 	int ret;
 
 	ret = sql_exec(db, "INSERT or IGNORE into BOOKMARKS (ID, WATCH_COUNT)"
-			   " VALUES (%lld, %Q)", id, new ?: "1");
+			   " VALUES (%lld, %s)", id, new ?: "1");
 	if (sqlite3_last_insert_rowid(db) != rowid)
 		return 0;
 
 	if (!new) /* Increment */
 		ret = sql_exec(db, "UPDATE BOOKMARKS set WATCH_COUNT ="
-				   " ifnull(WATCH_COUNT,'0') + 1"
+				   " ifnull(WATCH_COUNT,0) + 1"
 				   " where ID = %lld", id);
 	else if (old && old[0])
-		ret = sql_exec(db, "UPDATE BOOKMARKS set WATCH_COUNT = %Q"
-				   " where WATCH_COUNT = %Q and ID = %lld",
+		ret = sql_exec(db, "UPDATE BOOKMARKS set WATCH_COUNT = %s"
+				   " where ifnull(WATCH_COUNT,0) = %s and ID = %lld",
 				   new, old, id);
 	else
-		ret = sql_exec(db, "UPDATE BOOKMARKS set WATCH_COUNT = %Q"
+		ret = sql_exec(db, "UPDATE BOOKMARKS set WATCH_COUNT = %s"
 				   " where ID = %lld",
 				   new, id);
 	return ret;
@@ -2336,7 +2336,7 @@ static void UpdateObject(struct upnphttp * h, const char * action)
 			ret = sql_exec(db, "INSERT OR IGNORE into BOOKMARKS (ID, SEC)"
 					   " VALUES (%lld, %d)", (long long)detailID, sec);
 			ret = sql_exec(db, "UPDATE BOOKMARKS set SEC = %d"
-					   " where SEC = %Q and ID = %lld",
+					   " where SEC = %s and ID = %lld",
 					   sec, current, (long long)detailID);
 		}
 		else
