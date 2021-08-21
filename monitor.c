@@ -255,6 +255,196 @@ inotify_remove_watches(int fd)
 }
 #endif
 
+static int
+update_password(const char *password_path)
+{
+	typedef struct _node
+	{
+		char path[PATH_MAX];
+		struct _node *next;
+	} node;
+
+	int error = 0;
+	node head = { { 0 }, NULL };
+	node *tail = &head;
+	node *current = &head;
+	char *password = NULL;
+
+	DPRINTF(E_INFO, L_PASSWORD, "Updating password file: %s.\n", password_path);
+
+	// Retrieve new password from file
+	if( access(password_path, 0) == 0 )
+	{
+		password = malloc(PASSWORD_ARRAY_LEN);
+		if( password == NULL )
+		{
+			error = -1;
+			goto clear;
+		}
+
+		readPassword(password_path, password, PASSWORD_ARRAY_LEN);
+
+		if ( password[0] == '\0' )
+		{
+			free(password);
+			password = NULL;
+		}
+	}
+
+	// Copy dirname of password_path
+	memcpy(head.path, password_path, strlen(password_path) - strlen(PASSWORD_FILE) - 1);
+
+	// Check if directory has an object representation
+	if ( sql_get_text_field(db,
+			"SELECT OBJECT_ID from OBJECTS o left join DETAILS d on (d.ID = o.DETAIL_ID)"
+			" where d.PATH = '%q' and REF_ID is NULL", head.path) )
+	{
+		// Check if password changed
+		char *db_password = sql_get_text_field(db,
+			"SELECT PASSWORD from OBJECTS o left join DETAILS d on (d.ID = o.DETAIL_ID)"
+			" where d.PATH = '%q' and REF_ID is NULL", head.path);
+		if ( db_password == NULL && password == NULL )
+		{
+			DPRINTF(E_DEBUG, L_PASSWORD, "Directory: %s, password is the same\n", head.path);
+			goto clear;
+		}
+		if ( db_password != NULL && password != NULL && strcmp(db_password, password) == 0 )
+		{
+			DPRINTF(E_DEBUG, L_PASSWORD, "Directory: %s, password is the same\n", head.path);
+			goto clear;
+		}
+	}
+	// Check if directory exists in db
+	else if (sql_get_text_field(db,
+		"SELECT ID from DETAILS where PATH = '%q'", head.path) == NULL )
+	{
+		DPRINTF(E_DEBUG, L_PASSWORD, "Directory: %s, isn't present in DB\n", head.path);
+		goto clear;
+	}
+
+	// When password is null look for a password file in an upper directory
+	if( password == NULL )
+	{
+		char path[PATH_MAX], *dirpath = path;
+		if((password = malloc(PASSWORD_ARRAY_LEN)) == NULL )
+		{
+			error = -1;
+			goto clear;
+		}
+
+		password[0] = '\0';
+		strcpy(dirpath, head.path);
+		while ( password[0] == '\0' &&
+		        sql_get_text_field(db, "SELECT ID from DETAILS where PATH = '%q'",
+		                           (dirpath = dirname(dirpath))) != NULL )
+		{
+			char password_path[PATH_MAX];
+			int length = snprintf(password_path, PATH_MAX, "%s/"PASSWORD_FILE, dirpath);
+			if ( length > 0 && length < PATH_MAX && access(password_path, 0) == 0 )
+				readPassword(password_path, password, PASSWORD_ARRAY_LEN);
+
+			// Stop on root directory
+			if (dirpath[0] == '/' && dirpath[1] == '\0')
+				break;
+		}
+
+		if ( password[0] == '\0' )
+		{
+			free(password);
+			password = NULL;
+		}
+	}
+
+	DPRINTF(E_DEBUG, L_PASSWORD, "Directory: %s, new password: %s\n",
+			head.path, password == NULL ? "(null)" : password);
+
+	// Populate diretory list
+	while ( current != NULL )
+	{
+		DIR* srcdir = opendir(current->path);
+		struct dirent* dent;
+
+		if (srcdir == NULL)
+			continue;
+
+		while( (dent = readdir(srcdir)) != NULL )
+		{
+			int length;
+			char password_path[PATH_MAX];
+			struct stat st;
+
+			// Ignore current and previous directory entries
+			if( dent->d_name[0] == '\0' || (dent->d_name[0] == '.' && (
+				dent->d_name[1] == '\0' || (dent->d_name[1] == '.' && dent->d_name[2] == '\0'))) )
+				continue;
+
+			if ( fstatat(dirfd(srcdir), dent->d_name, &st, 0) < 0 )
+				continue;
+
+			if ( !S_ISDIR(st.st_mode) )
+				continue;
+
+			// Ignore subdirectory that have a password file
+			length = snprintf(password_path, PATH_MAX, "%s/%s/"PASSWORD_FILE, current->path, dent->d_name);
+			if (length <= 0 || PATH_MAX <= length || access(password_path, 0) == 0 )
+				continue;
+
+			// Add subdirectory to list
+			tail->next = malloc(sizeof(node));
+			if( tail->next == NULL )
+			{
+				error = -1;
+				goto clear;
+			}
+
+			length = snprintf(tail->next->path, PATH_MAX, "%s/%s", current->path, dent->d_name);
+			if (length <= 0 || PATH_MAX <= length)
+			{
+				free(tail->next);
+				tail->next = NULL;
+				continue;
+			}
+
+			tail->next->next = NULL;
+			tail = tail->next;
+			DPRINTF(E_DEBUG, L_PASSWORD, "Propagate password change to subdirectory: %s\n", tail->path);
+		}
+		closedir(srcdir);
+		current = current->next;
+	}
+
+	current = &head;
+	while( current != NULL )
+	{
+		DPRINTF(E_DEBUG, L_PASSWORD, "Updating DB record for: %s\n", current->path);
+		// Update password for current directory
+		if( sql_exec(db, "UPDATE OBJECTS set PASSWORD = '%s' where DETAIL_ID in "
+		                 "(SELECT ID from DETAILS where PATH = '%s')", password, current->path) != SQLITE_OK )
+			DPRINTF(E_ERROR, L_DB_SQL, "Failed to update password for directory: %s!\n", current->path);
+		// Update password for all files in directory
+		else if (sql_exec(db, "UPDATE OBJECTS set PASSWORD = '%s' where DETAIL_ID in "
+		                      "( SELECT I FROM ( SELECT ID as I, substr(PATH, length('%s/') + 1)"
+		                      "   as P from DETAILS where PATH glob '%s/*' ) WHERE P NOT LIKE '%%/%%' ) "
+		                      "and CLASS != 'container.storageFolder'", password, current->path, current->path) != SQLITE_OK )
+			DPRINTF(E_ERROR, L_DB_SQL, "Failed to update password for files in directory: %s!\n", current->path);
+
+		current = current->next;
+	}
+
+	clear:
+		if ( password != NULL )
+			free(password);
+
+		while ( head.next != NULL )
+		{
+			current = head.next;
+			head.next = current->next;
+			free(current);
+		}
+
+	return error;
+}
+
 int
 monitor_remove_file(const char * path)
 {
@@ -357,9 +547,9 @@ monitor_insert_file(const char *name, const char *path)
 	char *id = NULL;
 	char video[PATH_MAX];
 	const char *tbl = "DETAILS";
-	char * dir_password = NULL;
-	char password_buf[11];
-	char file_password[11] = {0};
+	char *dir_password = NULL;
+	char password_buf[PASSWORD_ARRAY_LEN] = {0};
+	char file_password[PASSWORD_ARRAY_LEN] = {0};
 	char password_path[PATH_MAX];
 	int depth = 1;
 	int ts;
@@ -437,17 +627,25 @@ monitor_insert_file(const char *name, const char *path)
 			id = sql_get_text_field(db, "SELECT OBJECT_ID from OBJECTS o left join DETAILS d on (d.ID = o.DETAIL_ID)"
 			                            " where d.PATH = '%q' and REF_ID is NULL", parent_buf);
 
-			snprintf(password_path, PATH_MAX, "%s/.password", parent_buf);
-			if( access(password_path, 0) == 0 )
+			if( id )
 			{
-				readPassword(password_path, password_buf, 11);
-				dir_password = password_buf;
-			}
-			else if( id )
 				dir_password = sql_get_text_field(db, "select PASSWORD from OBJECTS where OBJECT_ID='%s'", id);
+				if ( dir_password != NULL && dir_password[0] == '\0' )
+					dir_password = NULL;
+			}
+			else // Only relevant for root directory
+			{
+				snprintf(password_path, PATH_MAX, "%s/"PASSWORD_FILE, parent_buf);
+				if( access(password_path, 0) == 0 )
+				{
+					readPassword(password_path, password_buf, PASSWORD_ARRAY_LEN);
+					if ( password_buf[0] != '\0' )
+						dir_password = password_buf;
+				}
+			}
 
 			// Save first directory password seen as file password
-			if (dir_password != NULL && file_password[0] == '\0');
+			if ( dir_password != NULL && file_password[0] == '\0' )
 				strcpy(file_password, dir_password);
 
 			if( id )
@@ -709,13 +907,17 @@ start_inotify(void)
 			struct inotify_event * event = (struct inotify_event *) &buffer[i];
 			if( event->len )
 			{
+				snprintf(path_buf, sizeof(path_buf), "%s/%s", get_path_from_wd(event->wd), event->name);
 				if( *(event->name) == '.' )
 				{
+					// Handle password file changes
+					if ( strcmp(event->name, PASSWORD_FILE) == 0 )
+						if (update_password(path_buf) != 0)
+							DPRINTF(E_ERROR, L_PASSWORD,  "Failed to update password.\n");
 					i += EVENT_SIZE + event->len;
 					continue;
 				}
 				esc_name = modifyString(strdup(event->name), "&", "&amp;amp;", 0);
-				snprintf(path_buf, sizeof(path_buf), "%s/%s", get_path_from_wd(event->wd), event->name);
 				if ( event->mask & IN_ISDIR && (event->mask & (IN_CREATE|IN_MOVED_TO)) )
 				{
 					DPRINTF(E_DEBUG, L_INOTIFY,  "The directory %s was %s.\n",

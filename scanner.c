@@ -769,7 +769,7 @@ ScanDirectory(const char *dir, const char *parent, media_types dir_types, const 
 	int i, n, startID = 0;
 	char *full_path;
 	char *name = NULL;
-	char password[11];
+	char password[PASSWORD_ARRAY_LEN];
 	static long long unsigned int fileno = 0;
 	enum file_types type;
 
@@ -822,9 +822,9 @@ ScanDirectory(const char *dir, const char *parent, media_types dir_types, const 
 		startID = get_next_available_id("OBJECTS", BROWSEDIR_ID);
 	}
 
-	snprintf(full_path, PATH_MAX, "%s/.password", dir);
+	snprintf(full_path, PATH_MAX, "%s/"PASSWORD_FILE, dir);
 	if (access(full_path, 0) == 0) {
-	    readPassword(full_path, password, 11);
+	    readPassword(full_path, password, PASSWORD_ARRAY_LEN);
 	} else {
 	    strcpy(password, currentPassword);
 	}

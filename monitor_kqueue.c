@@ -64,6 +64,10 @@ dir_vnode_process(struct event *ev, u_int fflags)
 	wt = (struct watch *)ev->data;
 	path = wt->path;
 
+	// Handle password file changes
+	if ( strcmp(path + strlen(path) - strlen(PASSWORD_FILE), PASSWORD_FILE) == 0 )
+		update_password(path);
+
 	if (fflags & NOTE_DELETE) {
 		DPRINTF(E_DEBUG, L_INOTIFY, "Path [%s] deleted.\n", path);
 		close(ev->fd);
