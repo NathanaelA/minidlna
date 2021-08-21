@@ -66,7 +66,8 @@ dir_vnode_process(struct event *ev, u_int fflags)
 
 	// Handle password file changes
 	if ( strcmp(path + strlen(path) - strlen(PASSWORD_FILE), PASSWORD_FILE) == 0 )
-		update_password(path);
+		if (update_password(path) != 0)
+			DPRINTF(E_ERROR, L_PASSWORD,  "Failed to update password.\n");
 
 	if (fflags & NOTE_DELETE) {
 		DPRINTF(E_DEBUG, L_INOTIFY, "Path [%s] deleted.\n", path);
