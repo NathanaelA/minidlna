@@ -1569,40 +1569,42 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 	}
 	else
 	{
-	  if (isPasswd) {
+		if (isPasswd) {
 			DPRINTF(E_INFO, L_PASSWORD, "Is Password %s\n", ObjectID);
 			createPasswordContainer(&args, ObjectID, 0);
 			totalMatches = args.returned;
-		    if (h->req_client) {
+			if (h->req_client) {
 				DPRINTF(E_INFO, L_PASSWORD, "Passwords %s\n", args.password);
 				h->req_client->password = args.password;
 			}
-	  } else {
-		magic = check_magic_container(ObjectID, args.flags);
-		if (magic)
-		{
-			if (magic->objectid && *(magic->objectid))
-				ObjectID = *(magic->objectid);
-			if (magic->objectid_sql)
-				objectid_sql = magic->objectid_sql;
-			if (magic->parentid_sql)
-				parentid_sql = magic->parentid_sql;
-			if (magic->refid_sql)
-				refid_sql = magic->refid_sql;
-			if (magic->where)
-				strncpyt(where, magic->where, sizeof(where));
-			if (magic->orderby && !GETFLAG(DLNA_STRICT_MASK))
-				orderBy = strdup(magic->orderby);
-			if (magic->max_count > 0)
-			{
-				int limit = MAX(magic->max_count - StartingIndex, 0);
-				ret = get_child_count(ObjectID, magic, args.password);
-				totalMatches = MIN(ret, limit);
-				if (RequestedCount > limit || RequestedCount < 0)
-					RequestedCount = limit;
-			}
 		}
-		if (!where[0]) {
+		else
+		{
+			magic = check_magic_container(ObjectID, args.flags);
+			if (magic)
+			{
+				if (magic->objectid && *(magic->objectid))
+					ObjectID = *(magic->objectid);
+				if (magic->objectid_sql)
+					objectid_sql = magic->objectid_sql;
+				if (magic->parentid_sql)
+					parentid_sql = magic->parentid_sql;
+				if (magic->refid_sql)
+					refid_sql = magic->refid_sql;
+				if (magic->where)
+					strncpyt(where, magic->where, sizeof(where));
+				if (magic->orderby && !GETFLAG(DLNA_STRICT_MASK))
+					orderBy = strdup(magic->orderby);
+				if (magic->max_count > 0)
+				{
+					int limit = MAX(magic->max_count - StartingIndex, 0);
+					ret = get_child_count(ObjectID, magic, args.password);
+					totalMatches = MIN(ret, limit);
+					if (RequestedCount > limit || RequestedCount < 0)
+						RequestedCount = limit;
+				}
+			}
+			if (!where[0]) {
 				if (strcmp(ObjectID, "0") == 0 || strcmp(ObjectID, MUSIC_ID) == 0 || strcmp(ObjectID, BROWSEDIR_ID) == 0 ||
 				    strcmp(ObjectID, VIDEO_ID) == 0 || strcmp(ObjectID, IMAGE_ID) == 0) {
 					createPasswordPrimaryContainer(&args, ObjectID);
@@ -1610,77 +1612,61 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 				}
 
 				sqlite3_snprintf(sizeof(where), where, "PARENT_ID = '%q'", ObjectID);
-		}
-
-		if (!totalMatches) {
-        				totalMatches = get_child_count(ObjectID, magic, args.password) + AddedPasswordContainer;
-        }
-
-		ret = 0;
-		if (SortCriteria && !orderBy)
-		{
-			__SORT_LIMIT
-			orderBy = parse_sort_criteria(SortCriteria, &ret);
-		}
-		else if (!orderBy)
-		{
-			if( strncmp(ObjectID, MUSIC_PLIST_ID, strlen(MUSIC_PLIST_ID)) == 0 )
-			{
-				if( strcmp(ObjectID, MUSIC_PLIST_ID) == 0 )
-					ret = xasprintf(&orderBy, "order by d.TITLE");
-				else
-					ret = xasprintf(&orderBy, "order by length(OBJECT_ID), OBJECT_ID");
 			}
-			else if( args.flags & FLAG_FORCE_SORT )
+
+			if (!totalMatches)
+				totalMatches = get_child_count(ObjectID, magic, args.password) + AddedPasswordContainer;
+			ret = 0;
+			if (SortCriteria && !orderBy)
 			{
 				__SORT_LIMIT
-				ret = xasprintf(&orderBy, "order by o.CLASS, d.DISC, d.TRACK, d.TITLE");
-			}
-			/* LG TV ordering bug */
-			else if( args.client == ELGDevice )
-				ret = xasprintf(&orderBy, "order by o.CLASS, d.TITLE");
-			else
 				orderBy = parse_sort_criteria(SortCriteria, &ret);
-			if( ret == -1 )
-			{
-				free(orderBy);
-				orderBy = NULL;
-				ret = 0;
 			}
-        }
+			else if (!orderBy)
+			{
+				if( strncmp(ObjectID, MUSIC_PLIST_ID, strlen(MUSIC_PLIST_ID)) == 0 )
+				{
+					if( strcmp(ObjectID, MUSIC_PLIST_ID) == 0 )
+						ret = xasprintf(&orderBy, "order by d.TITLE");
+					else
+						ret = xasprintf(&orderBy, "order by length(OBJECT_ID), OBJECT_ID");
+				}
+				else if( args.flags & FLAG_FORCE_SORT )
+				{
+					__SORT_LIMIT
+					ret = xasprintf(&orderBy, "order by o.CLASS, d.DISC, d.TRACK, d.TITLE");
+				}
+				/* LG TV ordering bug */
+				else if( args.client == ELGDevice )
+					ret = xasprintf(&orderBy, "order by o.CLASS, d.TITLE");
+				else
+					orderBy = parse_sort_criteria(SortCriteria, &ret);
+				if( ret == -1 )
+				{
+					free(orderBy);
+					orderBy = NULL;
+					ret = 0;
+				}
+			}
 			/* If it's a DLNA client, return an error for bad sort criteria */
-            if( ret < 0 && ((args.flags & FLAG_DLNA) || GETFLAG(DLNA_STRICT_MASK)) )
-            {
-            			SoapError(h, 709, "Unsupported or invalid sort criteria");
-            			goto browse_error;
-            }
+			if( ret < 0 && ((args.flags & FLAG_DLNA) || GETFLAG(DLNA_STRICT_MASK)) )
+			{
+				SoapError(h, 709, "Unsupported or invalid sort criteria");
+				goto browse_error;
+			}
 
 			sql = sqlite3_mprintf("SELECT %s, %s, %s, " COLUMNS
-		              "from OBJECTS o left join DETAILS d on (d.ID = o.DETAIL_ID)"
+				      "from OBJECTS o left join DETAILS d on (d.ID = o.DETAIL_ID)"
 				      " where (%s and (o.password is null or o.password = '' or o.password in (%s))) %s limit %d, %d;",
 				      objectid_sql, parentid_sql, refid_sql,
- 				      where, args.password ? args.password : "''", THISORNUL(orderBy), StartingIndex, RequestedCount);
+				      where, args.password ? args.password : "''", THISORNUL(orderBy), StartingIndex, RequestedCount);
 			DPRINTF(E_DEBUG, L_HTTP, "Browse SQL: %s\n", sql);
 			ret = sqlite3_exec(db, sql, callback, (void *) &args, &zErrMsg);
 		}
 	}
-	if (!isPasswd) {
-		if( (ret != SQLITE_OK) && (zErrMsg != NULL) )
-		{
-			DPRINTF(E_WARN, L_HTTP, "SQL error: %s\nBAD SQL: %s\n", zErrMsg, sql);
-			sqlite3_free(zErrMsg);
-			SoapError(h, 709, "Unsupported or invalid sort criteria");
-			goto browse_error;
-		}
 
-		sql = sqlite3_mprintf("SELECT %s, %s, %s, " COLUMNS
-				      "from OBJECTS o left join DETAILS d on (d.ID = o.DETAIL_ID)"
-				      " where %s %s limit %d, %d;",
-				      objectid_sql, parentid_sql, refid_sql,
-				      where, THISORNUL(orderBy), StartingIndex, RequestedCount);
-		DPRINTF(E_DEBUG, L_HTTP, "Browse SQL: %s\n", sql);
-		ret = sqlite3_exec(db, sql, callback, (void *) &args, &zErrMsg);
-		
+	if (!isPasswd)
+	{
 		if( ret != SQLITE_OK )
 		{
 			if( args.flags & RESPONSE_TRUNCATED )
@@ -1695,7 +1681,9 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 				goto browse_error;
 			}
 		}
+
 		sqlite3_free(sql);
+
 		/* Does the object even exist? */
 		if( !totalMatches )
 		{
@@ -1706,7 +1694,6 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 			}
 		}
 	}
-	
 
 	ret = strcatf(&str, "&lt;/DIDL-Lite&gt;</Result>\n"
 	                    "<NumberReturned>%u</NumberReturned>\n"
