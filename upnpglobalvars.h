@@ -245,4 +245,8 @@ extern volatile short int quitting;
 extern volatile uint32_t updateID;
 extern const char *force_sort_criteria;
 
+/* password */
+#define PASSWORD_FILE ".password"
+#define PASSWORD_ARRAY_LEN 11
+
 #endif
