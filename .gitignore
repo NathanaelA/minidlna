@@ -42,3 +42,4 @@ stamp-h1
 config.h.in~
 tagutils/.dirstamp
 /linux/minidlna.init.d.script
+/po/minidlna.pot
