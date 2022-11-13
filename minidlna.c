@@ -524,7 +524,7 @@ static void init_nls(void)
 	if (!messages)
 		messages = "unset";
 	locale_dir = bindtextdomain("minidlna", getenv("TEXTDOMAINDIR"));
-	DPRINTF(E_DEBUG, L_GENERAL, "Using locale dir '%s' and locale langauge %s/%s\n", locale_dir, messages, ctype);
+	DPRINTF(E_DEBUG, L_GENERAL, "Using locale dir '%s' and locale language %s/%s\n", locale_dir, messages, ctype);
 	textdomain("minidlna");
 #endif
 }

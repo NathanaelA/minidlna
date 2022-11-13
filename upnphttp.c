@@ -556,7 +556,7 @@ Send500(struct upnphttp * h)
 		"<BODY><H1>Internal Server Error</H1>Server encountered "
 		"and Internal Error.</BODY></HTML>\r\n";
 	h->respflags = FLAG_HTML;
-	BuildResp2_upnphttp(h, 500, "Internal Server Errror",
+	BuildResp2_upnphttp(h, 500, "Internal Server Error",
 	                    body500, sizeof(body500) - 1);
 	SendResp_upnphttp(h);
 	CloseSocket_upnphttp(h);
