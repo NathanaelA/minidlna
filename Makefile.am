@@ -36,6 +36,10 @@ else
 minidlnad_SOURCES += select.c
 endif
 
+if HAVE_INOTIFY
+minidlnad_SOURCES += monitor_inotify.c
+endif
+
 if HAVE_VORBISFILE
 vorbislibs = -lvorbis -logg
 else

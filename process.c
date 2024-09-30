@@ -123,7 +123,8 @@ process_handle_child_termination(int signal)
 			else
 				break;
 		}
-		if(number_of_children) number_of_children--;
+		if(number_of_children)
+			number_of_children--;
 		remove_process_info(pid);
 	}
 }
@@ -152,7 +153,7 @@ process_daemonize(void)
 			}
 
 			/* close all descriptors */
-			for (i=getdtablesize();i>=0;--i) close(i);		
+			for (i=getdtablesize();i>=0;--i) close(i);
 
 			i = open("/dev/null",O_RDWR); /* open stdin */
 			dup(i); /* stdout */
