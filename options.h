@@ -65,7 +65,7 @@ enum upnpconfigoptions {
 	ENABLE_THUMB,                   /* enable thumbnail generation */
 	THUMB_WIDTH,                    /* thunbnail image with */
 	THUMB_QUALITY,                  /* thumnail image quality */
-	ENABLE_THUMB_FILMSTRIP          /* film strip overlay */
+	ENABLE_THUMB_FILMSTRIP,          /* film strip overlay */
 #endif
 	PASSWORD_LENGTH			/* Password */
 };
@@ -76,7 +76,7 @@ enum upnpconfigoptions {
 int
 readoptionsfile(const char * fname);
 
-/* freeoptions() 
+/* freeoptions()
  * frees memory allocated to option values */
 void
 freeoptions(void);

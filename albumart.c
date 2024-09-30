@@ -90,7 +90,7 @@ save_resized_album_art(image_s *imsrc, const char *path)
 
 	cache_file = image_save_to_jpeg_file(imdst, cache_file);
 	image_free(imdst);
-	
+
 	return cache_file;
 }
 
@@ -374,7 +374,9 @@ generate_thumbnail(const char * path)
 		}
 		vt->thumbnail_image_type = Jpeg;
 		vt->thumbnail_image_quality = runtime_vars.thumb_quality;
-		vt->thumbnail_size = runtime_vars.thumb_width;
+
+		video_thumbnailer_set_size(vt, runtime_vars.thumb_width, 0);
+
 		vt->seek_percentage = 20;
 		vt->overlay_film_strip = (GETFLAG(THUMB_FILMSTRIP))?1:0;
 

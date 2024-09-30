@@ -44,7 +44,7 @@
 
 time_t next_pl_fill = 0;
 
-static int
+int
 update_password(const char *password_path)
 {
 	typedef struct _node

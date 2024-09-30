@@ -3,7 +3,7 @@ int monitor_insert_directory(int fd, char *name, const char * path);
 int monitor_remove_file(const char * path);
 int monitor_remove_tree(const char * path);
 int monitor_remove_directory(int fd, const char * path);
-int update_password(const char *password_path)
+int update_password(const char *password_path);
 
 #if defined(HAVE_INOTIFY) || defined(HAVE_KQUEUE)
 #define	HAVE_WATCH 1
