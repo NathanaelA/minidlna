@@ -819,7 +819,7 @@ get_child_count(const char *object, struct magic_container_s *magic, const char 
 	} else if (magic && magic->objectid && *(magic->objectid)) {
 		ret = sql_get_int_field(db, "SELECT count(*) from OBJECTS where PARENT_ID = '%s' and (password is null or password = '' or password in (%s));", *(magic->objectid), password ? password : "''");
 	} else {
-		ret = sql_get_int_field(db, "SELECT count(*) from OBJECTS where PARENT_ID = '%q' and (password is null or password = '' or password in (%s));", object, password ? password : "''");
+		ret = sql_get_int_field(db, "SELECT count(*) from OBJECTS where PARENT_ID = '%s' and (password is null or password = '' or password in (%s));", object, password ? password : "''");
 	}
 
 	return (ret > 0) ? ret : 0;

@@ -2,7 +2,7 @@
 
 (c) 2009 Justin Maggard   
 Portions (c) 2006-2007, Thomas Bernard \
-Portions (c) 2015-2021, Nathanael Anderson
+Portions (c) 2015-2024, Nathanael Anderson
 
 Main webpage: http://sourceforge.net/projects/minidlna/ \
 Additional Patches & Password version repo: https://github.com/nathanaela/minidlna
@@ -12,7 +12,7 @@ Please note the MAIN MiniDLNA repo's does NOT have any of these changes, that is
 ### Password Support Information
 In addition to the extra password support, we also pull in select patches and PR's from the main repo to fix bugs in this repo to make the most bug free experience.
 
-We are currently using v1.3.0 of the main repo as the base.
+We are currently using v1.3.3 of the main repo as the base.
 
 See https://github.com/nathanaela/minidlna/blob/master/NEWS for changes
 See https://github.com/nathanaela/minidlna/blob/master/README.PASSWORD for Password documentation

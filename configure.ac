@@ -14,7 +14,7 @@
 # License along with MiniDLNA; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 # USA.
-AC_INIT([MiniDLNA],[1.3.3],[],[minidlna],[http://sourceforge.net/projects/minidlna/])
+AC_INIT([MiniDLNA],[1.3.3.1],[],[minidlna],[http://sourceforge.net/projects/minidlna/])
 #LT_INIT
 
 AC_CANONICAL_TARGET
