@@ -189,7 +189,7 @@ ProcessListen(struct event *ev)
 	}
 }
 
-/* Handler for the SIGTERM signal (kill) 
+/* Handler for the SIGTERM signal (kill)
  * SIGINT is also handled */
 static void
 sigterm(int sig)
@@ -427,6 +427,7 @@ rescan:
 		else if (*scanner_pid < 0)
 		{
 			start_scanner();
+			sqlite3_close(db);
 		}
 		else
 			SETFLAG(SCANNING_MASK);
@@ -474,7 +475,7 @@ writepidfile(const char *fname, int pid, uid_t uid)
 					dir, strerror(errno));
 		}
 	}
-	
+
 	pidfile = fopen(fname, "w");
 	if (!pidfile)
 	{
@@ -485,7 +486,7 @@ writepidfile(const char *fname, int pid, uid_t uid)
 
 	if (fprintf(pidfile, "%d\n", pid) <= 0)
 	{
-		DPRINTF(E_ERROR, L_GENERAL, 
+		DPRINTF(E_ERROR, L_GENERAL,
 			"Unable to write to pidfile %s: %s\n", fname, strerror(errno));
 		ret = -1;
 	}
@@ -582,7 +583,7 @@ init(int argc, char **argv)
 	snprintf(uuidvalue+5, UUIDVALUE_MAX_LEN-5, "4d696e69-444c-164e-9d41-%s", mac_str);
 
 	getfriendlyname(friendly_name, FRIENDLYNAME_MAX_LEN);
-	
+
 	runtime_vars.port = 8200;
 	runtime_vars.notify_interval = 895;	/* seconds between SSDP announces */
 	runtime_vars.max_connections = 50;
@@ -634,7 +635,7 @@ init(int argc, char **argv)
 			break;
 		case UPNPSERIAL:
 			strncpyt(serialnumber, ary_options[i].value, SERIALNUMBER_MAX_LEN);
-			break;				
+			break;
 		case UPNPMODEL_NAME:
 			strncpyt(modelname, ary_options[i].value, MODELNAME_MAX_LEN);
 			break;
@@ -1359,7 +1360,7 @@ shutdown:
 #endif
 	if (smonitor >= 0)
 		close(smonitor);
-	
+
 	for (i = 0; i < n_lan_addr; i++)
 	{
 		SendSSDPGoodbyes(lan_addr[i].snotify);
