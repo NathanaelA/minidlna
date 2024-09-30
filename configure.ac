@@ -642,6 +642,21 @@ AC_ARG_ENABLE(lto,
         ]
 )
 
+AC_ARG_ENABLE(thumbnail,
+	[  --enable-thumbnail       enable video thumbnail generation using libffmpegthumbnailer],[
+	if test "$enableval" = "yes"; then
+		AC_DEFINE([THUMBNAIL_CREATION],[1],[Define to 1 if you want to enable video thumbnail generation])
+		PKG_CHECK_MODULES([LIBFFMPEGTHUMBNAILER], libffmpegthumbnailer, ,
+			AC_MSG_ERROR([Unable to find libffmpegthumbnailer]))
+		AC_SUBST([LIBFFMPEGTHUMBNAILER_CFLAGS])
+		AC_SUBST([LIBFFMPEGTHUMBNAILER_LIBS])
+        else
+                AC_MSG_RESULT([no])
+        fi
+        ],[
+                AC_MSG_RESULT([no])
+        ]
+)
 
 case "$target_os" in
 	darwin*)

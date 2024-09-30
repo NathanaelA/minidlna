@@ -61,6 +61,12 @@ enum upnpconfigoptions {
 	WIDE_LINKS,			/* allow following symlinks outside the defined media_dirs */
 	TIVO_DISCOVERY,			/* TiVo discovery protocol: bonjour or beacon. Defaults to bonjour if supported */
 	ENABLE_SUBTITLES,		/* Enable generic subtitle support for all clients by default */
+#ifdef THUMBNAIL_CREATION
+	ENABLE_THUMB,                   /* enable thumbnail generation */
+	THUMB_WIDTH,                    /* thunbnail image with */
+	THUMB_QUALITY,                  /* thumnail image quality */
+	ENABLE_THUMB_FILMSTRIP          /* film strip overlay */
+#endif
 	PASSWORD_LENGTH			/* Password */
 };
 

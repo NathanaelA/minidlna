@@ -590,6 +590,11 @@ init(int argc, char **argv)
 	runtime_vars.ifaces[0] = NULL;
 	runtime_vars.password_length = 4;
 
+#ifdef THUMBNAIL_CREATION
+	runtime_vars.thumb_width = 160;
+	runtime_vars.thumb_quality = 8;
+#endif
+
 	/* read options file first since
 	 * command line arguments have final say */
 	if (readoptionsfile(optionsfile) < 0)
@@ -818,6 +823,30 @@ init(int argc, char **argv)
 			if (!strtobool(ary_options[i].value))
 				CLEARFLAG(SUBTITLES_MASK);
 			break;
+#ifdef THUMBNAIL_CREATION
+		case ENABLE_THUMB:
+			if( (strcmp(ary_options[i].value, "yes") == 0) || atoi(ary_options[i].value) )
+				SETFLAG(THUMB_MASK);
+		break;
+		case THUMB_WIDTH:
+			runtime_vars.thumb_width = atoi(ary_options[i].value);
+			if (runtime_vars.thumb_width < 120)
+				runtime_vars.thumb_width = 120;
+			if (runtime_vars.thumb_width > 480)
+				runtime_vars.thumb_width = 480;
+			break;
+		case THUMB_QUALITY:
+			runtime_vars.thumb_quality = atoi(ary_options[i].value);
+			if (runtime_vars.thumb_quality < 5)
+				runtime_vars.thumb_quality = 5;
+			if (runtime_vars.thumb_quality > 30)
+				runtime_vars.thumb_quality = 30;
+		break;
+		case ENABLE_THUMB_FILMSTRIP:
+			if( (strcmp(ary_options[i].value, "yes") == 0) || atoi(ary_options[i].value) )
+				SETFLAG(THUMB_FILMSTRIP);
+		break;
+#endif
 		default:
 			DPRINTF(E_ERROR, L_GENERAL, "Unknown option in file %s\n",
 				optionsfile);

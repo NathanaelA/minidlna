@@ -208,6 +208,11 @@ extern uint32_t runtime_flags;
 #define SUBTITLES_MASK        0x0400
 #define FORCE_ALPHASORT_MASK  0x0800
 
+#ifdef THUMBNAIL_CREATION
+#define THUMB_MASK            0x1000
+#define THUMB_FILMSTRIP       0x2000
+#endif
+
 #define SETFLAG(mask)	runtime_flags |= mask
 #define GETFLAG(mask)	(runtime_flags & mask)
 #define CLEARFLAG(mask)	runtime_flags &= ~mask
