@@ -14,11 +14,11 @@
 # License along with MiniDLNA; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 # USA.
-AC_INIT(MiniDLNA,1.3.0.2,,minidlna)
+AC_INIT([MiniDLNA],[1.3.3],[],[minidlna],[http://sourceforge.net/projects/minidlna/])
 #LT_INIT
 
 AC_CANONICAL_TARGET
-AM_INIT_AUTOMAKE([subdir-objects])
+AM_INIT_AUTOMAKE([-Wall subdir-objects])
 AC_CONFIG_HEADERS([config.h])
 AM_SILENT_RULES([yes])
 
@@ -28,7 +28,7 @@ m4_ifdef([AC_USE_SYSTEM_EXTENSIONS], [AC_USE_SYSTEM_EXTENSIONS])
 
 AM_ICONV
 AM_GNU_GETTEXT([external])
-AM_GNU_GETTEXT_VERSION(0.18)
+AM_GNU_GETTEXT_REQUIRE_VERSION(0.18)
 
 # Checks for programs.
 AC_PROG_AWK
@@ -75,21 +75,21 @@ AC_SEARCH_LIBS([clock_gettime], [rt], [AC_DEFINE([HAVE_CLOCK_GETTIME], [1], [use
 # Check for struct ip_mreqn
 #
 AC_MSG_CHECKING(for struct ip_mreqn)
-AC_TRY_COMPILE([#include <netinet/in.h>], [
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <netinet/in.h>]], [[
     struct ip_mreqn mreq;
     mreq.imr_address.s_addr = 0;
-], [
+]])],[
     # Yes, we have it...
     AC_MSG_RESULT(yes)
     AC_DEFINE([HAVE_STRUCT_IP_MREQN],[],[Support for struct ip_mreqn])
-], [
+],[
     # We'll just have to try and use struct ip_mreq
     AC_MSG_RESULT(no)
     AC_MSG_CHECKING(for struct ip_mreq)
-    AC_TRY_COMPILE([#include <netinet/in.h>], [
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <netinet/in.h>]], [[
         struct ip_mreq mreq;
         mreq.imr_interface.s_addr = 0;
-    ], [
+]])], [
         # Yes, we have it...
         AC_MSG_RESULT(yes)
         AC_DEFINE([HAVE_STRUCT_IP_MREQ],[],[Support for struct ip_mreq])
@@ -269,7 +269,7 @@ AC_COMPILE_IFELSE(
          ]
      )],
      [
-         AC_DEFINE([USE_DAEMON], [1], 
+         AC_DEFINE([USE_DAEMON], [1],
                    [use the system's builtin daemon()])
          AC_MSG_RESULT([yes])
      ],
@@ -296,7 +296,7 @@ AC_COMPILE_IFELSE(
          AC_MSG_RESULT([no])
      ],
      [
-         AC_DEFINE([SCANDIR_CONST], [1], 
+         AC_DEFINE([SCANDIR_CONST], [1],
                    [scandir needs const char cast])
 
          AC_MSG_RESULT([yes])
@@ -403,7 +403,7 @@ for dir in "" /usr/local $SEARCH_DIR; do
     AC_CHECK_LIB([exif], [exif_data_new_from_file], [LIBEXIF_LIBS="-lexif"], [unset ac_cv_lib_exif_exif_data_new_from_file; LDFLAGS="$LDFLAGS_SAVE"; continue])
     break
 done
-test x"$ac_cv_lib_jpeg_jpeg_set_defaults" = x"yes" || AC_MSG_ERROR([Could not find libexif])
+test x"$ac_cv_lib_exif_exif_data_new_from_file" = x"yes" || AC_MSG_ERROR([Could not find libexif])
 AC_SUBST(LIBEXIF_LIBS)
 
 LDFLAGS_SAVE="$LDFLAGS"
@@ -414,7 +414,10 @@ for dir in "" /usr/local $SEARCH_DIR; do
     AC_CHECK_LIB([id3tag -lz], [id3_file_open], [LIBID3TAG_LIBS="-lid3tag -lz"], [unset ac_cv_lib_id3tag_id3_file_open; LDFLAGS="$LDFLAGS_SAVE"; continue])
     break
 done
-test x"$ac_cv_lib_id3tag__lz___id3_file_open" = x"yes" || AC_MSG_ERROR([Could not find libid3tag])
+if test x"$ac_cv_lib_id3tag__lz___id3_file_open" != x"yes" &&
+   test x"$ac_cv_lib_id3tag__lz_id3_file_open" != x"yes"; then
+   AC_MSG_ERROR([Could not find libid3tag])
+fi
 AC_SUBST(LIBID3TAG_LIBS)
 
 LDFLAGS_SAVE="$LDFLAGS"
@@ -441,7 +444,8 @@ for dir in "" /usr/local $SEARCH_DIR; do
     break
 done
 if test x"$ac_cv_lib_avformat__lavcodec__lavutil__lz___av_open_input_file" != x"yes" &&
-   test x"$ac_cv_lib_avformat__lavcodec__lavutil__lz___avformat_open_input" != x"yes"; then
+   test x"$ac_cv_lib_avformat__lavcodec__lavutil__lz___avformat_open_input" != x"yes" &&
+   test x"$ac_cv_lib_avformat__lavcodec__lavutil__lz_avformat_open_input" != x"yes"; then
    AC_MSG_ERROR([Could not find libavformat - part of ffmpeg])
 fi
 AC_SUBST(LIBAVFORMAT_LIBS)
@@ -490,7 +494,12 @@ AC_CHECK_HEADERS([arpa/inet.h asm/unistd.h endian.h machine/endian.h fcntl.h lib
 test x"$ac_cv_header_poll_h" != x"yes" && AC_MSG_ERROR([poll.h not found or not usable])
 test x"$ac_cv_header_sys_queue_h" != x"yes" && AC_MSG_ERROR([sys/queue.h not found or not usable])
 
-AC_CHECK_FUNCS(inotify_init, AC_DEFINE(HAVE_INOTIFY,1,[Whether kernel has inotify support]), [
+AC_CHECK_FUNCS(inotify_init,
+[
+    AC_DEFINE(HAVE_INOTIFY,1,[Whether kernel has inotify support])
+    AM_CONDITIONAL(HAVE_INOTIFY, true)
+],
+[
     AC_MSG_CHECKING([for __NR_inotify_init syscall])
     AC_COMPILE_IFELSE(
          [AC_LANG_PROGRAM(
@@ -506,9 +515,11 @@ AC_CHECK_FUNCS(inotify_init, AC_DEFINE(HAVE_INOTIFY,1,[Whether kernel has inotif
          [
              AC_MSG_RESULT([yes])
              AC_DEFINE(HAVE_INOTIFY,1,[Whether kernel has inotify support])
+             AM_CONDITIONAL(HAVE_INOTIFY, true)
          ],
          [
              AC_MSG_RESULT([no])
+             AM_CONDITIONAL(HAVE_INOTIFY, false)
          ])
 ])
 
@@ -631,6 +642,21 @@ AC_ARG_ENABLE(lto,
         ]
 )
 
+AC_ARG_ENABLE(thumbnail,
+	[  --enable-thumbnail       enable video thumbnail generation using libffmpegthumbnailer],[
+	if test "$enableval" = "yes"; then
+		AC_DEFINE([THUMBNAIL_CREATION],[1],[Define to 1 if you want to enable video thumbnail generation])
+		PKG_CHECK_MODULES([LIBFFMPEGTHUMBNAILER], libffmpegthumbnailer, ,
+			AC_MSG_ERROR([Unable to find libffmpegthumbnailer]))
+		AC_SUBST([LIBFFMPEGTHUMBNAILER_CFLAGS])
+		AC_SUBST([LIBFFMPEGTHUMBNAILER_LIBS])
+        else
+                AC_MSG_RESULT([no])
+        fi
+        ],[
+                AC_MSG_RESULT([no])
+        ]
+)
 
 case "$target_os" in
 	darwin*)
@@ -658,6 +684,7 @@ case "$target_os" in
 esac
 
 
-AC_OUTPUT([ po/Makefile.in
+AC_CONFIG_FILES([ po/Makefile.in
 Makefile
 ])
+AC_OUTPUT

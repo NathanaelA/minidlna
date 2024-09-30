@@ -404,7 +404,9 @@ is_video(const char * file)
 #ifdef TIVO_SUPPORT
 		ends_with(file, ".TiVo") ||
 #endif
-		ends_with(file, ".mov") || ends_with(file, ".3gp"));
+		ends_with(file, ".mov") || ends_with(file, ".3gp") ||
+		ends_with(file, ".rm") || ends_with(file, ".rmvb") ||
+		ends_with(file, ".webm"));
 }
 
 int
@@ -574,3 +576,17 @@ timevalfix(struct timeval *t1)
 		t1->tv_usec -= 1000000;
 	}
 }
+
+#ifdef THUMBNAIL_CREATION
+int
+rename_artcache_dir(const char * oldpath, const char * newpath)
+{
+	char old_artcache[PATH_MAX];
+	char new_artcache[PATH_MAX];
+
+	snprintf(old_artcache, sizeof(old_artcache), "%s/art_cache%s", db_path, oldpath);
+	snprintf(new_artcache, sizeof(old_artcache), "%s/art_cache%s", db_path, newpath);
+
+	return rename(old_artcache, new_artcache);
+}
+#endif

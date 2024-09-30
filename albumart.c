@@ -32,6 +32,10 @@
 
 #include <jpeglib.h>
 
+#ifdef THUMBNAIL_CREATION
+#include <libffmpegthumbnailer/videothumbnailerc.h>
+#endif
+
 #include "upnpglobalvars.h"
 #include "albumart.h"
 #include "sql.h"
@@ -86,7 +90,7 @@ save_resized_album_art(image_s *imsrc, const char *path)
 
 	cache_file = image_save_to_jpeg_file(imdst, cache_file);
 	image_free(imdst);
-	
+
 	return cache_file;
 }
 
@@ -348,14 +352,70 @@ found_file:
 	return NULL;
 }
 
+#ifdef THUMBNAIL_CREATION
+char *
+generate_thumbnail(const char * path)
+{
+	char *tfile = NULL;
+	video_thumbnailer *vt = NULL;
+	char cache_dir[MAXPATHLEN];
+
+	if( art_cache_exists(path, &tfile) )
+		return tfile;
+
+	if ( is_video(path) )
+	{
+
+		vt = video_thumbnailer_create();
+		if ( !vt )
+		{
+			free(tfile);
+			return 0;
+		}
+		vt->thumbnail_image_type = Jpeg;
+		vt->thumbnail_image_quality = runtime_vars.thumb_quality;
+
+		video_thumbnailer_set_size(vt, runtime_vars.thumb_width, 0);
+
+		vt->seek_percentage = 20;
+		vt->overlay_film_strip = (GETFLAG(THUMB_FILMSTRIP))?1:0;
+
+		DPRINTF(E_DEBUG, L_METADATA, "generating thumbnail: %s\n", path);
+
+		strncpyt(cache_dir, tfile, sizeof(cache_dir));
+		if ( !make_dir(dirname(cache_dir), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH) &&
+			!video_thumbnailer_generate_thumbnail_to_file(vt, path, tfile) )
+		{
+			video_thumbnailer_destroy(vt);
+			return tfile;
+		}
+
+		video_thumbnailer_destroy(vt);
+	}
+	free(tfile);
+
+	return 0;
+}
+#endif
+
 int64_t
 find_album_art(const char *path, uint8_t *image_data, int image_size)
 {
 	char *album_art = NULL;
 	int64_t ret = 0;
 
-	if( (image_size && (album_art = check_embedded_art(path, image_data, image_size))) ||
-	    (album_art = check_for_album_file(path)) )
+	if(image_size)
+		album_art = check_embedded_art(path, image_data, image_size);
+
+	if(!album_art)
+		album_art = check_for_album_file(path);
+
+#ifdef THUMBNAIL_CREATION
+	if(!album_art && GETFLAG(THUMB_MASK))
+		album_art = generate_thumbnail(path);
+#endif
+
+	if(album_art)
 	{
 		ret = sql_get_int_field(db, "SELECT ID from ALBUM_ART where PATH = '%q'", album_art);
 		if( !ret )

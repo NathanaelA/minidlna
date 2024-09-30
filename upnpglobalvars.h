@@ -57,7 +57,7 @@
 
 #include <sqlite3.h>
 
-#define MINIDLNA_VERSION "1.3.0.1P"
+#define MINIDLNA_VERSION "1.3.3.1P"
 
 #ifdef NETGEAR
 # define SERVER_NAME "ReadyDLNA"
@@ -172,7 +172,10 @@
 	"http-get:*:audio/x-wav:*," \
 	"http-get:*:audio/x-flac:*," \
 	"http-get:*:audio/x-dsd:*," \
-	"http-get:*:application/ogg:*"
+	"http-get:*:application/ogg:*" \
+	"http-get:*:application/vnd.rn-realmedia:*" \
+	"http-get:*:application/vnd.rn-realmedia-vbr:*" \
+	"http-get:*:video/webm:*"
 
 #define DLNA_FLAG_DLNA_V1_5      0x00100000
 #define DLNA_FLAG_HTTP_STALLING  0x00200000
@@ -204,6 +207,11 @@ extern uint32_t runtime_flags;
 #define RESCAN_MASK           0x0200
 #define SUBTITLES_MASK        0x0400
 #define FORCE_ALPHASORT_MASK  0x0800
+
+#ifdef THUMBNAIL_CREATION
+#define THUMB_MASK            0x1000
+#define THUMB_FILMSTRIP       0x2000
+#endif
 
 #define SETFLAG(mask)	runtime_flags |= mask
 #define GETFLAG(mask)	(runtime_flags & mask)

@@ -46,7 +46,7 @@ msgstr "Muziek"
 
 #: scanner.c:535
 msgid "All Music"
-msgstr "Alle muziek bestanden"
+msgstr "Alle muziekbestanden"
 
 #: scanner.c:536
 msgid "Genre"
@@ -74,7 +74,7 @@ msgstr "Video"
 
 #: scanner.c:543
 msgid "All Video"
-msgstr "Alle video bestanden"
+msgstr "Alle videobestanden"
 
 #: scanner.c:546
 msgid "Pictures"
@@ -82,11 +82,11 @@ msgstr "Foto's"
 
 #: scanner.c:547
 msgid "All Pictures"
-msgstr "Alle foto bestanden"
+msgstr "Alle fotobestanden"
 
 #: scanner.c:548
 msgid "Date Taken"
-msgstr "Opname datum"
+msgstr "Opnamedatum"
 
 #: scanner.c:549
 msgid "Camera"
@@ -99,12 +99,12 @@ msgstr "Mappen doorzoeken"
 #: scanner.c:777
 #, c-format
 msgid "Scanning %s\n"
-msgstr "Zoeken %s\n"
+msgstr "%s aan het scannen\n"
 
 #: scanner.c:873
 #, c-format
 msgid "Scanning %s finished (%llu files)!\n"
-msgstr "Zoeken %s gereed (%llu files)!\n"
+msgstr "Scannen van %s gereed (%llu bestanden)!\n"
 
 #~ msgid "Recently Added"
 #~ msgstr "Recent toegevoegd"

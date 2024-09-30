@@ -36,6 +36,10 @@ else
 minidlnad_SOURCES += select.c
 endif
 
+if HAVE_INOTIFY
+minidlnad_SOURCES += monitor_inotify.c
+endif
+
 if HAVE_VORBISFILE
 vorbislibs = -lvorbis -logg
 else
@@ -58,7 +62,7 @@ minidlnad_LDADD = \
 	@LIBEXIF_LIBS@ \
 	@LIBINTL@ \
 	@LIBICONV@ \
-	-lFLAC $(flacogglibs) $(vorbislibs) $(avahilibs)
+	-lFLAC $(flacogglibs) $(vorbislibs) $(avahilibs)  @LIBFFMPEGTHUMBNAILER_LIBS@
 
 testupnpdescgen_SOURCES = testupnpdescgen.c upnpdescgen.c
 testupnpdescgen_LDADD = \
@@ -66,9 +70,8 @@ testupnpdescgen_LDADD = \
 	@LIBID3TAG_LIBS@ \
 	@LIBSQLITE3_LIBS@ \
 	@LIBAVFORMAT_LIBS@ \
-	@LIBAVUTIL_LIBS@ \
 	@LIBEXIF_LIBS@ \
-	-lFLAC $(flacogglibs) $(vorbislibs) $(avahilibs)
+	-lFLAC $(flacogglibs) $(vorbislibs) $(avahilibs) @LIBFFMPEGTHUMBNAILER_LIBS@
 
 SUFFIXES = .tmpl .
 
