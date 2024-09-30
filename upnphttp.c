@@ -915,15 +915,29 @@ ProcessHttpQuery_upnphttp(struct upnphttp * h)
 
 	DPRINTF(E_DEBUG, L_HTTP, "HTTP REQUEST: %.*s\n", h->req_buflen, h->req_buf);
 	if(h->req_Host && h->req_HostLen > 0) {
-		const char *ptr = h->req_Host;
+		const char *port = memchr(h->req_Host, ':', h->req_HostLen);
+		size_t ip_sz = port ? (port - h->req_Host) : h->req_HostLen;
+		struct in_addr addr;
+		char ip_buf[16];
 		DPRINTF(E_MAXDEBUG, L_HTTP, "Host: %.*s\n", h->req_HostLen, h->req_Host);
-		for(i = 0; i < h->req_HostLen; i++) {
-			if(*ptr != ':' && *ptr != '.' && (*ptr > '9' || *ptr < '0')) {
-				DPRINTF(E_ERROR, L_HTTP, "DNS rebinding attack suspected (Host: %.*s)", h->req_HostLen, h->req_Host);
-				Send404(h);/* 403 */
+		if (port) {
+			const char *ptr = port + 1;
+			for (i = ip_sz + 2; i < h->req_HostLen; i++) {
+				if (*ptr > '9' || *ptr < '0')
+					break;
+				ptr++;
+			}
+			if (i != h->req_HostLen || atoi(port + 1) > 65535) {
+				DPRINTF(E_ERROR, L_HTTP, "DNS rebinding attack suspected (Host: %.*s)\n", h->req_HostLen, h->req_Host);
+				Send400(h);
 				return;
 			}
-			ptr++;
+		}
+		strncpyt(ip_buf, h->req_Host, MIN(ip_sz + 1, sizeof(ip_buf)));
+		if (ip_sz >= sizeof(ip_buf) || inet_pton(AF_INET, ip_buf, &addr) <= 0 || !addr.s_addr) {
+			DPRINTF(E_ERROR, L_HTTP, "DNS rebinding attack suspected (Host: %.*s)\n", h->req_HostLen, h->req_Host);
+			Send400(h);
+			return;
 		}
 	}
 	if(strcmp("POST", HttpCommand) == 0)
@@ -1327,6 +1341,10 @@ send_file(struct upnphttp * h, int sendfd, off_t offset, off_t end_offset)
             {
             	break;  /* Premature end of file */
             }
+			else if( ret == 0 )
+			{
+				break;  /* Premature end of file */
+			}
 			else
 			{
 				//DPRINTF(E_DEBUG, L_HTTP, "sent %lld bytes to %d. offset is now %lld.\n", ret, h->socket, offset);
@@ -1350,6 +1368,10 @@ send_file(struct upnphttp * h, int sendfd, off_t offset, off_t end_offset)
         {
          	break;  /* premature end of file */
         }
+		else if( ret == 0 )
+		{
+			break;  /* premature end of file */
+		}
 		ret = write(h->ev.fd, buf, ret);
 		if( ret == -1 ) {
 			DPRINTF(E_DEBUG, L_HTTP, "write error :: error no. %d [%s]\n", errno, strerror(errno));
