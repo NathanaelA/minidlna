@@ -9,5 +9,5 @@ export BR2_EXTERNAL=$(realpath .)
 cd $BUILDROOT_DIR
 make O=output-readymedia defconfig BR2_DEFCONFIG=${BR2_DEFCONFIG}
 make O=output-readymedia
-echo -e "\n\nStatic binary built in $(realpath output/target/usr/sbin/minidlnad)"
-ls -lh $(realpath output/target/usr/sbin/minidlnad)
+echo -e "\n\nStatic binary built in $(realpath output-readymedia/target/usr/sbin/minidlnad)"
+ls -lh $(realpath output-readymedia/target/usr/sbin/minidlnad)
